@@ -3,7 +3,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
-from app import App, Img, build_graph
+from app import App, Correlation_Img, Presence_Img, SPARQLWrap
 from homepage import Homepage
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.UNITED])
@@ -19,18 +19,20 @@ app.layout = html.Div([
 def display_page(pathname):
     if pathname == '/time-series':
         return App()
-    if pathname == '/entry1':
-        return Img()
+    if pathname == '/correlation':
+        return Correlation_Img()
+    if pathname == '/presence':
+        return Presence_Img()
     else:
         return Homepage()
 
-@app.callback(
-    Output('output', 'children'),
-    [Input('pop_dropdown', 'value')]
-)
-def update_graph(city):
-    graph = build_graph(city)
-    return graph
+# @app.callback(
+#     Output('output', 'children'),
+#     [Input('pop_dropdown', 'value')]
+# )
+# def update_graph(city):
+#     graph = build_graph(city)
+#     return graph
 
 if __name__ == '__main__':
     app.run_server(debug=True)

@@ -10,8 +10,8 @@ def Navbar():
                  in_navbar=True,
                  label="Menu",
                  children=[
-                    dbc.DropdownMenuItem(dbc.NavLink("Entry 1", href="/entry1")),
-                    dbc.DropdownMenuItem("Entry 2"),
+                    dbc.DropdownMenuItem(dbc.NavLink("Heatmap Correlation", href="/correlation")),
+                    dbc.DropdownMenuItem("Presence", href="/presence"),
                     dbc.DropdownMenuItem(divider=True),
                     dbc.DropdownMenuItem("Entry 3"),
                           ],

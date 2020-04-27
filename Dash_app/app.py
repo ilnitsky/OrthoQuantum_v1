@@ -14,6 +14,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 import plotly.graph_objects as go
+import cStringIO
+import base64
+import os
 
 ## Navbar
 from navbar import Navbar
@@ -22,7 +25,7 @@ nav = Navbar()
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
-taxonomy_level = "Eukaryota"
+taxonomy_level = "Vertebrata"
 
     #Create organisms list
 with open(taxonomy_level + ".txt") as organisms_list:
@@ -31,7 +34,7 @@ organisms = [x.strip() for x in organisms]
 
 #Create orthology group list
 with open("OG.csv") as OGS:
-    OG_list = read_csv('OG.csv', sep=';')['OG']
+    OG_list = read_csv('OG.csv', sep=';')['label']
     OG_names = read_csv('OG.csv', sep=';')['Name']
 OG_list = [x.strip() for x in OG_list]
 
@@ -52,12 +55,17 @@ def App():
     layout = html.Div([
         nav,
         header,
-        # dropdown,
-        output
+        html.Img(src='assets/images/Correlation.png')
+        
     ])
     return layout
 
+
+
+
 def SPARQLWrap():
+    os.remove("SPARQLWrapper.csv")
+    os.remove("Presence-Vectors.csv")
     results = []  
     for i in OG_list:
         OG = i + "."
@@ -126,7 +134,7 @@ def SPARQLWrap():
 
 def Correlation_Img():
 
-    OG_list = [x.strip() for x in OG_list]
+    # OG_list = [x.strip() for x in OG_list]
     df = pd.read_csv("SPARQLWrapper.csv")
     df = df.iloc[:, 1:]
     df.columns = OG_names
@@ -144,23 +152,20 @@ def Correlation_Img():
                         col_colors=[rgbs],
                         row_colors=[rgbs],
     )
-    # plt.show()
-    plt.savefig("assets/images/Correlation.png")
+    my_stringIObytes = cStringIO.StringIO()
+    plt.savefig(my_stringIObytes, format='png')
+    my_stringIObytes.seek(0)
+    my_base64_pngData = base64.b64encode(my_stringIObytes.read())
+
+    return html.Img(src='data:image/png;base64,{}'.format(my_base64_pngData))
 
 
-    #create layout
-    layout = html.Div([
-        nav,
-        
-        html.Img(src='assets/images/Correlation.png')
-    ])
-    return layout 
 
 
 def Presence_Img():
 
     df4 = read_csv("Presence-Vectors.csv")
-    df4 = df4.clip_upper(4)
+    df4 = df4.clip(upper=4)
     # df4 = df4[df4['Organisms'].isin(MainSpecies)]
     levels = [0, 1, 2, 3, 4]
     colors = ['yellow', 'darkgreen', 'darkgreen', 'darkgreen', 'darkgreen'
@@ -181,16 +186,23 @@ def Presence_Img():
                        )
 
     # ColorTicks(dendro.ax_heatmap.get_xticklabels())
-    plt.savefig("assets/images/Presence.png", dpi = 50, bbox_inches="tight")
+    # plt.savefig('C:/Users/nfsus/OneDrive/best_repository_ever/Dash_app/assets/Presence.png', dpi = 70, bbox_inches="tight")
+    
+    # plt.savefig(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png', dpi = 70, bbox_inches="tight")
+    my_stringIObytes = cStringIO.StringIO()
+    plt.savefig(my_stringIObytes, format='png')
+    my_stringIObytes.seek(0)
+    my_base64_pngData = base64.b64encode(my_stringIObytes.read())
+
+    return html.Img(src='data:image/png;base64,{}'.format(my_base64_pngData))
 
 
-    #create layout
-    layout = html.Div([
-        nav,
-        # html.Div([html.Img(src=app.get_asset_url(u'images/Corr.png'))])
-        html.Img(src='assets/images/Presence.png')
-    ])
-    return layout 
+
+    # layout = html.Div([
+    #     nav,
+    #     html.Img(src='assets/images/Presence.png')
+    # ])
+    # return layout 
 
 
 def build_graph(city):

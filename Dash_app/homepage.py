@@ -11,8 +11,12 @@ from bioservices import UniProt
 from SPARQLWrapper import SPARQLWrapper, JSON
 import pandas as pd
 from pandas import DataFrame, read_csv
+import cStringIO
+import base64
+import os
 
-from app import SPARQLWrap
+
+from app import SPARQLWrap, Presence_Img, Correlation_Img
 
 
 
@@ -27,7 +31,7 @@ body = dbc.Container(
                   [
                      html.H2("Heading"),
                      html.P(
-                         """Download presence and study orthology goup presence"""
+                         """Download presence and study orthology group presence"""
                            ),
                            dbc.Button("View details", color="secondary"),
                    ],
@@ -113,6 +117,18 @@ og_from_input = html.Div(children=[
         
         ]),
 
+    html.Br(),
+    dbc.Row([
+        dbc.Col(html.Div()),
+
+        dbc.Col([
+            html.Button(id='submit-button2', type='submit', children='Submit')
+        ]),    
+
+        dbc.Col(html.Div()), 
+        
+        ]),
+
 ])
 
 
@@ -120,7 +136,9 @@ def Homepage():
     layout = html.Div([
     nav,
     body,
-    og_from_input
+    og_from_input,
+    html.Div(id='output_div2'),
+    html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
    
        ])
     return layout
@@ -150,9 +168,9 @@ def select_level(value):
              )
 
 def update_output(clicks, input_value, dropdown_value):
-    global OG_list
-
+   
     if clicks is not None:
+        os.remove("OG.csv")
         level = dropdown_value
         input_list = input_value.split()
         u = UniProt()
@@ -203,18 +221,18 @@ def update_output(clicks, input_value, dropdown_value):
             results.append(endpoint.query().convert())
             results = results
         
-        uniprot_df = pd.DataFrame(columns = ['OG','Name'])
+        uniprot_df = pd.DataFrame(columns = ['label','Name'])
         data_tuples = list(zip(M,L))
-        uniprot_df = pd.DataFrame(columns = ['OG','Name'], data = data_tuples)
+        uniprot_df = pd.DataFrame(columns = ['label','Name'], data = data_tuples)
 
-        uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='OG')
+        uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
         
 
         K = []
         J = []
         for row in uniprot_df.itertuples(index=True, name='Pandas'):
             if row.is_duplicate == False:
-                rowlist1 = uniprot_df[uniprot_df.OG == str(row.OG)].Name.tolist()
+                rowlist1 = uniprot_df[uniprot_df.label == str(row.label)].Name.tolist()
                 
         #remove duplicate names
                 rowlist2 =[]
@@ -223,12 +241,12 @@ def update_output(clicks, input_value, dropdown_value):
                         rowlist2.append(i)
 
                 K.append("-".join(rowlist2))
-                J.append(row.OG)
+                J.append(row.label)
 
         #SPARQL Look For Presence of OGS in Species        
         OG_list = J
         data_tuples = list(zip(J,K))
-        uniprot_df = pd.DataFrame(columns = ['OG','Name'], data = data_tuples)
+        uniprot_df = pd.DataFrame(columns = ['label','Name'], data = data_tuples)
         uniprot_df.to_csv('OG.csv', sep=';', index=False)
         uniprot_json = uniprot_df.to_json()
         uniprot_to_dict = uniprot_df.to_dict()
@@ -281,15 +299,32 @@ def update_output(clicks, input_value, dropdown_value):
                 for k in col:
                     og_info_row.append(res[k]["value"])        
                 og_info.append(og_info_row)
-        og_info_df = pd.DataFrame(og_info, columns=col) 
+        og_info_df = pd.DataFrame(og_info, columns=col)
+        og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
+        
+        cols2 = ["label", "Name", "description",  "clade", "evolRate", "totalGenesCount", 
+        "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", "medianExonsCount", "stddevExonsCount", "medianProteinLength",
+        "stddevProteinLength"]   
+        og_info_df = og_info_df[cols2]
+        
+
 
         #prepare datatable update                     
         data = og_info_df.to_dict('rows')
         columns =  [{"name": i, "id": i,} for i in (og_info_df.columns)]
-        return dash_table.DataTable(data=data, columns=columns, column_selectable="multi", filter_action="native")
+        return dash_table.DataTable(data=data, columns=columns, filter_action="native")
 
 
-SPARQLWrap()
+
+@app.callback(Output('output_div2', 'children'),
+             [Input('submit-button2', 'n_clicks')],
+                          )
+def call(clicks):
+    if clicks is not None:
+        SPARQLWrap()
+        corri = Correlation_Img()
+        Presence_Img()
+        return corri
 
 if __name__ == "__main__":
     app.run_server()

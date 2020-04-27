@@ -5,6 +5,7 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 from app import App, Correlation_Img, Presence_Img, SPARQLWrap
 from homepage import Homepage
+from page_2 import Page_2
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.UNITED])
 app.config.suppress_callback_exceptions = True
@@ -17,10 +18,10 @@ app.layout = html.Div([
 @app.callback(Output('page-content', 'children'),
             [Input('url', 'pathname')])
 def display_page(pathname):
-    if pathname == '/time-series':
-        return App()
+    if pathname == '/page_2':
+        return Page_2()
     if pathname == '/correlation':
-        return Correlation_Img()
+        return App()
     if pathname == '/presence':
         return Presence_Img()
     else:

@@ -1,0 +1,162 @@
+import dash
+import dash_table 
+import dash_core_components as dcc
+import dash_html_components as html
+from dash.exceptions import PreventUpdate
+import dash_bootstrap_components as dbc
+from dash.dependencies import Output, State, Input
+import dash_bio as dashbio
+import numpy
+from bioservices import UniProt
+from SPARQLWrapper import SPARQLWrapper, JSON
+import pandas as pd
+from pandas import DataFrame, read_csv
+
+from app import SPARQLWrap, Correlation_Img, Presence_Img
+from homepage import Homepage
+
+
+
+from navbar import Navbar
+nav = Navbar()
+
+
+
+
+body = dbc.Container(
+    [
+       dbc.Row(
+           [
+               dbc.Col(
+                  [
+                     html.H2("Heading"),
+                     html.P(
+                         """Download presence and study orthology goup presence"""
+                           ),
+                           dbc.Button("View details", color="secondary"),
+                   ],
+                  md=4,
+               ),
+              dbc.Col(
+                 [
+                    html.Button(id='submit-button2', type='submit', children='Submit')
+                        ]
+                     ),
+                ]
+            )
+       ],
+className="mt-4",
+)
+
+og_from_input = html.Div(children=[
+
+
+    dbc.Row(
+        [
+        dbc.Col(html.Div("")),
+
+        dbc.Col(html.Div([dcc.Dropdown(
+            options=[
+                {'label': 'Eukaryota', 'value': 'Eukaryota'},
+                {'label': 'Metazoa', 'value': 'Metazoa'},
+                {'label': 'Vertebrata', 'value': 'Vertebrata'},
+                {'label': 'Tetrapoda', 'value': 'Tetrapoda'},
+                {'label': 'Actinopterygii', 'value': 'Actinopterygii'},
+                {'label': 'Mammalia', 'value': 'Mammalia'},
+                {'label': 'Sauropsida', 'value': 'Sauropsida'},
+                {'label': 'Archaea', 'value': 'Archaea'},
+                {'label': 'Fungi', 'value': 'Fungi'},
+                {'label': 'Lophotrochozoa', 'value': 'Lophotrochozoa'},
+                {'label': 'Aves', 'value': 'Aves'},
+            ],
+            placeholder="Select a taxon (level of orthology)",
+            value='Vertebrata',
+            id='dropdown'
+        ),
+
+          html.Div(id='dd-output-container')
+        ]) ),
+
+        dbc.Col(html.Div())
+
+        ]),
+
+
+    html.Br(),       
+    dbc.Row([
+        dbc.Col(html.Div()),
+        dbc.Col(html.Div([dcc.Textarea(
+            id='username',
+            placeholder='Enter a value...',
+            value='',
+            style={'width': '100%'}
+            ),
+            html.Button(id='submit-button', type='submit', children='Submit'),
+          ]  )
+        ),    
+                       
+        dbc.Col(html.Div(
+            dcc.Loading(
+                    id="loading-2",
+                    children=[html.Div([html.Div(id="loading-output-2")])],
+                    type="circle",
+                )
+        )), 
+        
+        ]),
+  
+    html.Br(),
+    dbc.Row([
+        dbc.Col(html.Div()),
+
+        dbc.Col(html.Div(id='output_div')),        
+        dbc.Col(html.Div()), 
+        
+        ]),
+
+])
+
+
+def Page_2():
+    layout = html.Div([
+    nav,
+    body,
+    # submit_button,
+    html.Img(src='assets/images/Correlation.png'),
+    html.Div(id='output_div2')
+    
+   
+       ])
+    return layout
+
+app = dash.Dash(__name__, external_stylesheets = [dbc.themes.UNITED])
+app.config['suppress_callback_exceptions']=True
+
+endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
+
+app.layout = Page_2()
+OG_list = []
+
+
+
+
+@app.callback(Output('output_div2', 'children'),
+             [Input('submit-button2', 'n_clicks')],
+                          )
+def call(clicks):
+    if clicks is not None:
+        SPARQLWrap()
+        Presence_Img()
+        return html.Img(src='assets/images/Correlation.png')
+
+@app.callback(Output('dd-output-container', 'children'),
+            [Input('dropdown', 'value')])
+def select_level(value):
+    level = value
+    return 'Selected "{}" orthology level'.format(value)
+
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
+

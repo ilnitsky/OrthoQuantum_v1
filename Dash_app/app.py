@@ -33,6 +33,7 @@ with open(taxonomy_level + ".txt") as organisms_list:
 organisms = [x.strip() for x in organisms]
 
 #Create orthology group list
+# if os.path.isfile("OG.csv") == True:
 with open("OG.csv") as OGS:
     OG_list = read_csv('OG.csv', sep=';')['label']
     OG_names = read_csv('OG.csv', sep=';')['Name']
@@ -64,8 +65,8 @@ def App():
 
 
 def SPARQLWrap():
-    os.remove("SPARQLWrapper.csv")
-    os.remove("Presence-Vectors.csv")
+    # os.remove("SPARQLWrapper.csv")
+    # os.remove("Presence-Vectors.csv")
     results = []  
     for i in OG_list:
         OG = i + "."
@@ -145,6 +146,7 @@ def Correlation_Img():
     rgbs = [(1-i,0,0) for i in pres_list]
 
     df = df.fillna(0).astype(float)
+    # df = df.clip(upper=1)
     dendro = sns.clustermap(df.corr(), 
                         cmap='seismic',
                         metric="correlation",
@@ -165,7 +167,7 @@ def Correlation_Img():
 def Presence_Img():
 
     df4 = read_csv("Presence-Vectors.csv")
-    df4 = df4.clip(upper=4)
+    df4 = df4.clip(upper=1)
     # df4 = df4[df4['Organisms'].isin(MainSpecies)]
     levels = [0, 1, 2, 3, 4]
     colors = ['yellow', 'darkgreen', 'darkgreen', 'darkgreen', 'darkgreen'

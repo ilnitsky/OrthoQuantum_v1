@@ -14,6 +14,7 @@ from pandas import DataFrame, read_csv
 import cStringIO
 import base64
 import os
+import os.path
 
 
 from app import SPARQLWrap, Presence_Img, Correlation_Img
@@ -170,7 +171,15 @@ def select_level(value):
 def update_output(clicks, input_value, dropdown_value):
    
     if clicks is not None:
-        os.remove("OG.csv")
+
+
+
+        if os.path.isfile("SPARQLWrapper.csv") == True:
+            os.remove("SPARQLWrapper.csv")
+
+        if os.path.isfile("Presence-Vector.csv") == True:
+            os.remove("Presence-Vector.csv")
+
         level = dropdown_value
         input_list = input_value.split()
         u = UniProt()
@@ -323,8 +332,22 @@ def call(clicks):
     if clicks is not None:
         SPARQLWrap()
         corri = Correlation_Img()
-        Presence_Img()
-        return corri
+        presi = Presence_Img()
+
+        layout = html.Div([
+        dbc.Row([
+            dbc.Col(html.Div(corri)),
+        ]),
+        
+        dbc.Row([
+            dbc.Col(html.Div(presi))
+        ]),
+        
+        
+        ])
+        # if os.path.isfile("OG.csv") == True:
+        #     os.remove("OG.csv")
+        return layout
 
 if __name__ == "__main__":
     app.run_server()

@@ -177,8 +177,6 @@ def update_output(clicks, input_value, dropdown_value):
         if os.path.isfile("SPARQLWrapper.csv") == True:
             os.remove("SPARQLWrapper.csv")
 
-        if os.path.isfile("Presence-Vector.csv") == True:
-            os.remove("Presence-Vector.csv")
 
         level = dropdown_value
         input_list = input_value.split()
@@ -331,13 +329,13 @@ def update_output(clicks, input_value, dropdown_value):
 def call(clicks):
     if clicks is not None:
         SPARQLWrap()
-        corri = Correlation_Img()
+        # corri = Correlation_Img()
         presi = Presence_Img()
 
         layout = html.Div([
-        dbc.Row([
-            dbc.Col(html.Div(corri)),
-        ]),
+        # dbc.Row([
+        #     dbc.Col(html.Div(corri)),
+        # ]),
         
         dbc.Row([
             dbc.Col(html.Div(presi))

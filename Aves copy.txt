@@ -1,29 +1,57 @@
+#Tinam
 Tinamus guttatus
 Struthio camelus
+
+#Galliformes
 Coturnix japonica
 Meleagris gallopavo
 Gallus gallus
 Numida meleagris
+
+#anseriformes
 Anser cygnoides
 Anas platyrhynchos
+
+#apodimorph
 Calypte anna
 Chaetura pelagica
+
+
+#otidimorph.
 Balearica regulorum gibbericeps
 Tauraco erythrolophus
 Cuculus canorus
+
+#columbimorph.
 Columba livia
 Mesitornis unicolor
+
+
+#Gruiformes
 Chlamydotis macqueenii
+
+
+
+
+#Aequorlitornithes
 Calidris pugnax
 Fulmarus glacialis
 Gavia stellata
 Charadrius vociferus
+Calidris pugnax
 Aptenodytes forsteri
 Pygoscelis adeliae
 Nipponia nippon
 Phalacrocorax carbo
 Pelecanus crispus
 Egretta garzetta
+
+
+
+#Coraciimorphae
+
+
+#Inopenaves
 Picoides pubescens
 Colius striatus
 Tyto alba
@@ -35,16 +63,20 @@ Melopsittacus undulatus
 Merops nubicus
 Aquila chrysaetos
 Haliaeetus albicilla
+
+#Passeriformes
 Sturnus vulgaris
 Acanthisitta chloris
 Zonotrichia albicollis
 Geospiza fortis
 Ficedula albicollis
 Manacus vitellinus
+Corvus cornix
 Corvus brachyrhynchos
 Serinus canaria
 Lonchura striata
 Taeniopygia guttata
 Cyanistes caeruleus
+
 Eurypyga helias
 Leptosomus discolor

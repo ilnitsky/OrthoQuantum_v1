@@ -25,7 +25,7 @@ nav = Navbar()
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
-taxonomy_level = "Vertebrata"
+taxonomy_level = "Aves"
 
     #Create organisms list
 with open(taxonomy_level + ".txt") as organisms_list:
@@ -65,6 +65,14 @@ def App():
 
 
 def SPARQLWrap():
+
+    with open("OG.csv") as OGS:
+        OG_list = read_csv('OG.csv', sep=';')['label']
+        OG_names = read_csv('OG.csv', sep=';')['Name']
+    OG_list = [x.strip() for x in OG_list]
+
+    Prots_to_show = OG_names
+    MainSpecies = organisms
     # os.remove("SPARQLWrapper.csv")
     # os.remove("Presence-Vectors.csv")
     results = []  
@@ -165,6 +173,20 @@ def Correlation_Img():
 
 
 def Presence_Img():
+    taxonomy_level = "Aves"
+
+    #Create organisms list
+    with open(taxonomy_level + ".txt") as organisms_list:
+        organisms = organisms_list.readlines()
+    organisms = [x.strip() for x in organisms]
+    with open("OG.csv") as OGS:
+        OG_list = read_csv('OG.csv', sep=';')['label']
+        OG_names = read_csv('OG.csv', sep=';')['Name']
+    OG_list = [x.strip() for x in OG_list]
+
+    Prots_to_show = OG_names
+    MainSpecies = organisms
+
 
     df4 = read_csv("Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
@@ -186,6 +208,11 @@ def Presence_Img():
                         xticklabels=Prots_to_show,
                         annot=True,
                        )
+    del df4
+
+    
+    if os.path.isfile("Presence-Vector.csv") == True:
+        os.remove("Presence-Vector.csv")
 
     # ColorTicks(dendro.ax_heatmap.get_xticklabels())
     # plt.savefig('C:/Users/nfsus/OneDrive/best_repository_ever/Dash_app/assets/Presence.png', dpi = 70, bbox_inches="tight")

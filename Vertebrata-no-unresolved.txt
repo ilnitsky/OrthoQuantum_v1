@@ -18,11 +18,7 @@ Salvelinus alpinus
 Oncorhynchus tshawytscha
 Oncorhynchus kisutch
 Oncorhynchus mykiss
-Boleophthalmus pectinirostris
-Monopterus albus
 Hippocampus comes
-Notothenia coriiceps
-Labrus bergylta
 Larimichthys crocea
 Takifugu rubripes
 Lates calcarifer
@@ -35,8 +31,6 @@ Stegastes partitus
 Amphiprion ocellaris
 Neolamprologus brichardi
 Oreochromis niloticus
-Haplochromis burtoni
-Maylandia zebra
 Pundamilia nyererei
 Oryzias latipes
 Oryzias melastigma
@@ -46,9 +40,6 @@ Austrofundulus limnaeus
 Fundulus heteroclitus
 Cyprinodon variegatus
 Xiphophorus maculatus
-Poecilia reticulata
-Poecilia mexicana
-Poecilia latipinna
 Poecilia formosa
 Latimeria chalumnae
 Nanorana parkeri

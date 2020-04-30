@@ -199,23 +199,26 @@ def Presence_Img(taxonomy_level):
     df4 = read_csv("Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
     # df4 = df4[df4['Organisms'].isin(MainSpecies)]
-    levels = [0, 1, 2, 3, 4]
-    colors = ['yellow', 'darkgreen', 'darkgreen', 'darkgreen', 'darkgreen'
+    levels = [0, 1]
+    colors = ['yellow', 'darkgreen',
     # 'darkgreen', 'forestgreen',  'limegreen', 'limegreen', 'lime', 'lime', 'lime', 'lime', 'lime', 'lime'
     ]
     my_cmap, norm = matplotlib.colors.from_levels_and_colors(levels, colors, extend='max')
     sns.set(font_scale=2.2)
+    # cbar_ax = plt.gca()
     dendro = sns.clustermap(df4, metric="euclidean", 
                         figsize=(len(Prots_to_show),len(MainSpecies)/2), 
                         linewidth=0.90,
                         row_cluster=False,
-    #                   col_cluster=False,
+                      col_cluster=False,
                         cmap=my_cmap, 
                         norm=norm,
                         yticklabels=MainSpecies,
                         xticklabels=Prots_to_show,
                         annot=True,
                        )
+
+    dendro.cax.set_visible(False)
     # ax.tick_params(labeltop=True)
     
     del df4
@@ -227,7 +230,7 @@ def Presence_Img(taxonomy_level):
     # ColorTicks(dendro.ax_heatmap.get_xticklabels())
     # plt.savefig('C:/Users/nfsus/OneDrive/best_repository_ever/Dash_app/assets/Presence.png', dpi = 70, bbox_inches="tight")
     
-    # plt.savefig(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png', dpi = 70, bbox_inches="tight")
+    plt.savefig(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png', dpi = 70, bbox_inches="tight")
     my_stringIObytes = cStringIO.StringIO()
     plt.savefig(my_stringIObytes, format='png')
     my_stringIObytes.seek(0)

@@ -35,8 +35,10 @@ nav = Navbar()
 # from homepage import Homepage
 
 server = flask.Flask(__name__)
-dash_app1 = Dash(__name__, server = server, url_base_pathname='/dashboard/', external_stylesheets = [dbc.themes.UNITED] )
-dash_app2 = Dash(__name__, server = server, url_base_pathname='/reports/', external_stylesheets = [dbc.themes.UNITED])
+dash_app1 = Dash(__name__, server = server, routes_pathname_prefix='/dashboard/', external_stylesheets = [dbc.themes.UNITED] )
+dash_app2 = Dash(__name__, server = server, routes_pathname_prefix='/reports/', external_stylesheets = [dbc.themes.UNITED])
+
+#  url_base_pathname='/dashboard/', 
 
 body = dbc.Container(
     [
@@ -112,6 +114,7 @@ og_from_input = html.Div(children=[
             style={'width': '100%'}
             ),
             html.Button(id='submit-button', type='submit', children='Submit'),
+            html.Button(id='su', type='submit', children='From .txt File'),
           ]  )
         ),    
                        
@@ -126,6 +129,7 @@ og_from_input = html.Div(children=[
         ]),
   
     html.Br(),
+
     dbc.Row([
         dbc.Col(html.Div()),
 
@@ -135,18 +139,56 @@ og_from_input = html.Div(children=[
         ]),
 
     html.Br(),
+    html.Br(),
+    dbc.Row(
+        [  
+        dbc.Col(html.Div("")),
+
+        dbc.Col(html.Div([dcc.Dropdown(
+            options=[
+                {'label': 'Eukaryota', 'value': 'Eukaryota'},
+                {'label': 'Metazoa', 'value': 'Metazoa'},
+                {'label': 'Vertebrata', 'value': 'Vertebrata'},
+                {'label': 'Tetrapoda', 'value': 'Tetrapoda'},
+                {'label': 'Actinopterygii', 'value': 'Actinopterygii'},
+                {'label': 'Mammalia', 'value': 'Mammalia'},
+                {'label': 'Sauropsida', 'value': 'Sauropsida'},
+                {'label': 'Archaea', 'value': 'Archaea'},
+                {'label': 'Fungi', 'value': 'Fungi'},
+                {'label': 'Lophotrochozoa', 'value': 'Lophotrochozoa'},
+                {'label': 'Aves', 'value': 'Aves'},
+            ],
+            placeholder="Select a taxon (level of orthology)",
+            value='Vertebrata',
+            id='dropdown2'
+        ),
+
+          html.Div(id='dd2-output-container')
+        ]) ),
+
+        dbc.Col(html.Div())
+
+        ]),
+
+    html.Br(),
     dbc.Row([
         dbc.Col(html.Div()),
 
         dbc.Col([
-            html.Button(id='submit-button2', type='submit', children='Submit')
+            html.Button(id='submit-button2', type='submit', children='Go')
         ]),    
 
-        dbc.Col(html.Div()), 
+        dbc.Col(html.Div(
+
+            # dcc.Location(id = 'url', refresh = True),
+            # html.Div(id = 'page-content')
+        )), 
         
         ]),
 
 ])
+
+
 
 #D A S H   A P P 1  L A Y O U T
 def Homepage():
@@ -155,6 +197,7 @@ def Homepage():
     body,
     og_from_input,
     html.Div(id='output_div2'),
+    dcc.Link('Navigate to "Images"', href='/reports'),
     # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
    
        ])
@@ -185,6 +228,7 @@ dash_app1.layout = Homepage()
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
 OG_list = []
+
 
 
 @dash_app1.callback(Output('dd-output-container', 'children'),
@@ -338,12 +382,16 @@ def update_output(clicks, input_value, dropdown_value):
                 for k in col:
                     og_info_row.append(res[k]["value"])        
                 og_info.append(og_info_row)
+
+        
         og_info_df = pd.DataFrame(og_info, columns=col)
         og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
+        # og_info_df["uname"] = numpy.array(uniprot_name)
+
         
-        cols2 = ["label", "Name", "description",  "clade", "evolRate", "totalGenesCount", 
+        cols2 = ["label", "Name", "description", "clade", "evolRate", "totalGenesCount", 
         "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", "medianExonsCount", "stddevExonsCount", "medianProteinLength",
-        "stddevProteinLength"]   
+        "stddevProteinLength" ]   
         og_info_df = og_info_df[cols2]
         
 
@@ -356,14 +404,17 @@ def update_output(clicks, input_value, dropdown_value):
 
 
 @dash_app1.callback(Output('output_div2', 'children'),
-             [Input('submit-button2', 'n_clicks')],
+             [Input('submit-button2', 'n_clicks'),
+             Input('dropdown2', 'value')],
+             
                           )
-def call(clicks):
+def call(clicks, dropdown_value):
     if clicks is not None:
-        SPARQLWrap("Vertebrata")
+        level = dropdown_value
+        SPARQLWrap(level)
         # corri = Correlation_Img()
-        presi = Presence_Img("Vertebrata")
-
+        presi = Presence_Img(level)
+        
         layout = html.Div([
         # dbc.Row([
         #     dbc.Col(html.Div(corri)),
@@ -375,25 +426,11 @@ def call(clicks):
         
         
         ])
-        # if os.path.isfile("OG.csv") == True:
-        #     os.remove("OG.csv")
+
         return layout
 
 
-# dash_app1.layout = html.Div([html.H1('Hi there, I am app1 for dashboards'), 
-#                             homepage,
-#                             dbc.NavLink("reports", href="/reports"),
-#                             nav 
 
-
-# ])
-
-
-# dash_app2.layout = html.Div([html.H1('Hi there, I am app2 for reports'), 
-
-#                             dbc.NavLink("dashboard", href="/dashboard")
-
-# ])
 
 
 
@@ -464,43 +501,19 @@ OG_list = []
 #         Presence_Img()
 #         return html.Img(src='assets/images/Correlation.png')
 
-# @app.callback(Output('dd-output-container', 'children'),
-#             [Input('dropdown', 'value')])
-# def select_level(value):
-#     level = value
-#     return 'Selected "{}" orthology level'.format(value)
-
 @dash_app2.callback(
     dash.dependencies.Output('image', 'src'),
     [dash.dependencies.Input('image-dropdown', 'value')])
 def update_image_src(value):
     return static_image_route + value
 
-# Add a static image route that serves images from desktop
-# Be *very* careful here - you don't want to serve arbitrary files
-# from your computer or server
+
 @dash_app2.server.route('{}<image_path>.png'.format(static_image_route))
 def serve_image(image_path):
     image_name = '{}.png'.format(image_path)
     if image_name not in list_of_images:
         raise Exception('"{}" is excluded from the allowed static files'.format(image_path))
     return flask.send_from_directory(image_directory, image_name)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -525,6 +538,7 @@ app = DispatcherMiddleware(server, {
     '/dash1': dash_app1.server,
     '/dash2': dash_app2.server
 })
+
 
 # @app.callback(Output('page-content', 'children'),
 #             [Input('url', 'pathname')])

@@ -11,14 +11,14 @@ def Navbar():
                  label="Menu",
                  children=[
                     dbc.DropdownMenuItem(dbc.NavLink("Heatmap Correlation", href="/correlation")),
-                    dbc.DropdownMenuItem("Presence", href="/presence"),
+                    dbc.DropdownMenuItem("Presence", href="/reports"),
                     dbc.DropdownMenuItem(divider=True),
                     dbc.DropdownMenuItem("Entry 3"),
                           ],
                       ),
                     ],
           brand="Home",
-          brand_href="/home",
+          brand_href="/dashboard",
           sticky="top",
         )
      return navbar

@@ -32,7 +32,9 @@ body = dbc.Container(
                   [
                      html.H2("Heading"),
                      html.P(
-                         """Download presence and study orthology group presence"""
+                         """Download presence and study orthology group presence
+                            Use UniProt Acccesion Codes of your proteins to create a list with corresponding 
+                            Orthology groups"""
                            ),
                            dbc.Button("View details", color="secondary"),
                    ],
@@ -139,7 +141,7 @@ def Homepage():
     body,
     og_from_input,
     html.Div(id='output_div2'),
-    html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
+    # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
    
        ])
     return layout
@@ -328,9 +330,9 @@ def update_output(clicks, input_value, dropdown_value):
                           )
 def call(clicks):
     if clicks is not None:
-        SPARQLWrap()
+        SPARQLWrap("Vertebrata")
         # corri = Correlation_Img()
-        presi = Presence_Img()
+        presi = Presence_Img("Vertebrata")
 
         layout = html.Div([
         # dbc.Row([

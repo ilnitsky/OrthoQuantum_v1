@@ -15,13 +15,20 @@ from pandas import DataFrame, read_csv
 from app import SPARQLWrap, Correlation_Img, Presence_Img
 from homepage import Homepage
 
+import flask
+import glob
+import os
+
 
 
 from navbar import Navbar
 nav = Navbar()
 
 
-
+image_directory = 'C:/Users/nfsus/OneDrive/best_repository_ever/'
+list_of_images = [os.path.basename(x) for x in glob.glob('{}*.png'.format(image_directory))]
+print(list_of_images)
+static_image_route = '/static/'
 
 body = dbc.Container(
     [
@@ -122,9 +129,14 @@ def Page_2():
     nav,
     body,
     # submit_button,
-    html.Img(src='assets/images/Correlation.png'),
-    html.Div(id='output_div2')
-    
+    html.Div([
+    dcc.Dropdown(
+        id='image-dropdown',
+        options=[{'label': i, 'value': i} for i in list_of_images],
+        value=list_of_images[0]
+    ),
+    html.Img(id='image')
+    ])
    
        ])
     return layout
@@ -140,20 +152,37 @@ OG_list = []
 
 
 
-@app.callback(Output('output_div2', 'children'),
-             [Input('submit-button2', 'n_clicks')],
-                          )
-def call(clicks):
-    if clicks is not None:
-        SPARQLWrap()
-        Presence_Img()
-        return html.Img(src='assets/images/Correlation.png')
+# @app.callback(Output('output_div2', 'children'),
+#              [Input('submit-button2', 'n_clicks')],
+#                           )
+# def call(clicks):
+#     if clicks is not None:
+#         SPARQLWrap()
+#         Presence_Img()
+#         return html.Img(src='assets/images/Correlation.png')
 
-@app.callback(Output('dd-output-container', 'children'),
-            [Input('dropdown', 'value')])
-def select_level(value):
-    level = value
-    return 'Selected "{}" orthology level'.format(value)
+# @app.callback(Output('dd-output-container', 'children'),
+#             [Input('dropdown', 'value')])
+# def select_level(value):
+#     level = value
+#     return 'Selected "{}" orthology level'.format(value)
+
+@app.callback(
+    dash.dependencies.Output('image', 'src'),
+    [dash.dependencies.Input('image-dropdown', 'value')])
+def update_image_src(value):
+    return static_image_route + value
+
+# Add a static image route that serves images from desktop
+# Be *very* careful here - you don't want to serve arbitrary files
+# from your computer or server
+@app.server.route('{}<image_path>.png'.format(static_image_route))
+def serve_image(image_path):
+    image_name = '{}.png'.format(image_path)
+    if image_name not in list_of_images:
+        raise Exception('"{}" is excluded from the allowed static files'.format(image_path))
+    return flask.send_from_directory(image_directory, image_name)
+
 
 
 

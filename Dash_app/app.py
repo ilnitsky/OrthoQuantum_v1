@@ -25,6 +25,7 @@ nav = Navbar()
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
+
 taxonomy_level = "Aves"
 
     #Create organisms list
@@ -38,9 +39,6 @@ with open("OG.csv") as OGS:
     OG_list = read_csv('OG.csv', sep=';')['label']
     OG_names = read_csv('OG.csv', sep=';')['Name']
 OG_list = [x.strip() for x in OG_list]
-
-Prots_to_show = OG_names
-MainSpecies = organisms
 
 
 header = html.H3(
@@ -64,7 +62,13 @@ def App():
 
 
 
-def SPARQLWrap():
+def SPARQLWrap(taxonomy_level):
+    
+    # taxonomy_level = "Vertebrata"
+
+    with open(taxonomy_level + ".txt") as organisms_list:
+        organisms = organisms_list.readlines()
+    organisms = [x.strip() for x in organisms]
 
     with open("OG.csv") as OGS:
         OG_list = read_csv('OG.csv', sep=';')['label']
@@ -138,6 +142,10 @@ def SPARQLWrap():
     for column in df4:    
         df4[column] = df4[column].astype(float)
 
+    del taxonomy_level
+    del organisms
+    del result_table
+
     df4.to_csv("Presence-Vectors.csv", index=False)
 
 
@@ -172,8 +180,8 @@ def Correlation_Img():
 
 
 
-def Presence_Img():
-    taxonomy_level = "Aves"
+def Presence_Img(taxonomy_level):
+    # taxonomy_level = "Vertebrata"
 
     #Create organisms list
     with open(taxonomy_level + ".txt") as organisms_list:
@@ -208,6 +216,8 @@ def Presence_Img():
                         xticklabels=Prots_to_show,
                         annot=True,
                        )
+    # ax.tick_params(labeltop=True)
+    
     del df4
 
     

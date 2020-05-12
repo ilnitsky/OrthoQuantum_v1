@@ -37,6 +37,8 @@ nav = Navbar()
 server = flask.Flask(__name__)
 dash_app1 = Dash(__name__, server = server, routes_pathname_prefix='/dashboard/', external_stylesheets = [dbc.themes.UNITED] )
 dash_app2 = Dash(__name__, server = server, routes_pathname_prefix='/reports/', external_stylesheets = [dbc.themes.UNITED])
+dash_app3 = Dash(__name__, server = server, routes_pathname_prefix='/blast/', external_stylesheets = [dbc.themes.UNITED])
+
 
 #  url_base_pathname='/dashboard/', 
 
@@ -48,7 +50,7 @@ body = dbc.Container(
                   [
                      html.H2("Heading"),
                      html.P(
-                         """Download presence and study orthology group presence
+                         """Download presence and study orthology group presence.
                             Use UniProt Acccesion Codes of your proteins to create a list with corresponding 
                             Orthology groups"""
                            ),
@@ -56,12 +58,15 @@ body = dbc.Container(
                    ],
                   md=4,
                ),
+               
+    html.Br(),  
+    html.Br(),  
+
               dbc.Col(
-                 [
-                     html.H2("Graph"),
-                     dcc.Graph(
-                         figure={"data": [{"x": [1, 2, 3], "y": [1, 4, 9]}]}
-                            ),
+                 [      html.H2("___________________________________"),
+                      html.P(
+                         """Input protein IDs in the textarea and select current taxonomy (level of orthology)"""
+                           ),
                         ]
                      ),
                 ]
@@ -79,7 +84,8 @@ og_from_input = html.Div(children=[
 
         dbc.Col(html.Div([dcc.Dropdown(
             options=[
-                {'label': 'Eukaryota', 'value': 'Eukaryota'},
+                {'label': 'Eukaryota Compact', 'value': 'Eukaryota'},
+                {'label': 'Eukaryota All Species', 'value': 'Eukaryota-full'},
                 {'label': 'Metazoa', 'value': 'Metazoa'},
                 {'label': 'Vertebrata', 'value': 'Vertebrata'},
                 {'label': 'Tetrapoda', 'value': 'Tetrapoda'},
@@ -107,10 +113,12 @@ og_from_input = html.Div(children=[
     html.Br(),       
     dbc.Row([
         dbc.Col(html.Div()),
+          
         dbc.Col(html.Div([dcc.Textarea(
             id='username',
-            placeholder='Enter a value...',
+            placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ',
             value='',
+            rows = 6,
             style={'width': '100%'}
             ),
             html.Button(id='submit-button', type='submit', children='Submit'),
@@ -146,7 +154,8 @@ og_from_input = html.Div(children=[
 
         dbc.Col(html.Div([dcc.Dropdown(
             options=[
-                {'label': 'Eukaryota', 'value': 'Eukaryota'},
+                {'label': 'Eukaryota Compact', 'value': 'Eukaryota'},
+                {'label': 'Eukaryota All Species', 'value': 'Eukaryota-full'},
                 {'label': 'Metazoa', 'value': 'Metazoa'},
                 {'label': 'Vertebrata', 'value': 'Vertebrata'},
                 {'label': 'Tetrapoda', 'value': 'Tetrapoda'},
@@ -195,6 +204,8 @@ def Homepage():
     layout = html.Div([
     nav,
     body,
+    html.Br(), 
+    html.Br(), 
     og_from_input,
     html.Div(id='output_div2'),
     dcc.Link('Navigate to "Images"', href='/reports'),
@@ -207,22 +218,38 @@ def Homepage():
 def Page_2():
     layout = html.Div([
     nav,
-    body,
-    og_from_input,
-    html.Div(id='output_div2'),
-    # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
+    body2,
+    html.Div([
+    dcc.Dropdown(
+        id='image-dropdown',
+        options=[{'label': i, 'value': i} for i in list_of_images],
+        value=list_of_images[0]
+    ),
+    html.Img(id='image')
+    ])
    
        ])
     return layout
+
+#D A S H  A P P 3  L A Y O U T
+def Blast_Layout():
+    layout = html.Div([
+    nav,
+    body,
+    html.Div(id='1'),
+    ])
+    return layout
+
 
 dash_app1.config['suppress_callback_exceptions']=True
 
 dash_app2.config['suppress_callback_exceptions']=True
 
+dash_app3.config['suppress_callback_exceptions']=True
 
 dash_app1.layout = Homepage()
 
-# dash_app2.layout = Page_2()
+dash_app3.layout = Blast_Layout()
 
 
 
@@ -255,6 +282,7 @@ def update_output(clicks, input_value, dropdown_value):
 
 
         level = dropdown_value
+        # level = level.split('-')[0]
         input_list = input_value.split()
         u = UniProt()
         Prot_IDs = []
@@ -274,6 +302,7 @@ def update_output(clicks, input_value, dropdown_value):
         
         results = []  
         i = 0
+        P = []
         L = []
         M = []
         for i in range(len(uniprot_ac)):
@@ -300,19 +329,21 @@ def update_output(clicks, input_value, dropdown_value):
                 og_Y_list.append(og_Y)
                 L.append(uniprot_name_i)
                 M.append(og_Y_list[0])
+                P.append(uniprot_ac_i)
 
             results.append(endpoint.query().convert())
             results = results
         
-        uniprot_df = pd.DataFrame(columns = ['label','Name'])
-        data_tuples = list(zip(M,L))
-        uniprot_df = pd.DataFrame(columns = ['label','Name'], data = data_tuples)
+        uniprot_df = pd.DataFrame(columns = ['label','Name', 'PID'])
+        data_tuples = list(zip(M,L,P))
+        uniprot_df = pd.DataFrame(columns = ['label','Name', 'PID'], data = data_tuples)
 
         uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
-        
+        print(uniprot_df)
 
         K = []
         J = []
+        H = []
         for row in uniprot_df.itertuples(index=True, name='Pandas'):
             if row.is_duplicate == False:
                 rowlist1 = uniprot_df[uniprot_df.label == str(row.label)].Name.tolist()
@@ -325,11 +356,12 @@ def update_output(clicks, input_value, dropdown_value):
 
                 K.append("-".join(rowlist2))
                 J.append(row.label)
+                H.append(row.PID)
 
         #SPARQL Look For Presence of OGS in Species        
         OG_list = J
-        data_tuples = list(zip(J,K))
-        uniprot_df = pd.DataFrame(columns = ['label','Name'], data = data_tuples)
+        data_tuples = list(zip(J,K,H))
+        uniprot_df = pd.DataFrame(columns = ['label','Name', 'UniProt_AC'], data = data_tuples)
         uniprot_df.to_csv('OG.csv', sep=';', index=False)
         uniprot_json = uniprot_df.to_json()
         uniprot_to_dict = uniprot_df.to_dict()
@@ -386,10 +418,14 @@ def update_output(clicks, input_value, dropdown_value):
         
         og_info_df = pd.DataFrame(og_info, columns=col)
         og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
-        # og_info_df["uname"] = numpy.array(uniprot_name)
 
+        # pd.to_numeric(og_info_df["totalGenesCount"])
+        # pd.to_numeric(og_info_df["multiCopyGenesCount"])
+        # pd.to_numeric(og_info_df["singleCopyGenesCount"])
+
+        # og_info_df["paralogs_count"] = ( og_info_df["totalGenesCount"] - og_info_df["multiCopyGenesCount"] ) / og_info_df["singleCopyGenesCount"] 
         
-        cols2 = ["label", "Name", "description", "clade", "evolRate", "totalGenesCount", 
+        cols2 = ["label", "Name", "description",  "clade", "evolRate", "totalGenesCount", 
         "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", "medianExonsCount", "stddevExonsCount", "medianProteinLength",
         "stddevProteinLength" ]   
         og_info_df = og_info_df[cols2]
@@ -411,20 +447,19 @@ def update_output(clicks, input_value, dropdown_value):
 def call(clicks, dropdown_value):
     if clicks is not None:
         level = dropdown_value
+        # level = level.split('-')[0]
         SPARQLWrap(level)
-        # corri = Correlation_Img()
+        corri = Correlation_Img(level)
         presi = Presence_Img(level)
         
         layout = html.Div([
-        # dbc.Row([
-        #     dbc.Col(html.Div(corri)),
-        # ]),
-        
         dbc.Row([
-            dbc.Col(html.Div(presi))
-        ]),
+        dbc.Col( [dbc.Col(html.Div(corri))] ),
         
+        dbc.Col( [dbc.Col(html.Div(presi))] ),
         
+        ])
+
         ])
 
         return layout
@@ -436,7 +471,7 @@ def call(clicks, dropdown_value):
 
 
 
-image_directory = 'C:/Users/nfsus/OneDrive/best_repository_ever/'
+image_directory = 'C:/Users/nfsus/OneDrive/best_repository_ever/Dash_app/assets/images/'
 list_of_images = [os.path.basename(x) for x in glob.glob('{}*.png'.format(image_directory))]
 # print(list_of_images)
 static_image_route = '/static/'
@@ -449,7 +484,7 @@ body2 = dbc.Container(
                   [
                      html.H2("Image outputs"),
                      html.P(
-                         """Download presence and study orthology goup presence"""
+                         """Download presence and study orthology group presence"""
                            ),
                         #    dbc.Button("View details", color="secondary"),
                    ],
@@ -466,22 +501,7 @@ className="mt-4",
 )
 
 
-def Page_2():
-    layout = html.Div([
-    nav,
-    body2,
-    # submit_button,
-    html.Div([
-    dcc.Dropdown(
-        id='image-dropdown',
-        options=[{'label': i, 'value': i} for i in list_of_images],
-        value=list_of_images[0]
-    ),
-    html.Img(id='image')
-    ])
-   
-       ])
-    return layout
+
 
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
@@ -492,14 +512,8 @@ OG_list = []
 
 
 
-# @app.callback(Output('output_div2', 'children'),
-#              [Input('submit-button2', 'n_clicks')],
-#                           )
-# def call(clicks):
-#     if clicks is not None:
-#         SPARQLWrap()
-#         Presence_Img()
-#         return html.Img(src='assets/images/Correlation.png')
+
+
 
 @dash_app2.callback(
     dash.dependencies.Output('image', 'src'),
@@ -523,7 +537,7 @@ def serve_image(image_path):
 # @server.route('/')
 # @server.route('/hello')
 def hello():
-    return 'hello world!'
+    return 'Root page'
 
 @server.route('/dashboard')
 def render_dashboard():
@@ -534,18 +548,16 @@ def render_dashboard():
 def render_reports():
     return flask.redirect('/dash2')
 
+    
+@server.route('/blast')
+def render_blast():
+    return flask.redirect('/dash3')
+
 app = DispatcherMiddleware(server, {
     '/dash1': dash_app1.server,
-    '/dash2': dash_app2.server
+    '/dash2': dash_app2.server,
+    '/dash3': dash_app3.server
 })
 
-
-# @app.callback(Output('page-content', 'children'),
-#             [Input('url', 'pathname')])
-# def display_page(pathname):
-#     if pathname == '/dashboard':
-#         return flask.redirect('/dash1')
-#     if pathname == '/reports':
-#         return flask.redirect('/dash2')
 
 run_simple('127.0.0.1', 8050, app, use_reloader=True, use_debugger=True)

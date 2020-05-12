@@ -17,6 +17,7 @@ import plotly.graph_objects as go
 import cStringIO
 import base64
 import os
+from PIL import Image, ImageChops
 
 ## Navbar
 from navbar import Navbar
@@ -25,20 +26,6 @@ nav = Navbar()
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
-
-taxonomy_level = "Aves"
-
-    #Create organisms list
-with open(taxonomy_level + ".txt") as organisms_list:
-    organisms = organisms_list.readlines()
-organisms = [x.strip() for x in organisms]
-
-#Create orthology group list
-# if os.path.isfile("OG.csv") == True:
-with open("OG.csv") as OGS:
-    OG_list = read_csv('OG.csv', sep=';')['label']
-    OG_names = read_csv('OG.csv', sep=';')['Name']
-OG_list = [x.strip() for x in OG_list]
 
 
 header = html.H3(
@@ -50,15 +37,33 @@ output = html.Div(id = 'output',
                 children = [],
                 )
 
-def App():
-    layout = html.Div([
-        nav,
-        header,
-        html.Img(src='assets/images/Correlation.png')
-        
-    ])
-    return layout
 
+
+def trim(im):
+    bg = Image.new(im.mode, im.size, im.getpixel((0,0)))
+    diff = ImageChops.difference(im, bg)
+    diff = ImageChops.add(diff, diff, 2.0, -100)
+    bbox = diff.getbbox()
+    if bbox:
+        return im.crop(bbox)
+
+
+def concat_phylo(im1, im2):
+    im1 = Image.open(im1)
+    im2 = Image.open(im2)
+    im2 = trim(im2)
+
+    new_height = 4140
+    new_width_im1  = new_height * im1.width / im1.height
+    new_width_im2  = new_height * im2.width / im2.height
+
+    im1 = im1.resize((new_width_im1, new_height), Image.ANTIALIAS)
+    im2 = im2.resize((new_width_im2, new_height), Image.ANTIALIAS)
+
+    dst = Image.new('RGB', (im1.width + im2.width, min(im1.height, im2.height)))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (im1.width, (im1.height - im2.height) // 2))
+    return dst
 
 
 
@@ -66,6 +71,7 @@ def SPARQLWrap(taxonomy_level):
     
     # taxonomy_level = "Vertebrata"
 
+    # taxonomy_level = taxonomy_level.split('-')[0]
     with open(taxonomy_level + ".txt") as organisms_list:
         organisms = organisms_list.readlines()
     organisms = [x.strip() for x in organisms]
@@ -149,9 +155,17 @@ def SPARQLWrap(taxonomy_level):
     df4.to_csv("Presence-Vectors.csv", index=False)
 
 
-def Correlation_Img():
+def Correlation_Img(taxonomy_level):
+    # taxonomy_level = taxonomy_level.split('-')[0]
+    with open(taxonomy_level + ".txt") as organisms_list:
+        organisms = organisms_list.readlines()
+    organisms = [x.strip() for x in organisms]
 
-    # OG_list = [x.strip() for x in OG_list]
+    with open("OG.csv") as OGS:
+        OG_list = read_csv('OG.csv', sep=';')['label']
+        OG_names = read_csv('OG.csv', sep=';')['Name']
+    OG_list = [x.strip() for x in OG_list]
+
     df = pd.read_csv("SPARQLWrapper.csv")
     df = df.iloc[:, 1:]
     df.columns = OG_names
@@ -160,7 +174,7 @@ def Correlation_Img():
     pres_list = [(1 - item/float(len(organisms))) for item in pres_df_zero_values]
 
     rgbs = [(1-i,0,0) for i in pres_list]
-
+    sns.set(font_scale=1.2)
     df = df.fillna(0).astype(float)
     # df = df.clip(upper=1)
     dendro = sns.clustermap(df.corr(), 
@@ -174,15 +188,21 @@ def Correlation_Img():
     plt.savefig(my_stringIObytes, format='png')
     my_stringIObytes.seek(0)
     my_base64_pngData = base64.b64encode(my_stringIObytes.read())
-
+    plt.savefig(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png', dpi = 70, bbox_inches="tight")
     return html.Img(src='data:image/png;base64,{}'.format(my_base64_pngData))
 
 
 
 
 def Presence_Img(taxonomy_level):
-    # taxonomy_level = "Vertebrata"
+    
+    if os.path.isfile(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png') == True:
+        os.remove(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png')
 
+    if os.path.isfile(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png') == True:
+        os.remove(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence2.png')
+
+    # taxonomy_level = taxonomy_level.split('-')[0]
     #Create organisms list
     with open(taxonomy_level + ".txt") as organisms_list:
         organisms = organisms_list.readlines()
@@ -205,46 +225,73 @@ def Presence_Img(taxonomy_level):
     ]
     my_cmap, norm = matplotlib.colors.from_levels_and_colors(levels, colors, extend='max')
     sns.set(font_scale=2.2)
-    # cbar_ax = plt.gca()
-    dendro = sns.clustermap(df4, metric="euclidean", 
+
+    Prots_to_show = Prots_to_show.tolist()
+
+    for idx, item in enumerate(Prots_to_show):
+        if '-' in item:
+            item =  item.split("-")[0]
+            Prots_to_show[idx] = item
+
+    phylo = sns.clustermap(df4, metric="euclidean", 
                         figsize=(len(Prots_to_show),len(MainSpecies)/2), 
                         linewidth=0.90,
                         row_cluster=False,
                       col_cluster=False,
                         cmap=my_cmap, 
                         norm=norm,
-                        yticklabels=MainSpecies,
+                        # yticklabels=MainSpecies,
                         xticklabels=Prots_to_show,
                         annot=True,
                        )
 
-    dendro.cax.set_visible(False)
+    phylo.cax.set_visible(False)
     # ax.tick_params(labeltop=True)
     
-    del df4
-
     
     if os.path.isfile("Presence-Vector.csv") == True:
         os.remove("Presence-Vector.csv")
 
-    # ColorTicks(dendro.ax_heatmap.get_xticklabels())
-    # plt.savefig('C:/Users/nfsus/OneDrive/best_repository_ever/Dash_app/assets/Presence.png', dpi = 70, bbox_inches="tight")
-    
-    plt.savefig(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Presence.png', dpi = 70, bbox_inches="tight")
+    if os.path.isfile(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\concat_phylo.png') == True:
+        os.remove(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\concat_phylo.png')
+
+
+    plt.savefig('Presence.png', dpi = 70, bbox_inches="tight")
+ 
+    png_file = str(taxonomy_level) + '.png'
+    concat_phylo(png_file, 'Presence.png').save(r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\concat_phylo.png')
+ 
+
+    phylo2 = sns.clustermap(df4, metric="euclidean", 
+                        figsize=(len(Prots_to_show),len(MainSpecies)/2), 
+                        linewidth=0.90,
+                        row_cluster=False,
+                    #   col_cluster=False,
+                        cmap=my_cmap, 
+                        norm=norm,
+                        # yticklabels=MainSpecies,
+                        xticklabels=Prots_to_show,
+                        annot=True,
+                       )
+    plt.savefig('Presence2.png', dpi = 70, bbox_inches="tight")
+    del taxonomy_level 
+    del df4
+
     my_stringIObytes = cStringIO.StringIO()
     plt.savefig(my_stringIObytes, format='png')
     my_stringIObytes.seek(0)
     my_base64_pngData = base64.b64encode(my_stringIObytes.read())
 
-    return html.Img(src='data:image/png;base64,{}'.format(my_base64_pngData))
 
 
+ 
 
-    # layout = html.Div([
-    #     nav,
-    #     html.Img(src='assets/images/Presence.png')
-    # ])
-    # return layout 
+    return html.Img(
+        src='data:image/png;base64,{}'.format(my_base64_pngData), 
+        style={'height':'512px', 'width':'200px'}
+        )
+
+
 
 
 def build_graph(city):

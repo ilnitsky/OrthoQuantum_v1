@@ -1,0 +1,48 @@
+Guillardia theta CCMP2712
+Thecamonas trahens ATCC 50062
+Giardia lamblia ATCC 50803
+Tritrichomonas foetus
+Trichomonas vaginalis G3
+Acanthamoeba castellanii str. Neff
+Entamoeba invadens IP1
+Tieghemostelium lacteum
+Cavenderia fasciculata
+Acytostelium subglobosum LB1
+Heterostelium album PN500
+Naegleria fowleri
+Naegleria gruberi strain NEG-M
+Perkinsela sp. CCAP 1560/4
+Bodo saltans
+Phytomonas sp. isolate EM1
+Phytomonas sp. isolate Hart1
+Leishmania infantum
+Leishmania enriettii
+Trypanosoma cruzi cruzi
+Trypanosoma grayi
+Trypanosoma theileri
+Plasmodiophora brassicae
+Reticulomyxa filosa
+Aureococcus anophagefferens
+Blastocystis hominis
+Pythium insidiosum
+Phytophthora sojae
+Phytophthora parasitica P1569
+Fragilariopsis cylindrus CCMP1102
+Fistulifera solaris
+Phaeodactylum tricornutum CCAP 1055/1
+Perkinsus marinus ATCC 50983
+Symbiodinium microadriaticum
+Tetrahymena thermophila SB210
+Ichthyophthirius multifiliis
+Chromera velia CCMP2878
+Vitrella brassicaformis CCMP3155
+Gregarina niphandrodes
+Toxoplasma gondii RH
+Cryptosporidium meleagridis
+Eimeria brunetti
+Cyclospora cayetanensis
+Babesia bigemina
+Plasmodium gonderi
+Plasmodium coatneyi
+Plasmodium relictum
+Plasmodium gallinaceum

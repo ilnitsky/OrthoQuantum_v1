@@ -1,166 +1,240 @@
-Organisms,ASTN1,Morf4l1,TPRN,ARMCX1,TEX19,Tex19.2,NPM1
-Thecamonas trahens ATCC 50062,0,1,0,0,0,0,0
-Guillardia theta CCMP2712,0,2,0,0,0,0,0
-Crithidia fasciculata,0,0,0,0,0,0,0
-Trypanosoma cruzi marinkellei,0,0,0,0,0,0,0
-Heterostelium album PN500,0,1,0,0,0,0,0
-Cavenderia fasciculata,0,1,0,0,0,0,0
-Sarcocystis neurona,0,0,0,0,0,0,0
-Saprolegnia diclina VS20,0,2,0,0,0,0,0
-Aphanomyces invadans,0,1,0,0,0,0,0
-Ostreococcus lucimarinus CCE9901,0,1,0,0,0,0,0
-Helicosporidium sp. ATCC 50920,0,0,0,0,0,0,0
-Chlorella variabilis,0,1,0,0,0,0,0
-Klebsormidium nitens,0,1,0,0,0,0,0
-Physcomitrella patens,0,2,0,0,0,0,0
-Selaginella moellendorffii,0,5,0,0,0,0,0
-Amborella trichopoda,0,1,0,0,0,0,0
-Aquilegia coerulea,0,1,0,0,0,0,0
-Macleaya cordata,0,1,0,0,0,0,0
-Zostera marina,0,1,0,0,0,0,0
-Aegilops tauschii,0,2,0,0,0,0,0
-Triticum urartu,0,1,0,0,0,0,0
-Arabidopsis thaliana,0,2,0,0,0,0,0
-Camelina sativa,0,7,0,0,0,0,0
-Ipomoea nil,0,7,0,0,0,0,0
-Petunia axillaris,0,2,0,0,0,0,0
-Capsicum annuum,0,2,0,0,0,0,0
-Solanum tuberosum,0,2,0,0,0,0,0
-Solanum lycopersicum,0,2,0,0,0,0,0
-Capsaspora owczarzaki ATCC 30864,0,1,0,0,0,0,0
-Fonticula alba,0,1,0,0,0,0,0
-Sphaeroforma arctica JP610,0,3,0,0,0,0,0
-Batrachochytrium salamandrivorans,0,1,0,0,0,0,0
-Vavraia culicis subsp. floridensis,0,0,0,0,0,0,0
-Nosema ceranae,0,0,0,0,0,0,0
-Rhodotorula taiwanensis,0,1,0,0,0,0,0
-Malassezia sympodialis ATCC 42132,0,1,0,0,0,0,0
-Malassezia globosa CBS 7966,0,1,0,0,0,0,0
-Schizopora paradoxa,0,1,0,0,0,0,0
-Sanghuangporus baumii,0,1,0,1,0,0,0
-Schizophyllum commune H4-8,0,1,0,0,0,0,0
-Hypsizygus marmoreus,0,1,0,0,0,0,0
-Saitoella complicata NRRL Y-17804,0,1,0,0,0,0,0
-Schizosaccharomyces cryophilus OY26,0,1,0,0,0,0,0
-Pachysolen tannophilus NRRL Y-2460,0,1,0,0,0,0,0
-Candida tropicalis MYA-3404,0,1,0,0,0,0,0
-Candida parapsilosis,0,1,0,0,0,0,0
-Zymoseptoria brevis,0,1,0,0,0,0,0
-Ramularia collo-cygni,0,1,0,0,0,0,0
-Fonsecaea pedrosoi CBS 271.37,0,1,0,0,0,0,0
-Penicillium griseofulvum,0,1,0,0,0,0,0
-Aspergillus brasiliensis CBS 101740,0,1,0,0,0,0,0
-Rhynchosporium commune,0,1,0,0,0,0,0
-Marssonina coronariae,0,1,0,0,0,0,0
-Diplocarpon rosae,0,2,0,0,0,0,0
-Fusarium graminearum,0,1,0,0,0,0,0
-Stachybotrys chlorohalonata IBT 40285,0,1,0,0,0,0,0
-Acremonium chrysogenum ATCC 11550,0,1,0,0,0,0,0
-Ustilaginoidea virens,0,1,0,0,0,0,0
-Amphimedon queenslandica,0,2,0,0,0,0,0
-Trichoplax adhaerens,0,2,0,0,0,0,1
-Hydra vulgaris,0,3,0,0,0,0,0
-Exaiptasia pallida,1,2,0,1,0,0,0
-Nematostella vectensis,0,2,0,0,0,0,0
-Mizuhopecten yessoensis,0,3,0,0,0,0,1
-Caenorhabditis remanei,0,16,0,0,0,0,0
-Brugia malayi,0,4,0,0,0,0,0
-Loa loa,0,2,0,0,0,0,0
-Euroglyphus maynei,0,2,0,0,0,0,0
-Sarcoptes scabiei,0,3,0,0,0,0,0
-Ixodes scapularis,0,3,0,0,0,0,0
-Galendromus occidentalis,0,3,0,1,0,0,0
-Tropilaelaps mercedesae,0,4,0,0,0,0,0
-Varroa jacobsoni,0,4,0,0,0,0,0
-Strigamia maritima,0,3,0,0,0,0,4
-Daphnia magna,0,3,0,0,0,0,1
-Ladona fulva,0,3,0,0,0,0,0
-Ephemera danica,0,4,0,0,0,0,0
-Agrilus planipennis,0,3,0,0,0,0,1
-Nicrophorus vespilloides,0,3,0,0,0,0,1
-Amyelois transitella,0,2,0,0,0,0,0
-Pieris rapae,0,2,0,0,0,0,0
-Ooceraea biroi,0,3,0,0,0,0,1
-Eufriesea mexicana,0,3,0,0,0,0,1
-Ceratosolen solmsi marchali,0,4,0,0,0,0,1
-Fopius arisanus,0,3,0,0,0,0,1
-Anopheles albimanus,0,2,0,0,0,0,1
-Culex quinquefasciatus,0,4,0,0,0,0,1
-Aedes albopictus,0,2,0,0,0,0,1
-Aedes aegypti,0,3,0,0,0,0,1
-Glossina austeni,0,4,0,0,0,0,4
-Drosophila yakuba,0,3,0,0,0,0,2
-Drosophila melanogaster,0,3,0,0,0,0,2
-Ceratitis capitata,0,3,0,0,0,0,2
-Rhagoletis zephyria,0,6,0,0,0,0,2
-Saccoglossus kowalevskii,0,2,0,2,0,0,0
-Strongylocentrotus purpuratus,0,3,0,0,0,0,1
-Acanthaster planci,0,2,0,1,0,0,0
-Ciona intestinalis,0,3,1,0,0,0,0
-Branchiostoma floridae,1,4,0,1,0,0,0
-Pygocentrus nattereri,3,2,1,1,0,0,3
-Danio rerio,2,1,1,1,0,0,3
-Notothenia coriiceps,2,3,1,0,0,0,3
-Xiphophorus maculatus,2,3,1,1,0,0,3
-Poecilia formosa,2,3,1,1,0,0,3
-Paralichthys olivaceus,2,3,2,1,0,0,3
-Lates calcarifer,2,3,1,1,0,0,3
-Latimeria chalumnae,4,2,2,1,0,0,4
-Nanorana parkeri,2,2,2,1,0,0,4
-Xenopus laevis,5,4,4,1,0,0,8
-Xenopus tropicalis,2,3,1,1,0,0,4
-Gekko japonicus,3,2,2,1,0,0,3
-Python bivittatus,2,4,2,1,0,0,3
-Anolis carolinensis,2,4,2,1,0,0,3
-Pogona vitticeps,2,2,2,1,0,0,3
-Alligator mississippiensis,2,2,2,1,0,0,3
-Struthio camelus,2,2,1,1,0,0,3
-Tinamus guttatus,3,2,1,1,0,0,2
-Merops nubicus,2,2,0,1,0,0,3
-Aquila chrysaetos,2,2,2,1,0,0,2
-Haliaeetus albicilla,4,2,0,1,0,0,2
-Chaetura pelagica,3,2,1,1,0,0,2
-Calypte anna,2,2,0,1,0,0,3
-Cyanistes caeruleus,2,2,1,1,0,0,3
-Lonchura striata,2,2,1,1,0,0,2
-Taeniopygia guttata,4,2,1,1,0,0,2
-Pelecanus crispus,2,2,1,1,0,0,2
-Phalacrocorax carbo,2,2,0,1,0,0,2
-Egretta garzetta,2,2,1,1,0,0,3
-Numida meleagris,2,2,1,1,0,0,3
-Meleagris gallopavo,3,2,1,1,0,0,3
-Coturnix japonica,2,2,1,1,0,0,4
-Gallus gallus,2,2,1,1,0,0,3
-Sarcophilus harrisii,3,7,1,1,0,0,5
-Orycteropus afer,2,4,1,7,0,0,3
-Condylura cristata,2,2,1,9,0,0,3
-Manis javanica,3,5,1,9,0,1,3
-Ursus maritimus,2,3,1,9,0,1,3
-Equus caballus,2,5,1,8,0,1,3
-Sus scrofa,2,3,1,9,0,1,3
-Orcinus orca,2,3,1,8,1,0,3
-Tursiops truncatus,2,3,1,9,1,0,3
-Vicugna pacos,2,3,1,9,0,0,3
-Camelus bactrianus,2,3,1,8,0,1,3
-Odocoileus virginianus,3,5,1,10,0,2,6
-Bos taurus,2,3,1,8,0,3,3
-Pantholops hodgsonii,2,3,1,9,0,2,6
-Ovis aries musimon,2,3,1,8,0,2,3
-Galeopterus variegatus,5,4,1,10,0,1,3
-Tupaia chinensis,3,5,1,10,0,2,10
-Mesocricetus auratus,2,3,1,9,0,1,3
-Meriones unguiculatus,4,3,1,10,0,2,3
-Rattus norvegicus,2,6,1,9,0,2,4
-Mus musculus,3,6,1,8,0,2,3
-Mus caroli,2,7,1,11,0,2,4
-Propithecus coquereli,2,3,1,11,0,2,5
-Otolemur garnettii,2,7,1,9,0,1,4
-Saimiri boliviensis boliviensis,2,5,1,9,1,0,3
-Piliocolobus tephrosceles,2,5,1,9,1,0,8
-Macaca fascicularis,2,4,1,8,1,0,4
-Nomascus leucogenys,2,5,1,8,1,0,6
-Pongo abelii,2,5,1,9,1,0,6
-Homo sapiens,2,3,1,10,1,0,3
-Gorilla gorilla gorilla,2,4,1,8,1,0,6
-Pan paniscus,2,5,1,9,1,0,4
-Pan troglodytes,2,4,1,8,1,0,4
+Organisms,ASB14,ATP1B1,AXDND1,SMPDL3A,ARHGEF12,BLK,PRMT6,CD164L2,ANP32A
+Rhincodon typus,2,1,1,2,1,1,1,1,3
+Callorhinchus milii,2,1,1,2,2,2,1,1,3
+Lepisosteus oculatus,2,1,1,2,2,2,1,1,4
+Paramormyrops kingsleyae,4,2,1,2,3,3,1,1,4
+Scleropages formosus,4,2,0,2,3,3,1,1,4
+Clupea harengus,6,2,1,2,3,2,1,0,3
+Ictalurus punctatus,5,2,1,2,3,2,1,1,3
+Pygocentrus nattereri,4,2,1,3,3,2,1,1,3
+Astyanax mexicanus,5,2,1,2,3,2,1,1,3
+Cyprinus carpio,4,3,0,3,4,2,1,2,1
+Danio rerio,8,2,0,2,4,2,1,1,2
+Sinocyclocheilus grahami,5,4,1,4,5,4,2,2,3
+Sinocyclocheilus rhinocerous,6,4,2,3,6,3,2,2,4
+Sinocyclocheilus anshuiensis,6,4,2,3,6,4,2,2,4
+Esox lucius,5,2,1,2,3,2,1,1,5
+Salmo salar,5,4,1,3,5,3,1,2,12
+Salvelinus alpinus,4,2,1,2,6,2,1,0,9
+Oncorhynchus tshawytscha,5,3,1,4,8,2,1,0,11
+Oncorhynchus kisutch,4,2,1,2,6,2,1,1,5
+Oncorhynchus mykiss,4,4,1,2,6,3,1,1,12
+Boleophthalmus pectinirostris,6,2,1,4,2,2,1,1,3
+Monopterus albus,4,2,1,2,3,2,1,1,5
+Hippocampus comes,3,2,0,2,3,2,1,1,4
+Notothenia coriiceps,3,1,1,1,3,2,1,1,3
+Labrus bergylta,5,2,1,2,4,2,1,1,5
+Larimichthys crocea,6,2,1,2,4,4,1,1,5
+Takifugu rubripes,4,2,1,2,3,2,2,0,4
+Lates calcarifer,5,2,1,2,3,2,1,0,5
+Cynoglossus semilaevis,4,2,1,2,3,2,1,1,5
+Paralichthys olivaceus,4,2,1,2,4,1,0,1,4
+Seriola lalandi,5,2,1,2,4,2,1,1,5
+Seriola dumerili,5,2,1,2,3,2,1,1,5
+Acanthochromis polyacanthus,3,2,1,2,3,2,1,1,5
+Stegastes partitus,5,2,1,2,3,2,1,1,5
+Amphiprion ocellaris,5,2,1,2,3,2,1,1,5
+Neolamprologus brichardi,2,2,1,2,3,2,1,1,5
+Oreochromis niloticus,3,2,1,2,3,2,1,1,5
+Haplochromis burtoni,3,2,1,2,3,2,1,1,5
+Maylandia zebra,3,2,1,2,3,2,1,1,5
+Pundamilia nyererei,3,2,1,2,3,2,1,0,5
+Oryzias latipes,3,2,1,2,2,2,1,1,5
+Oryzias melastigma,3,2,1,2,3,2,1,1,6
+Nothobranchius furzeri,4,2,1,2,3,2,1,1,5
+Kryptolebias marmoratus,4,2,1,2,4,2,1,1,5
+Austrofundulus limnaeus,5,3,1,3,3,2,1,1,7
+Fundulus heteroclitus,3,2,2,2,3,2,1,1,5
+Cyprinodon variegatus,3,2,1,2,4,2,1,1,5
+Xiphophorus maculatus,4,3,1,1,3,2,1,1,5
+Poecilia reticulata,3,3,1,2,3,2,1,1,5
+Poecilia mexicana,3,4,1,2,3,2,1,1,6
+Poecilia latipinna,3,4,1,2,3,3,1,1,5
+Poecilia formosa,3,4,1,2,3,2,1,1,6
+Latimeria chalumnae,2,1,1,3,2,2,2,1,3
+Nanorana parkeri,2,1,1,2,2,1,1,0,3
+Xenopus laevis,2,2,1,2,4,2,1,0,4
+Xenopus tropicalis,2,1,1,2,2,1,1,0,2
+Gekko japonicus,2,1,1,2,2,2,0,1,3
+Anolis carolinensis,2,1,1,2,2,2,0,1,1
+Pogona vitticeps,2,1,1,2,2,2,0,1,3
+Python bivittatus,2,1,0,1,2,2,0,1,3
+Thamnophis sirtalis,1,1,0,1,2,0,0,1,3
+Protobothrops mucrosquamatus,2,1,0,1,2,2,0,1,2
+Pelodiscus sinensis,2,1,1,2,2,2,0,0,1
+Chelonia mydas,2,1,1,2,2,2,0,0,1
+Chrysemys picta bellii,2,1,1,2,2,2,0,0,2
+Gavialis gangeticus,2,1,1,2,2,2,0,1,2
+Crocodylus porosus,2,1,1,2,2,2,0,1,2
+Alligator sinensis,2,1,1,2,2,2,0,1,2
+Alligator mississippiensis,2,1,1,2,2,2,0,1,2
+Struthio camelus,2,1,1,2,2,1,0,1,2
+Tinamus guttatus,3,1,1,2,2,1,0,0,2
+Gavia stellata,2,1,1,2,1,1,0,0,2
+Pterocles gutturalis,2,1,1,2,1,1,0,0,2
+Buceros rhinoceros silvestris,2,1,1,2,1,1,0,1,2
+Tauraco erythrolophus,2,1,0,2,1,1,0,1,2
+Columba livia,1,1,1,2,2,2,0,1,2
+Cuculus canorus,2,1,0,2,2,2,0,1,2
+Picoides pubescens,2,1,1,2,1,2,0,1,2
+Colius striatus,2,1,1,2,2,0,0,1,2
+Tyto alba,2,1,2,2,1,1,0,0,2
+Fulmarus glacialis,2,1,1,2,1,1,0,0,1
+Opisthocomus hoazin,2,1,1,2,1,1,0,0,2
+Cariama cristata,2,1,1,2,1,1,0,0,2
+Apaloderma vittatum,2,1,0,2,0,1,0,1,2
+Nestor notabilis,2,1,1,2,2,2,0,1,2
+Melopsittacus undulatus,2,1,1,2,1,2,0,0,2
+Charadrius vociferus,2,1,1,2,2,2,0,0,2
+Calidris pugnax,2,1,1,2,2,3,0,1,2
+Merops nubicus,2,1,1,2,1,1,0,0,2
+Leptosomus discolor,2,1,1,2,2,1,0,1,2
+Falco cherrug,2,1,1,2,2,2,0,1,2
+Falco peregrinus,2,1,1,2,2,2,0,1,2
+Aptenodytes forsteri,2,1,1,2,2,2,0,1,2
+Pygoscelis adeliae,2,1,1,2,1,1,0,1,2
+Antrostomus carolinensis,2,1,1,2,2,0,0,0,2
+Chaetura pelagica,2,1,0,2,2,2,0,0,2
+Calypte anna,3,1,1,2,2,1,0,1,2
+Aquila chrysaetos,2,1,1,2,2,2,0,1,2
+Haliaeetus albicilla,2,1,1,2,2,1,0,0,2
+Eurypyga helias,2,1,1,2,2,1,0,1,2
+Mesitornis unicolor,2,1,1,2,2,2,0,0,2
+Balearica regulorum gibbericeps,2,1,1,2,1,2,0,0,1
+Chlamydotis macqueenii,2,1,0,3,1,1,0,0,2
+Nipponia nippon,2,1,1,2,2,2,0,1,2
+Phalacrocorax carbo,2,1,1,2,1,1,0,0,2
+Phaethon lepturus,2,1,1,2,2,2,0,0,1
+Pelecanus crispus,2,1,1,2,1,1,0,0,1
+Egretta garzetta,2,1,1,2,2,2,0,1,2
+Anser cygnoides,2,1,1,2,2,2,0,0,2
+Anas platyrhynchos,2,1,1,2,2,2,0,0,2
+Numida meleagris,2,1,1,2,2,2,0,1,2
+Meleagris gallopavo,2,1,1,2,2,2,0,1,2
+Coturnix japonica,2,1,1,2,2,2,0,1,2
+Gallus gallus,2,1,1,3,2,2,0,2,3
+Sturnus vulgaris,1,1,0,2,2,2,0,0,2
+Acanthisitta chloris,1,1,0,2,2,2,0,1,2
+Zonotrichia albicollis,1,1,0,2,1,1,0,0,2
+Geospiza fortis,1,1,0,2,2,2,0,1,2
+Ficedula albicollis,1,1,0,3,1,2,0,1,2
+Lepidothrix coronata,1,1,0,2,2,2,0,1,2
+Manacus vitellinus,1,1,0,2,2,2,0,0,2
+Corvus cornix cornix,2,1,0,2,1,2,0,1,2
+Corvus brachyrhynchos,2,1,0,2,2,2,0,0,2
+Serinus canaria,1,1,0,2,1,2,0,1,2
+Lonchura striata,1,1,0,2,2,2,0,1,2
+Taeniopygia guttata,2,1,0,2,2,1,0,0,1
+Parus major,1,1,0,2,1,2,0,1,2
+Cyanistes caeruleus,1,1,0,2,1,2,0,1,2
+Pseudopodoces humilis,1,1,0,2,2,2,0,1,2
+Ornithorhynchus anatinus,3,1,1,2,1,1,0,0,3
+Monodelphis domestica,2,1,1,4,2,2,1,1,3
+Phascolarctos cinereus,2,1,1,2,2,2,1,1,3
+Sarcophilus harrisii,2,1,1,2,2,2,0,1,3
+Dasypus novemcinctus,2,1,2,2,3,1,1,1,2
+Loxodonta africana,2,1,1,2,2,2,1,1,2
+Echinops telfairi,2,1,1,3,2,2,1,1,3
+Chrysochloris asiatica,2,1,1,2,2,2,1,1,3
+Orycteropus afer,2,1,1,2,2,2,1,1,2
+Trichechus manatus,2,1,1,2,2,2,1,1,2
+Elephantulus edwardii,2,1,1,2,2,2,1,1,3
+Tupaia chinensis,2,1,1,2,2,2,1,1,2
+Galeopterus variegatus,2,1,1,2,2,2,1,1,2
+Ochotona princeps,2,1,1,2,2,2,1,1,2
+Oryctolagus cuniculus,2,1,1,2,2,2,1,1,2
+Ictidomys tridecemlineatus,2,1,1,2,2,2,1,1,2
+Marmota marmota marmota,2,1,1,2,3,2,1,1,2
+Castor canadensis,2,1,1,2,2,2,1,0,2
+Dipodomys ordii,2,1,1,2,2,2,1,1,2
+Chinchilla lanigera,2,1,1,2,2,2,1,1,3
+Cavia porcellus,2,1,1,2,2,2,1,1,2
+Octodon degus,2,1,1,2,2,2,1,1,4
+Fukomys damarensis,2,1,1,2,2,2,1,1,2
+Heterocephalus glaber,2,1,4,2,2,2,1,1,2
+Jaculus jaculus,2,1,1,2,2,2,1,1,2
+Nannospalax galili,2,1,1,2,2,2,1,1,2
+Peromyscus maniculatus bairdii,2,1,1,2,2,2,1,1,2
+Microtus ochrogaster,2,1,1,2,2,2,1,1,3
+Cricetulus griseus,2,1,1,2,2,2,1,1,2
+Mesocricetus auratus,2,1,1,2,2,2,1,1,2
+Meriones unguiculatus,2,1,1,3,2,2,1,1,2
+Rattus norvegicus,2,1,1,2,2,2,2,1,4
+Mus pahari,2,1,1,2,2,2,1,1,3
+Mus caroli,2,1,1,2,2,2,1,1,3
+Mus musculus,3,1,1,2,2,2,1,1,3
+Otolemur garnettii,2,1,1,2,2,2,1,1,2
+Propithecus coquereli,2,1,1,2,2,2,1,1,3
+Microcebus murinus,2,1,1,2,3,2,1,1,2
+Carlito syrichta,2,1,2,2,3,2,1,1,2
+Aotus nancymaae,3,1,1,2,3,2,2,0,2
+Callithrix jacchus,2,1,1,2,2,1,2,2,2
+Saimiri boliviensis boliviensis,2,1,1,2,2,2,1,1,3
+Cebus capucinus imitator,2,1,1,2,2,2,1,2,2
+Nomascus leucogenys,2,1,1,2,2,2,1,1,3
+Pongo abelii,2,1,1,2,2,2,1,1,4
+Homo sapiens,3,1,1,2,2,3,1,1,3
+Gorilla gorilla gorilla,3,1,1,2,2,2,1,1,4
+Pan paniscus,2,1,1,2,2,2,1,1,3
+Pan troglodytes,2,1,1,2,2,2,1,1,4
+Colobus angolensis palliatus,2,1,1,2,2,2,1,1,2
+Piliocolobus tephrosceles,2,1,1,2,2,2,1,1,3
+Rhinopithecus bieti,2,1,1,2,2,2,1,1,3
+Rhinopithecus roxellana,2,1,1,2,2,2,1,1,3
+Mandrillus leucophaeus,2,1,1,2,2,2,1,1,2
+Cercocebus atys,2,1,1,2,2,2,1,1,1
+Papio anubis,2,1,1,2,2,2,1,1,2
+Chlorocebus sabaeus,2,1,1,2,2,2,1,1,2
+Macaca nemestrina,2,1,1,2,2,2,1,1,1
+Macaca mulatta,2,1,1,2,2,2,1,1,1
+Macaca fascicularis,2,1,1,2,2,2,1,1,2
+Manis javanica,2,1,1,2,2,2,1,1,2
+Erinaceus europaeus,2,1,1,2,2,2,1,1,2
+Condylura cristata,2,1,1,2,2,1,1,1,2
+Sorex araneus,2,1,1,2,2,2,0,1,1
+Ceratotherium simum,2,1,1,2,2,2,1,1,1
+Equus asinus,2,1,1,2,2,2,1,1,2
+Equus caballus,2,1,1,2,3,2,1,1,2
+Equus przewalskii,2,1,1,2,2,2,1,1,3
+Rousettus aegyptiacus,2,1,1,2,2,2,1,1,2
+Pteropus vampyrus,2,1,1,3,2,2,1,1,2
+Pteropus alecto,2,1,1,2,2,2,1,1,2
+Rhinolophus sinicus,2,1,1,2,2,2,1,1,2
+Hipposideros armiger,1,1,1,2,2,2,1,1,2
+Eptesicus fuscus,2,1,1,2,2,2,1,1,2
+Miniopterus natalensis,2,1,1,2,2,2,1,1,2
+Myotis lucifugus,2,1,1,2,2,2,1,1,2
+Myotis brandtii,2,1,1,2,2,2,0,0,2
+Myotis davidii,2,1,1,2,2,2,1,1,3
+Felis catus,2,1,1,2,2,2,1,1,2
+Acinonyx jubatus,2,1,1,2,2,2,1,1,2
+Panthera pardus,2,1,1,2,3,2,1,1,2
+Panthera tigris,2,1,1,2,2,2,1,1,2
+Canis lupus familiaris,2,1,2,2,3,2,1,1,2
+Odobenus rosmarus divergens,2,1,1,2,2,2,1,1,3
+Ailuropoda melanoleuca,2,1,1,2,2,2,1,1,2
+Ursus maritimus,2,1,1,2,3,2,1,1,2
+Mustela putorius,2,1,1,2,2,2,1,1,2
+Enhydra lutris,2,1,1,2,2,2,1,1,2
+Leptonychotes weddellii,1,1,1,3,3,2,1,1,3
+Neomonachus schauinslandi,2,1,1,2,2,2,1,1,2
+Sus scrofa,2,1,1,2,2,2,1,1,2
+Vicugna pacos,2,1,1,2,2,2,1,1,2
+Camelus ferus,2,1,1,2,2,2,1,1,2
+Camelus dromedarius,2,1,1,2,2,2,1,1,2
+Camelus bactrianus,2,1,1,2,2,2,1,1,2
+Balaenoptera acutorostrata,2,1,1,2,2,2,1,1,2
+Lipotes vexillifer,2,1,1,2,2,2,1,1,2
+Physeter catodon,2,1,1,2,2,2,1,1,3
+Delphinapterus leucas,2,1,1,2,2,2,1,1,2
+Tursiops truncatus,2,1,1,2,2,1,1,1,1
+Orcinus orca,2,1,1,2,2,2,1,1,3
+Odocoileus virginianus,2,1,1,2,2,2,1,1,2
+Pantholops hodgsonii,2,1,1,2,2,2,1,1,2
+Ovis aries musimon,2,1,1,2,2,2,1,1,4
+Capra hircus,2,1,1,2,2,2,1,1,2
+Bubalus bubalis,2,1,1,2,2,2,1,1,3
+Bison bison,2,1,1,2,2,2,1,1,2
+Bos taurus,2,1,1,2,2,2,1,1,2
+Bos grunniens,2,1,1,2,2,2,1,1,2
+Bos indicus,2,1,1,3,2,2,1,1,2

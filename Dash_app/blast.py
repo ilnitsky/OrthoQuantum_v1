@@ -1,3 +1,7 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -13,15 +17,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 import plotly.graph_objects as go
-import cStringIO
+import io
 import base64
 import os
 from PIL import Image, ImageChops
 from Bio.Blast.NCBIWWW import qblast
 from Bio.Blast import NCBIXML
 from Bio import SeqIO
-import urllib2
-
+import urllib.request, urllib.error, urllib.parse
+import subprocess
 ## Navbar
 from navbar import Navbar
 
@@ -35,41 +39,27 @@ with open("OG.csv") as OGS:
     OG_names = read_csv('OG.csv', sep=';')['Name']
     UniProt_AC = read_csv('OG.csv', sep=';')['UniProt_AC']
 OG_list = [x.strip() for x in OG_list]
+# 
+# with open("/home/ken/best_repository_ever/Dash_app/assets/data/genes.csv") as gene:
+    # Temp = read_csv('/home/ken/best_repository_ever/Dash_app/assets/data/genes.csv', sep='`;')['UniProt AC (mouse)']
+# 
+with open("/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv") as taxa:
+    Sp_name = read_csv('/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv', sep=',')['name']
+    Taxid = read_csv('/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv', sep=',')['taxid']
 
-with open("genes.csv") as OGS:
-    Temp = read_csv('genes.csv', sep=';')['UniProt AC (mouse)']
-# OG_list = [x.strip() for x in OG_list]
+# def blast_query(seq_fasta, entrez):
 
 
-def blast_query(seq_fasta, entrez):
-    result_handle = qblast("blastp", "refseq_genomic", "P05480.fasta", format_type = "XML", entrez_query = "txid94835[organism] OR txid8502[organism] OR txid143302[organism] OR txid9606[organism]"
-    #  entrez_query='{}'.format(entrez)
-    )
-    save_file = open("qblast_blastn.out", "w")
-    save_file.write(result_handle.read())
-    save_file.close()
-    result_handle.close() 
-
-    blast_results = open("qblast_blastn.out")
-    blast_records = NCBIXML.parse(blast_results)
-    for blast_rec in blast_records:
-        for alignment in blast_rec.alignments:
-            for hsp in alignment.hsps:
-                print hsp.score, hsp.expect
+#     blast_results = open("qblast_blastn.out")
+#     blast_records = NCBIXML.parse(blast_results)
+#     for blast_rec in blast_records:
+#         for alignment in blast_rec.alignments:
+#             for hsp in alignment.hsps:
+#                 print(hsp.score, hsp.expect)
 
     
 
-def load_fasta(id_list):
-    handle_list = []
-    i = 0
-    for id in id_list:
-        handle = urllib2.urlopen("http://www.uniprot.org/uniprot/{}.fasta".format(id))
-        F = handle.read()
-        handle_list.append(str(F))
-        print F
-        i = i + 1
-        
-    return handle_list
+
 
 def fasta_from_row():
     df = pd.read_csv("OG.csv")
@@ -115,13 +105,11 @@ def fasta_from_row():
        
     og_info_df = pd.DataFrame(og_info, columns=col)
 
-og_name = OG_names[7]
-uniprot_name = UniProt_AC[7]
 
-class Ortho_Group():
+class Ortho_Group(object):
     def __init__(self, og_name, SubmittedProt_ID, SubmittedProt_Fasta):
         self.og_name = og_name
-        self.SubmittedProt_ID = UniProt_AC
+        self.SubmittedProt_ID = SubmittedProt_ID
 
         self.SubmittedProt_Fasta = SubmittedProt_Fasta
 
@@ -129,43 +117,39 @@ class Ortho_Group():
         # for col_name in column_names:
         species_with_0 = dataframe.loc[dataframe[og_name] == 0.0]
         self.species_w_0 = species_with_0['Organisms'].tolist()
-        
+
+    def make_taxid(self):
+        Tax_dict = dict(zip(Sp_name, Taxid))
+        self.taxid = []
+        for i in self.species_w_0:
+            self.taxid.append(Tax_dict[i])
+        with open('/home/ken/best_repository_ever/Dash_app/assets/data/new.txids', 'w') as f:
+            for item in self.taxid:
+                f.write("%s\n" % item)
+
+    def load_fasta(self):
+        handle_list = []
+        id_list = [self.SubmittedProt_ID]
+        print(self.SubmittedProt_ID)
+        for id in id_list:
+            handle = urllib.request.urlopen("http://www.uniprot.org/uniprot/{}.fasta".format(id))
+            F = handle.read().decode('utf-8')
+            print(str(F))
+            handle_list.append(str(F))
+        self.SubmittedProt_Fasta = F
+        with open('/home/ken/best_repository_ever/Dash_app/assets/data/og.fa', 'w') as f:
+            f.write(str(F))
+                    
     def blast_in_absent(self):
-        query_str = ''
-        if not self.species_w_0:
-            print('All species have an ortholog')
-        else:
-            for species in self.species_w_0:
-                query_str += ' OR "' + species + '"[organism]'
-            query_str = query_str.lstrip(' OR')
-            evalue = 1
-            percentIdent = 60
-            return query_str
+        rc = subprocess.call("/home/ken/nr/blast.sh")
+        
+        
 
-
-
-
-
-
-my_og = Ortho_Group(og_name, uniprot_name, 'gg')
+my_og = Ortho_Group(OG_names[0], UniProt_AC[0], 'gg')
 my_og.absent_in_species(df, my_og.og_name)
+my_og.make_taxid()
+my_og.load_fasta()
+my_og.blast_in_absent()
 
-print my_og.species_w_0
-print og_name
-entrez = my_og.blast_in_absent()
-print entrez
+print(my_og.species_w_0)
 
-
-Temp = Temp[:len(Temp)-46].tolist()
-# seq_fasta = load_fasta([uniprot_name])[0]
-seq_fasta = load_fasta(UniProt_AC)
-seq_fasta = '\n'.join(seq_fasta)
-# seq_fasta_file = open("P05480.fasta", "w")
-# seq_fasta_file.write(seq_fasta)
-
-# blast_query(seq_fasta_file, entrez)
-
-
-# import os
-# S = "blastp -query P05480.fasta -out blast_output -db nr.00"
-# os.system(S) 

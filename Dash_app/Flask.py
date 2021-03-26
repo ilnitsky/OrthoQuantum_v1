@@ -1,10 +1,11 @@
+from __future__ import print_function
 import dash
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 from dash import Dash
-from werkzeug.wsgi import DispatcherMiddleware
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 import flask
 from werkzeug.serving import run_simple
 import dash_html_components as html
@@ -12,17 +13,30 @@ import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Output, State, Input
 import dash_bio as dashbio
-
+import matplotlib.pyplot as paralogs_count
 import numpy
+import time
 from bioservices import UniProt
 from SPARQLWrapper import SPARQLWrapper, JSON
 import pandas as pd
 from pandas import DataFrame, read_csv
-import cStringIO
+import urllib.request, urllib.error, urllib.parse
+import requests
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+    
+    
 import base64
 import os
 import os.path
 import glob
+
+import os, ssl
+if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 
 
@@ -84,17 +98,17 @@ og_from_input = html.Div(children=[
 
         dbc.Col(html.Div([dcc.Dropdown(
             options=[
-                {'label': 'Eukaryota Compact', 'value': 'Eukaryota'},
-                {'label': 'Eukaryota All Species', 'value': 'Eukaryota-full'},
+                {'label': 'Eukaryota (compact)', 'value': 'Eukaryota'},
+                {'label': 'Eukaryota (all species)', 'value': 'Eukaryota-full'},
                 {'label': 'Metazoa', 'value': 'Metazoa'},
                 {'label': 'Vertebrata', 'value': 'Vertebrata'},
                 {'label': 'Tetrapoda', 'value': 'Tetrapoda'},
                 {'label': 'Actinopterygii', 'value': 'Actinopterygii'},
-                {'label': 'Mammalia', 'value': 'Mammalia'},
-                {'label': 'Sauropsida', 'value': 'Sauropsida'},
+                {'label': 'Bacteria (all 5500 species)', 'value': 'Bacteria'},
+                {'label': 'Protista', 'value': 'Protista'},
                 {'label': 'Archaea', 'value': 'Archaea'},
                 {'label': 'Fungi', 'value': 'Fungi'},
-                {'label': 'Lophotrochozoa', 'value': 'Lophotrochozoa'},
+                {'label': 'Viridiplantae', 'value': 'Viridiplantae'},
                 {'label': 'Aves', 'value': 'Aves'},
             ],
             placeholder="Select a taxon (level of orthology)",
@@ -141,6 +155,17 @@ og_from_input = html.Div(children=[
     dbc.Row([
         dbc.Col(html.Div()),
 
+        dbc.Col(html.Div( dbc.Progress(id='progress', striped=True, animated=True))),        
+        dbc.Col(html.Div()), 
+        
+        ]),
+
+
+    html.Br(),
+
+    dbc.Row([
+        dbc.Col(html.Div()),
+
         dbc.Col(html.Div(id='output_div')),        
         dbc.Col(html.Div()), 
         
@@ -154,18 +179,19 @@ og_from_input = html.Div(children=[
 
         dbc.Col(html.Div([dcc.Dropdown(
             options=[
-                {'label': 'Eukaryota Compact', 'value': 'Eukaryota'},
-                {'label': 'Eukaryota All Species', 'value': 'Eukaryota-full'},
+                {'label': 'Eukaryota (compact)', 'value': 'Eukaryota'},
+                {'label': 'Eukaryota (all species)', 'value': 'Eukaryota-full'},
                 {'label': 'Metazoa', 'value': 'Metazoa'},
                 {'label': 'Vertebrata', 'value': 'Vertebrata'},
                 {'label': 'Tetrapoda', 'value': 'Tetrapoda'},
                 {'label': 'Actinopterygii', 'value': 'Actinopterygii'},
-                {'label': 'Mammalia', 'value': 'Mammalia'},
-                {'label': 'Sauropsida', 'value': 'Sauropsida'},
+                {'label': 'Bacteria (all 5500 species)', 'value': 'Bacteria-full'},
+                {'label': 'Protista', 'value': 'Protista'},
                 {'label': 'Archaea', 'value': 'Archaea'},
                 {'label': 'Fungi', 'value': 'Fungi'},
-                {'label': 'Lophotrochozoa', 'value': 'Lophotrochozoa'},
+                {'label': 'Viridiplantae', 'value': 'Viridiplantae'},
                 {'label': 'Aves', 'value': 'Aves'},
+                {'label': 'Nicotiana', 'value': 'Nicotiana'},
             ],
             placeholder="Select a taxon (level of orthology)",
             value='Vertebrata',
@@ -220,12 +246,12 @@ def Page_2():
     nav,
     body2,
     html.Div([
-    dcc.Dropdown(
-        id='image-dropdown',
-        options=[{'label': i, 'value': i} for i in list_of_images],
-        value=list_of_images[0]
-    ),
-    html.Img(id='image')
+    # dcc.Dropdown(
+    #     id='image-dropdown',
+    #     options=[{'label': i, 'value': i} for i in list_of_images],
+    #     value=list_of_images[0]
+    # ),
+    # html.Img(id='image')
     ])
    
        ])
@@ -239,6 +265,7 @@ def Blast_Layout():
     html.Div(id='1'),
     ])
     return layout
+
 
 
 dash_app1.config['suppress_callback_exceptions']=True
@@ -266,7 +293,8 @@ def select_level(value):
 
 
 
-@dash_app1.callback(Output('output_div', 'children'),
+@dash_app1.callback(
+            Output('output_div', 'children'),
              [Input('submit-button', 'n_clicks')],
              [State('username', 'value'), State('dropdown', 'value')],
              )
@@ -280,24 +308,26 @@ def update_output(clicks, input_value, dropdown_value):
         if os.path.isfile("SPARQLWrapper.csv") == True:
             os.remove("SPARQLWrapper.csv")
 
+        level_copy = dropdown_value
+
 
         level = dropdown_value
-        # level = level.split('-')[0]
+        level = str(level.split('-')[0])
         input_list = input_value.split()
-        u = UniProt()
-        Prot_IDs = []
-        for Entry in input_list:
-            res = u.search('id:' + str(Entry).strip() + ' AND taxonomy:"Mammalia [40674]"',
-            frmt='tab', columns='entry name, length, id, genes(PREFERRED)')
-            if not res:
-                res = 'NotFound'
-            else:
-                res = res.split('\n')[1].split('\t')[-1]
-            Prot_IDs.append(res)
+        # u = UniProt()
+        # Prot_IDs = []
+        # for Entry in input_list:
+        #     res = u.search('id:' + str(Entry).strip() + ' AND taxonomy:"Mammalia [40674]"',
+        #     frmt='tab', columns='entry name, length, id, genes(PREFERRED)')
+        #     if not res:
+        #         res = 'NotFound'
+        #     else:
+        #         res = res.split('\n')[1].split('\t')[-1]
+        #     Prot_IDs.append(res)
     
     
         uniprot_ac = input_list
-        uniprot_name = Prot_IDs
+        # uniprot_name = Prot_IDs
         uniprot_ac = [x.strip() for x in uniprot_ac]
         
         results = []  
@@ -305,41 +335,73 @@ def update_output(clicks, input_value, dropdown_value):
         P = []
         L = []
         M = []
-        for i in range(len(uniprot_ac)):
-            uniprot_ac_i = uniprot_ac[i]
-            uniprot_name_i = uniprot_name[i]
-            query = """
-            prefix : <http://purl.orthodb.org/>
-            select *
-            where {
-            ?og a :OrthoGroup; 
-            :ogBuiltAt [up:scientificName "%s"]; 
-            !:memberOf/:xref/:xrefResource uniprot:%s .
-            }
-            """ % (level, uniprot_ac_i)
-
-            endpoint.setQuery(query)
-            endpoint.setReturnFormat(JSON)
-            n = endpoint.query().convert()
-            
-            for Y in n["results"]["bindings"]:
-
-                og_Y_list = []
-                og_Y = Y["og"]["value"].split('/')[-1]
-                og_Y_list.append(og_Y)
-                L.append(uniprot_name_i)
-                M.append(og_Y_list[0])
-                P.append(uniprot_ac_i)
-
-            results.append(endpoint.query().convert())
-            results = results
         
+         
+
+        uniprot_ac_string = ''            
+        for i in uniprot_ac:
+            uniprot_ac_string = uniprot_ac_string + 'uniprot:' + str(i) + ', '
+        uniprot_ac_string = uniprot_ac_string[:-2]
+        
+        
+        query = """
+        prefix : <http://purl.orthodb.org/>
+        select ?og  ?og_description ?gene_name
+        where {
+        ?og a :OrthoGroup;
+        :ogBuiltAt [up:scientificName "%s"];
+        :name ?og_description;
+        !:memberOf/:xref/:xrefResource ?xref .
+        filter (?xref in (%s))
+        ?gene a :Gene; :memberOf ?og.
+        ?gene :xref [a :Xref; :xrefResource ?xref ].
+        ?gene :name ?gene_name.
+        }
+        """ % (level, uniprot_ac_string)
+        # print(query)
+        endpoint.setQuery(query)
+        endpoint.setReturnFormat(JSON)
+        n = endpoint.query().convert()
+        
+        for Y in n["results"]["bindings"]:
+            og_Y_list = []
+            # gene_name_list = []
+            og_Y = Y["og"]["value"].split('/')[-1]
+            gene_name_Y = Y["gene_name"]["value"]
+            og_Y_list.append(og_Y)
+            M.append(og_Y_list[0])
+            L.append(gene_name_Y)
+            P.append(gene_name_Y)
+        results.append(endpoint.query().convert())
+        results = results
+    
         uniprot_df = pd.DataFrame(columns = ['label','Name', 'PID'])
         data_tuples = list(zip(M,L,P))
         uniprot_df = pd.DataFrame(columns = ['label','Name', 'PID'], data = data_tuples)
-
         uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
-        print(uniprot_df)
+        
+        if uniprot_df.empty == False:
+            print(uniprot_df)
+        else:
+            for i in range(len(uniprot_ac)):
+                handle_1 = requests.get("http://www.uniprot.org/uniprot/{}.fasta".format(uniprot_ac[i]))
+                fasta_query = ("").join(handle_1.text.split("\n")[1:])[0:100]
+                handle_2 = requests.get("https://v101.orthodb.org/blast?level=2&species=2&seq={}&skip=0&limit=100".format(fasta_query))
+                og_handle = handle_2.text.split(",")[2].split(":")[1]
+                og_handle = og_handle.translate({ord(i): None for i in '["]'}).strip()
+                M.append(og_handle)
+                L.append(og_handle)
+                P.append(uniprot_ac[i])
+                print(i)
+            data_tuples = list(zip(M,L,P))
+            uniprot_df = pd.DataFrame(columns = ['label','Name', 'PID'], data = data_tuples)
+            uniprot_df = uniprot_df.replace("", numpy.nan)
+            uniprot_df = uniprot_df.dropna(axis="index", how="any")
+            uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
+
+            
+            print(uniprot_df)
+                
 
         K = []
         J = []
@@ -403,7 +465,9 @@ def update_output(clicks, input_value, dropdown_value):
         results.append(endpoint.query().convert())
 
         col = ["label","description",  "clade", "evolRate", "totalGenesCount", 
-        "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", "medianExonsCount", "stddevExonsCount", "medianProteinLength",
+        "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", 
+        # "medianExonsCount", "stddevExonsCount",
+         "medianProteinLength",
         "stddevProteinLength",  "og"]        
 
         og_info = [[]]
@@ -426,7 +490,9 @@ def update_output(clicks, input_value, dropdown_value):
         # og_info_df["paralogs_count"] = ( og_info_df["totalGenesCount"] - og_info_df["multiCopyGenesCount"] ) / og_info_df["singleCopyGenesCount"] 
         
         cols2 = ["label", "Name", "description",  "clade", "evolRate", "totalGenesCount", 
-        "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", "medianExonsCount", "stddevExonsCount", "medianProteinLength",
+        "multiCopyGenesCount", "singleCopyGenesCount", "inSpeciesCount", 
+        # "medianExonsCount", "stddevExonsCount", 
+        "medianProteinLength",
         "stddevProteinLength" ]   
         og_info_df = og_info_df[cols2]
         
@@ -435,6 +501,7 @@ def update_output(clicks, input_value, dropdown_value):
         #prepare datatable update                     
         data = og_info_df.to_dict('rows')
         columns =  [{"name": i, "id": i,} for i in (og_info_df.columns)]
+
         return dash_table.DataTable(data=data, columns=columns, filter_action="native")
 
 
@@ -447,10 +514,16 @@ def update_output(clicks, input_value, dropdown_value):
 def call(clicks, dropdown_value):
     if clicks is not None:
         level = dropdown_value
-        # level = level.split('-')[0]
+
         SPARQLWrap(level)
         corri = Correlation_Img(level)
         presi = Presence_Img(level)
+
+        encoded_string = ""
+        with open('/home/ken/best_repository_ever/Dash_app/assets/images/concat_phylo.png', 'rb') as image_file:
+
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            zie = encoded_string
         
         layout = html.Div([
         dbc.Row([
@@ -458,7 +531,17 @@ def call(clicks, dropdown_value):
         
         dbc.Col( [dbc.Col(html.Div(presi))] ),
         
-        ])
+        ]),
+
+        dbc.Row([ 
+        dbc.Col( [] ),
+        
+        dbc.Col([ html.Img(src='data:image/png;base64,{}'.format(zie), style={'width':'1500px'}) ]),
+
+        dbc.Col([] ),
+        
+
+            ])
 
         ])
 

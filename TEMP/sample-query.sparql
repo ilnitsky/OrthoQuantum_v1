@@ -1,0 +1,17 @@
+    
+    prefix : <http://purl.orthodb.org/>
+    select (count (?og) as ?ogg) 
+    ?og
+    ?name
+
+    where {
+    ?gene a :Gene;  :description ?description; up:organism/a [up:scientificName ?name].
+    filter(?name in ("Trichoplax adhaerens", "Hydra vulgaris", "Homo sapiens", "Gallus gallus", "Sus scrofa", "Mus musculus", "Drosophila melanogaster", "Loa loa", "Nicotiana tabacum"))
+    ?gene :memberOf ?og .
+    filter (?og in(
+    odbgroup:1091011at2759, odbgroup:1471901at2759, odbgroup:349249at2759, odbgroup:1380685at2759, odbgroup:1363547at2759, odbgroup:237430at2759, odbgroup:1622159at2759, odbgroup:1093418at2759, odbgroup:1572458at2759, odbgroup:840669at2759
+    ))
+    }
+    
+
+    

@@ -8,20 +8,25 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, read_csv
 from astropy.table import Table, Column
-from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper import SPARQLWrapper, JSON, POST, POSTDIRECTLY, CSV
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 import plotly.graph_objects as go
-import cStringIO
+from scipy.spatial.distance import pdist
+from scipy.cluster.hierarchy import dendrogram, linkage, leaves_list
 import base64
 import os
-import urllib2
+import json
+import subprocess
+# import urllib2
 
 
 
 
 endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
+# endpoint.setMethod(POST)
+# endpoint.setRequestMethod(POSTDIRECTLY)
 
 
 with open("OG.csv") as OGS:
@@ -37,113 +42,163 @@ def load_fasta(id_list):
         handle = urllib2.urlopen("http://www.uniprot.org/uniprot/{}.fasta".format(id))
         F = handle.read()
         handle_list.append(str(F))
-        print F
+        print(F)
         i = i + 1
         
     return handle_list
 
 
-def fasta_from_row():
-    df = pd.read_csv("OG.csv")
+
+def new_sparqlwrap():
+    # df = pd.read_csv("OG.csv")
+
+    with open('/home/ken/best_repository_ever/Dash_app/assets/data/Eukaryota-full.txt') as organisms_list:
+        organisms = organisms_list.readlines()
+    organisms = [x.strip() for x in organisms]
+
+
+    with open("OG.csv") as OGS:
+        OG_list = read_csv('OG.csv', sep=';')['label']
+        OG_names = read_csv('OG.csv', sep=';')['Name']
+    OG_list = [x.strip() for x in OG_list]
 
     iOG = [
-        # '1091011at2759', '1471901at2759',
-    '349249at2759',
+        '1091011at2759', '1471901at2759',
+    '349249at2759', '1380685at2759', '1363547at2759', '237430at2759', '1622159at2759', '1093418at2759', '1572458at2759', '840669at2759', 
 
     ]
 
-    # iOG = OG_list 
+    iOG = OG_list 
+    print(iOG)
+    iOrganisms = ['Trichoplax adhaerens', 'Hydra vulgaris', 'Homo sapiens', 'Gallus gallus', 'Sus scrofa', 'Mus musculus', 'Drosophila melanogaster',
+    'Loa loa', 'Nicotiana tabacum']
 
-    # iOrganisms = ['Camelina sativa', 'Petunia axillaris', 'Solanum tuberosum', 'Sphaeroforma arctica JP610', 'Rhodotorula taiwanensis', 'Capsaspora owczarzaki ATCC 30864']
+    iOrganisms = organisms
+    
 
-    # iOrganisms = ['Guillardia theta CCMP2712', 'Ostreococcus lucimarinus CCE9901', 'Solanum tuberosum', 'Sphaeroforma arctica JP610', 'Capsaspora owczarzaki ATCC 30864', 'Homo sapiens']
-    # iOrganisms = ['Trichoplax adhaerens', 'Hydra vulgaris', 'Amphimedon queenslandica']
-
-    iOrganisms = ['Gallus gallus']
-
-    strng = ''            
+    strng1 = ''            
     for i in iOG:
-        strng = strng + 'odbgroup:' + str(i) + ', '
-    strng = strng[:-2]
+        strng1 = strng1 + 'odbgroup:' + str(i) + ', '
+    strng1 = strng1[:-2]
+
+    strng2 = ''
+    for i in iOrganisms:
+        strng2 = strng2 + '"' + str(i) + '", '
+    strng2 = strng2[:-2]
 
     results = []  
     
     query = """    
     prefix : <http://purl.orthodb.org/>
-    select
-    distinct ?org_name ?xref ?description ?og
+    select (count (?og) as ?ogg) 
+    ?og
+    ?name
+
     where {
-    ?gene a :Gene.
-    ?gene :description ?description; :memberOf  ?og.
-    filter (?og in (%s))
-    ?gene :name ?Gene_name.
-    ?gene up:organism/a ?taxon.
-    ?taxon up:scientificName ?org_name.
-    ?gene :xref [a :Xref; :xrefResource ?xref]. ?xref a :Uniprot.
-
-
+    ?gene a :Gene;  :description ?description; up:organism/a [up:scientificName ?name].
+    filter(?name in (%s))
+    ?gene :memberOf ?og .
+    filter (?og in(
+    %s
+    ))
     }
-    GROUP BY ?org_name
-    ORDER BY ?og
-    """ % (strng)
-    
-    endpoint.setQuery(query)
-    endpoint.setReturnFormat(JSON)
-    results.append(endpoint.query().convert())
-
-    col = ["org_name", "xref", "description",  "og"]        
-
-    og_info = [[]]
-
-    for p in results:
-        for res in p["results"]["bindings"]:
-            og_info_row = []  
-            for k in col:
-                og_info_row.append(res[k]["value"])        
-            og_info.append(og_info_row)
-       
-    og_info_df = pd.DataFrame(og_info, columns=col)
-    og_info_df['og'] = og_info_df['og'].apply(lambda x: str(x).split('/')[-1])
-    og_info_df['xref'] = og_info_df['xref'].apply(lambda x: str(x).split('/')[-1])
     
 
-    # print og_info_df
-    for b in iOG:
-        print '~~~~~~~~~~~~~~~~' + b + '\n' 
-        new_df = og_info_df.loc[og_info_df['og'] == b ]
-        new_df = new_df[new_df.org_name.isin(iOrganisms)].sort_values(by=['org_name'])
-        new_df = new_df.drop_duplicates(subset=['org_name', 'description'], keep='first')
-        print new_df
-        list_xref = new_df['xref'].tolist()
-        print list_xref
-        # zz = load_fasta(list_xref)
+    """ % (strng2, strng1)
+    # print(query)
+    text_file = open("/home/ken/best_repository_ever/Dash_app/assets/data/sample-query.sparql", "w")
+    text_file.write(query)
+    text_file.close()
+    # sparql_shell = subprocess.call("/home/ken/best_repository_ever/Dash_app/sparql_load.sh")
+
+    with open('/home/ken/best_repository_ever/Dash_app/assets/data/json.txt') as json_dump:
+        dictdump = json.loads(json_dump.read())
+    # print(type(dictdump))
+
+
+  
+#     endpoint.setQuery(query)
+#     endpoint.setReturnFormat(JSON)
+#     results.append(endpoint.query().convert())
+    # print(results)
+    col = ["ogg", "og", "name"]     
+    results = dictdump   
+
+    # og_info = [[]]
+
+    A = []
+    B = []
+    C = []
+    # print(dictdump['results']['bindings'])
+    # for p in results:
+    for res in dictdump["results"]["bindings"]:
+        A.append(res['ogg']['value'])
+        B.append(res['og']['value'].split('/')[-1])
+        C.append(res['name']['value'])
+    data_tuples = list(zip(A,B,C))
+    dfs = pd.DataFrame(columns = ['counts', 'og', 'organism'], data = data_tuples)
+    print(dfs)
+    dfs = dfs.sort_values(by=['og'])
+    # print(dfs)
+    
+    l = []
+    data = {}
+    for og in iOG:
+        dfs_i = dfs[dfs['og'] == og]
+        # print(dfs_i['og'].values.tolist())
+        mn = dfs_i['og'].values.tolist()[1] 
+        for i in iOrganisms:
+            if i in dfs_i['organism'].values.tolist():
+                l.append(1)
+            else:
+                l.append(0)
+        data[mn] = l
         
-        # print zz    
-    # print og_info_df
+            
 
-def zip_id_species():
+        # print(dfs_i['og'])
+        # print(l)
+        l = []
+    new_df = pd.DataFrame.from_dict(data)
+    # print(new_df.T.index.tolist())
+    Z = linkage(new_df.T)
+    # print(leaves_list(Z).tolist())
+    old_order_list = new_df.T.index.tolist()
+    new_order_list = leaves_list(Z).tolist() 
+    new_order = [old_order_list[i] for i in new_order_list]
+    # print(new_order)
+    dendrogram(Z)
+    # plt.show()
+    # ix = new_df.corr().sort_values
+    new_df = new_df[new_order]
+    lala = new_df.to_numpy()
+    # from sklearn.cluster import AgglomerativeClustering
 
-    with open("try.fasta") as f:
-        my_lines = f.readlines()
-
+    # cluster = AgglomerativeClustering(n_clusters=2, affinity='euclidean', linkage='ward') 
+    # print(cluster.fit_predict(lala))
+    # print(pdist(lala, metric='euclidean'))
+    fig = go.Figure(data = go.Heatmap(
+        z = new_df.to_numpy(),
+        x = iOG,
+        y = iOrganisms,
+        xgap = 2,
+        ygap = 2, 
+        colorscale = 'Blues'
+    ))
     
-    with open("Book2.csv") as b:
-        id = read_csv('Book2.csv', sep=';', error_bad_lines=False)['id']
-        taxa = read_csv('Book2.csv', sep=';', error_bad_lines=False)['species']
-    zip_id = zip(id,taxa)
-    dict_id = dict(zip_id)
 
-    jj = my_lines[0] + my_lines[1]
-    # for a, b in dict_id.items():
-    #     for line in my_lines:
-    #         line = line.replace(a,b)
-    jj = ("").join(my_lines)
-    for a, b in dict_id.items():
-        jj = jj.replace(a,b)
-    # print jj
-    text_file = open("random.txt", "w")
-    text_file.write(jj)
+    # def sqdist(vector)
+    # return sum(x*x for x in vector)
 
+    # myListOfVectors.sort(key=sqdist)
+    fig.show()
+    # dfs.groupby(['Animal']).mean()
 
-zip_id_species()
+    # scipy.spatial.distance.pdist
+
+def new_load_og_content():
+    i = 1
+    
+new_sparqlwrap()
+# zip_id_species()
 # fasta_from_row()

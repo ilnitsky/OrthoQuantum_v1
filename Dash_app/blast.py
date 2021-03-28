@@ -1,7 +1,7 @@
-from future import standard_library
-standard_library.install_aliases()
-from builtins import str
-from builtins import object
+import io
+import base64
+import os
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -17,9 +17,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 import plotly.graph_objects as go
-import io
-import base64
-import os
+
 from PIL import Image, ImageChops
 from Bio.Blast.NCBIWWW import qblast
 from Bio.Blast import NCBIXML
@@ -31,24 +29,22 @@ from navbar import Navbar
 
 nav = Navbar()
 
-
 df = pd.read_csv("SPARQLWrapper.csv")
 
-with open("OG.csv") as OGS:
-    OG_list = read_csv('OG.csv', sep=';')['label']
-    OG_names = read_csv('OG.csv', sep=';')['Name']
-    UniProt_AC = read_csv('OG.csv', sep=';')['UniProt_AC']
+ogcsv_data = read_csv('OG.csv', sep=';')
+OG_list = ogcsv_data['label']
+OG_names = ogcsv_data['Name']
+UniProt_AC = ogcsv_data['UniProt_AC']
 OG_list = [x.strip() for x in OG_list]
-# 
-# with open("/home/ken/best_repository_ever/Dash_app/assets/data/genes.csv") as gene:
-    # Temp = read_csv('/home/ken/best_repository_ever/Dash_app/assets/data/genes.csv', sep='`;')['UniProt AC (mouse)']
-# 
-with open("/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv") as taxa:
-    Sp_name = read_csv('/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv', sep=',')['name']
-    Taxid = read_csv('/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv', sep=',')['taxid']
+#
+# with open("assets/data/genes.csv") as gene:
+# Temp = read_csv('assets/data/genes.csv', sep='`;')['UniProt AC (mouse)']
+
+taxid_species = read_csv('assets/data/taxid-species.csv', sep=',')
+Sp_name = taxid_species['name']
+Taxid = taxid_species['taxid']
 
 # def blast_query(seq_fasta, entrez):
-
 
 #     blast_results = open("qblast_blastn.out")
 #     blast_records = NCBIXML.parse(blast_results)
@@ -57,21 +53,18 @@ with open("/home/ken/best_repository_ever/Dash_app/assets/data/taxid-species.csv
 #             for hsp in alignment.hsps:
 #                 print(hsp.score, hsp.expect)
 
-    
-
-
 
 def fasta_from_row():
     df = pd.read_csv("OG.csv")
 
     iOG = ['196631at7742', '215143at7742']
 
-    strng = ''            
+    strng = ''
     for i in iOG:
         strng = strng + 'odbgroup:' + str(i) + ', '
     strng = strng[:-2]
-    
-    query = """    
+
+    query = """
     prefix : <http://purl.orthodb.org/>
     select
     distinct ?org_name ?xref ?description ?og
@@ -87,22 +80,22 @@ def fasta_from_row():
     GROUP BY ?org_name
     ORDER BY ?og
     """ % (strng)
-    
+
     endpoint.setQuery(query)
     endpoint.setReturnFormat(JSON)
     results.append(endpoint.query().convert())
 
-    col = ["org_name", "xref", "description",  "og"]        
+    col = ["org_name", "xref", "description", "og"]
 
     og_info = [[]]
 
     for p in results:
         for res in p["results"]["bindings"]:
-            og_info_row = []  
+            og_info_row = []
             for k in col:
-                og_info_row.append(res[k]["value"])        
+                og_info_row.append(res[k]["value"])
             og_info.append(og_info_row)
-       
+
     og_info_df = pd.DataFrame(og_info, columns=col)
 
 
@@ -123,7 +116,7 @@ class Ortho_Group(object):
         self.taxid = []
         for i in self.species_w_0:
             self.taxid.append(Tax_dict[i])
-        with open('/home/ken/best_repository_ever/Dash_app/assets/data/new.txids', 'w') as f:
+        with open('assets/data/new.txids', 'w') as f:
             for item in self.taxid:
                 f.write("%s\n" % item)
 
@@ -137,13 +130,13 @@ class Ortho_Group(object):
             print(str(F))
             handle_list.append(str(F))
         self.SubmittedProt_Fasta = F
-        with open('/home/ken/best_repository_ever/Dash_app/assets/data/og.fa', 'w') as f:
+        with open('assets/data/og.fa', 'w') as f:
             f.write(str(F))
-                    
+
     def blast_in_absent(self):
+        # TODO: Путь вне репозитория, этот скриптик бы сюда...
         rc = subprocess.call("/home/ken/nr/blast.sh")
-        
-        
+
 
 my_og = Ortho_Group(OG_names[0], UniProt_AC[0], 'gg')
 my_og.absent_in_species(df, my_og.og_name)
@@ -152,4 +145,3 @@ my_og.load_fasta()
 my_og.blast_in_absent()
 
 print(my_og.species_w_0)
-

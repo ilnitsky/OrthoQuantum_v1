@@ -36,7 +36,7 @@ output = html.Div(
 
 
 def concat_phylo(im1, im2):
-    subprocess.call("imagemagick.sh")
+    subprocess.call("./imagemagick.sh")
     im1 = Image.open(im1)
     im2 = Image.open(im2)
     new_height = 4140

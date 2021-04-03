@@ -15,7 +15,7 @@ import pandas as pd
 
 import requests
 
-from .app import wrap_SPARQL, presence_img, correlation_img
+from .app import SPARQL_wrap, presence_img, correlation_img
 
 from . import layout
 from . import user
@@ -257,7 +257,7 @@ def call(clicks, level):
     if clicks is None:
         return
 
-    wrap_SPARQL(level)
+    SPARQL_wrap(level)
     corri = correlation_img(level)
     concat, presi = presence_img(level)
 

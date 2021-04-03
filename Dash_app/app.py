@@ -36,7 +36,7 @@ def concat_phylo(taxonomy_path, presence_path):
     return dst
 
 
-def wrap_SPARQL(taxonomy_level):
+def SPARQL_wrap(taxonomy_level):
     taxonomy = taxonomy_level.split('-')[0]
 
     # TODO: injection possible

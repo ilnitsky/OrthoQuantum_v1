@@ -13,12 +13,6 @@ from PIL import Image
 
 from . import user
 
-
-from functools import partial
-import sys
-print = partial(print, file=sys.stderr)
-
-
 def concat_phylo(taxonomy_path, presence_path):
     subprocess.call([
         "convert",
@@ -102,7 +96,9 @@ def wrap_SPARQL(taxonomy_level):
     df.fillna(0, inplace=True)
 
     df.reset_index(drop=False, inplace=True)
-    df.to_csv(user.path() / "SPARQLWrapper.csv", index=False)
+    path = user.path() / "SPARQLWrapper.csv"
+    path.unlink(missing_ok=True)
+    df.to_csv(path, index=False)
 
     # TODO: What's the purpose of this code?
 
@@ -117,8 +113,9 @@ def wrap_SPARQL(taxonomy_level):
 
     for column in df:
         df[column] = df[column].astype(float)
-
-    df.to_csv(user.path() / "Presence-Vectors.csv", index=False)
+    path = user.path() / "Presence-Vectors.csv"
+    path.unlink(missing_ok=True)
+    df.to_csv(path, index=False)
 
 
 def correlation_img(taxonomy_level):
@@ -155,7 +152,9 @@ def correlation_img(taxonomy_level):
     file_name = "Correlation.png"
 
     # TODO: what to serve? do we need  dpi=70, bbox_inches="tight" ?
-    plt.savefig(user.path()/file_name)
+    path = user.path() / file_name
+    path.unlink(missing_ok=True)
+    plt.savefig(path)
     return user.url_for(file_name)
     # return html_text
 
@@ -202,14 +201,18 @@ def presence_img(taxonomy_level):
     phylo.cax.set_visible(False)
     phylo.ax_col_dendrogram.set_visible(False)
 
-    plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
+    path = user.path() / 'Presence.png'
+    path.unlink(missing_ok=True)
+    plt.savefig(path, dpi=70, bbox_inches="tight")
 
     concat_img = concat_phylo(
         f'assets/images/{taxonomy_level}.png',
-        str(user.path() / 'Presence.png')
+        str(path)
     )
     concat_phylo_filename = 'concat_phylo.png'
-    concat_img.save(user.path() / concat_phylo_filename)
+    path = user.path() / concat_phylo_filename
+    path.unlink(missing_ok=True)
+    concat_img.save(path)
 
     sns.clustermap(
         df4,
@@ -228,5 +231,7 @@ def presence_img(taxonomy_level):
 
     presence_name = 'Presence2.png'
     # TODO: what to serve? do we need  dpi=70, bbox_inches="tight" ?
-    plt.savefig(user.path() / presence_name)
+    path = user.path() / presence_name
+    path.unlink(missing_ok=True)
+    plt.savefig(path)
     return user.url_for(concat_phylo_filename), user.url_for(presence_name)

@@ -1,2 +1,0 @@
-#!/bin/sh
-blastp -query /home/ken/best_repository_ever/Dash_app/assets/data/og.fa -taxidlist /home/ken/best_repository_ever/Dash_app/assets/data/new.txids -db nr.03 -max_target_seqs 2000 -evalue 1e-10 -outfmt '7 sscinames qseqid sseqid bitscore  evalue' -num_threads 4

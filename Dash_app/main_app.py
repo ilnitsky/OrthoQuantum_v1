@@ -274,7 +274,7 @@ def call(clicks, level):
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
         zie = encoded_string
 
-    layout = html.Div([dbc.Row([
+    return html.Div([dbc.Row([
         dbc.Col([dbc.Col(html.Div(corri))]),
         dbc.Col([dbc.Col(html.Div(presi))]),
     ]), dbc.Row([
@@ -282,8 +282,6 @@ def call(clicks, level):
         dbc.Col([html.Img(src='data:image/png;base64,{}'.format(zie), style={'width': '1500px'})]),
         dbc.Col([]),
     ])])
-
-    return layout
 
 
 IMAGE_DIRECTORY = 'assets/images/'

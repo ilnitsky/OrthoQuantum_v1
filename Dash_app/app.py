@@ -61,10 +61,10 @@ def SPARQLWrap(taxonomy_level):
     OG_names = csv_data['Name']
 
     df = pd.DataFrame(data={"Organisms": organisms}, dtype=object)
-    df.set_index('Organisms')
+    df.set_index('Organisms', inplace=True)
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
-    for i, og_label in enumerate(OG_labels):
+    for i, (og_label, og_name) in enumerate(zip(OG_labels, OG_names)):
         try:
             endpoint.setQuery(f"""prefix : <http://purl.orthodb.org/>
             select
@@ -94,18 +94,18 @@ def SPARQLWrap(taxonomy_level):
 
         for j, res in enumerate(data):
             idx[j] = res["org_name"]["value"]
-            vals[j]= res["count_orthologs"]["value"]
+            vals[j]= int(res["count_orthologs"]["value"])
 
-        df.merge(pd.Series(vals, index=idx, name=og_label), how='left', on='Organisms')
+        df[og_name] = pd.Series(vals, index=idx, name=og_name, dtype=int)
 
         # XXX: Debug or output?
         print(100 * i / len(OG_labels))
 
     # interpret the results:
     df.fillna(0, inplace=True)
-    df.to_csv(user.path() / "SPARQLWrapper.csv", index=False)
 
-    df.reset_index(drop=True, inplace=True)
+    df.reset_index(drop=False, inplace=True)
+    df.to_csv(user.path() / "SPARQLWrapper.csv", index=False)
 
     df['Organisms'] = df['Organisms'].astype("category")
     df['Organisms'].cat.set_categories(organisms, inplace=True)
@@ -130,7 +130,7 @@ def Correlation_Img(taxonomy_level):
     organisms = [x.strip() for x in organisms]
     # print(organisms)
 
-    csv_data = read_csv('OG.csv', sep=';')
+    csv_data = read_csv(user.path() / 'OG.csv', sep=';')
     OG_list = csv_data['label']
     OG_names = csv_data['Name']
     OG_list = [x.strip() for x in OG_list]
@@ -183,7 +183,7 @@ def Presence_Img(taxonomy_level):
     with open('assets/data/' + taxonomy_level + ".txt") as organisms_list:
         organisms = organisms_list.readlines()
     organisms = [x.strip() for x in organisms]
-    csv_data = read_csv('OG.csv', sep=';')
+    csv_data = read_csv(user.path() / 'OG.csv', sep=';')
     OG_list = csv_data['label']
     OG_names = csv_data['Name']
     OG_list = [x.strip() for x in OG_list]

@@ -1,5 +1,5 @@
-
 from pathlib import Path
+from urllib.parse import quote
 import secrets
 
 import flask
@@ -9,6 +9,7 @@ import flask
 
 DATA_PATH = Path.cwd() / "user_data"
 DATA_PATH.mkdir(exist_ok=True)
+
 
 def register():
     exc = None
@@ -22,6 +23,7 @@ def register():
     else:
         raise RuntimeError("Failed to create a user dir") from exc
 
+
 def is_logged_in() -> bool:
     try:
         if not path().exists():
@@ -31,10 +33,14 @@ def is_logged_in() -> bool:
     except Exception:
         return False
 
+
 def path() -> Path:
     """Returns the path appropriate to store user's files"""
     try:
-        path = DATA_PATH / flask.session["USER_ID"]
+        return DATA_PATH / flask.session["USER_ID"]
     except Exception:
         raise RuntimeError("XXX user not logged in!")
-    return path
+
+
+def url_for(filename):
+    return f'/files/{flask.session["USER_ID"]}/{quote(filename)}'

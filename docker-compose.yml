@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "8050:8050"
+    environment:
+      # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
+      SECRET_KEY: "SECRET_KEY_CHANGE_ME"
+      FLASK_ENV: "development"
+    volumes:
+      - "./user_storage:/home/www/app/user_data"
+
+#   redis:
+#     image: "redis:alpine"

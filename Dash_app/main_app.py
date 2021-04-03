@@ -1,9 +1,7 @@
-import base64
 import os
 import os.path
-import glob
+import re
 
-import dash
 from dash import Dash
 from dash.dependencies import Input, Output, State
 import dash_table
@@ -17,33 +15,26 @@ import pandas as pd
 
 import requests
 
-from .app import SPARQLWrap, Presence_Img, Correlation_Img
+from .app import wrap_SPARQL, presence_img, correlation_img
 
 from . import layout
 from . import user
 
-
-# TODO: Works without this. Probably best not to mess with ssl
-# import ssl  #pylint: disable=wrong-import-order
-# if (not os.environ.get('PYTHONHTTPSVERIFY') and getattr(ssl, '_create_unverified_context', None)):
-#     ssl._create_default_https_context = ssl._create_unverified_context  #pylint: disable=protected-access
-
-
-
 app = flask.Flask(__name__)
-app.secret_key = b"SECRET_KEY_CHANGE_ME"
+app.secret_key = os.environ["SECRET_KEY"]
 
 dash_app = Dash(__name__, server=app, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.UNITED])
 dash_app.layout = layout.index
 
 def login(dst):
-    # TODO: actually log in someone
+    # TODO: dsiplay login layout, login, redirect to the original destintation
+    print("register")
     user.register()
-    return dcc.Location(pathname=dst, id="some_id", refresh=True)
+    return dcc.Location(pathname=dst, id="some_id", hash="1", refresh=True)
 
 
 @dash_app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
-def display_page(pathname):
+def router_page(pathname):
     pathname = pathname.rstrip('/')
     if pathname == '/dashboard':
         if not user.is_logged_in():
@@ -57,14 +48,14 @@ def display_page(pathname):
     return '404'
 
 
-# XXX: need this?
+# TODO: need this?
 @dash_app.callback(Output('dd-output-container', 'children'), [Input('dropdown', 'value')])
 def select_level(value):
     return f'Selected "{value}" orthology level'
 
 
 FASTA_CLEANUP = str.maketrans('', '', '["]')
-
+INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
 @dash_app.callback(
     Output('output_div', 'children'),
@@ -77,11 +68,12 @@ def update_output(clicks, input_value, dropdown_value):
         return
 
     level = dropdown_value.split('-')[0]
-    uniprot_ac = input_value.upper().split()
-
+    uniprot_ac = INVALID_PROT_IDS.sub("", input_value).upper().split()
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
     # TODO: think about possible injection here (filter by letters and numbers only?)
+    # using INVALID_PROT_IDS to filter all of the nasty possible chars.
+    # which are allowed symblos for `level`?
     endpoint.setQuery(f"""
     prefix : <http://purl.orthodb.org/>
     select ?og ?og_description ?gene_name ?xref
@@ -119,12 +111,13 @@ def update_output(clicks, input_value, dropdown_value):
         found_ids.add(prot_id)
 
     missing_ids = requested_ids - found_ids
+
     # if requested_ids is not empty - adding more data via slow request
     if missing_ids:
         for uniprot_name in missing_ids:
             try:
                 resp = requests.get(f"http://www.uniprot.org/uniprot/{uniprot_name}.fasta").text
-                # XXX: why only 100 letters
+                # TODO: why only 100 letters? Is it correct
                 fasta_query = "".join(resp.split("\n")[1:])[:100]
                 resp = requests.get(f"https://v101.orthodb.org/blast?level=2&species=2&seq={fasta_query}&skip=0&limit=100").text
                 og_handle = resp.split(",")[2].split(":")[1]
@@ -139,14 +132,14 @@ def update_output(clicks, input_value, dropdown_value):
                 )
                 # yapf: enable
             except Exception:
-                # XXX: log something?
+                # TODO: log something?
                 pass
             else:
                 found_ids.add(uniprot_name)
         missing_ids = requested_ids - found_ids
 
         if missing_ids:
-            # XXX: tried 2 methods, couldn't find the IDs. Report to user?
+            # TODO: tried 2 methods, couldn't find the data for these IDs. Report to user?
             print(f"Missing IDs: {', '.join(missing_ids)}")
 
     uniprot_df = pd.DataFrame(columns=['label', 'Name', 'PID'], data=data_tuples)
@@ -264,40 +257,29 @@ def call(clicks, level):
     if clicks is None:
         return
 
-    SPARQLWrap(level)
-    corri = Correlation_Img(level)
-    presi = Presence_Img(level)
+    wrap_SPARQL(level)
+    corri = correlation_img(level)
+    concat, presi = presence_img(level)
 
-    encoded_string = ""
-    with open('assets/images/concat_phylo.png', 'rb') as image_file:
-
-        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-        zie = encoded_string
-
-    return html.Div([dbc.Row([
-        dbc.Col([dbc.Col(html.Div(corri))]),
-        dbc.Col([dbc.Col(html.Div(presi))]),
-    ]), dbc.Row([
-        dbc.Col([]),
-        dbc.Col([html.Img(src='data:image/png;base64,{}'.format(zie), style={'width': '1500px'})]),
-        dbc.Col([]),
-    ])])
-
-
-IMAGE_DIRECTORY = 'assets/images/'
-list_of_images = [os.path.basename(x) for x in glob.glob('{}*.png'.format(IMAGE_DIRECTORY))]
-# print(list_of_images)
-STATIC_IMAGE_ROUTE = '/static/'
+    return html.Div([
+        dbc.Row([
+            dbc.Col([dbc.Col(html.Div(
+                html.Img(src=corri)
+            ))]),
+            dbc.Col([dbc.Col(html.Div(
+                html.Img(src=presi, style={'height': '612px', 'width': '200px'})
+            ))]),
+        ]),
+        dbc.Row([
+            dbc.Col([]),
+            dbc.Col([html.Img(src=concat, style={'width': '1500px'})]),
+            dbc.Col([]),
+        ])
+    ])
 
 
-@dash_app.callback(dash.dependencies.Output('image', 'src'), [dash.dependencies.Input('image-dropdown', 'value')])
-def update_image_src(value):
-    return STATIC_IMAGE_ROUTE + value
-
-
-@dash_app.server.route('{}<image_path>.png'.format(STATIC_IMAGE_ROUTE))
-def serve_image(image_path):
-    image_name = '{}.png'.format(image_path)
-    if image_name not in list_of_images:
-        raise Exception('"{}" is excluded from the allowed static files'.format(image_path))
-    return flask.send_from_directory(IMAGE_DIRECTORY, image_name)
+@dash_app.server.route('/files/<uid>/<name>')
+def serve_user_file(uid, name):
+    if flask.session.get("USER_ID", '') != uid:
+        flask.abort(403)
+    return flask.send_from_directory(user.path(), name)

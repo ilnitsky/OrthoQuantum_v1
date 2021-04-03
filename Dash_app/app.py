@@ -1,13 +1,5 @@
 ### Dash
-import io
-import base64
-import os
 import subprocess
-import time
-from past.utils import old_div
-
-import dash_core_components as dcc
-import dash_html_components as html
 
 import pandas as pd
 from pandas import read_csv
@@ -16,27 +8,30 @@ import SPARQLWrapper
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
-import plotly.graph_objects as go
 
 from PIL import Image
 
 from . import user
 
-header = html.H3('Select the name of an Illinois city to see its population!')
 
-output = html.Div(
-    id='output',
-    children=[],
-)
+from functools import partial
+import sys
+print = partial(print, file=sys.stderr)
 
 
-def concat_phylo(im1, im2):
-    subprocess.call("./imagemagick.sh")
-    im1 = Image.open(im1)
-    im2 = Image.open(im2)
+def concat_phylo(taxonomy_path, presence_path):
+    subprocess.call([
+        "convert",
+        presence_path,
+        "-trim",
+        presence_path,
+    ])
+
+    im1 = Image.open(taxonomy_path)
+    im2 = Image.open(presence_path)
     new_height = 4140
-    new_width_im1 = old_div(new_height * im1.width, im1.height)
-    new_width_im2 = old_div(new_height * im2.width, im2.height)
+    new_width_im1 = new_height * im1.width // im1.height
+    new_width_im2 = new_height * im2.width // im2.height
 
     im1 = im1.resize((new_width_im1, new_height), Image.ANTIALIAS)
     im2 = im2.resize((new_width_im2, new_height), Image.ANTIALIAS)
@@ -47,13 +42,15 @@ def concat_phylo(im1, im2):
     return dst
 
 
-def SPARQLWrap(taxonomy_level):
+def wrap_SPARQL(taxonomy_level):
     taxonomy = taxonomy_level.split('-')[0]
 
-    # XXX: injection possible
+    # TODO: injection possible
     with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
-    # TODO: pre-strip everything in files
+
+    # TODO: pre-strip everything in files to remove this
+    # and similar lines in the codebase
     organisms = [x.strip() for x in organisms]
 
     csv_data = read_csv(user.path() / 'OG.csv', sep=';')
@@ -98,7 +95,7 @@ def SPARQLWrap(taxonomy_level):
 
         df[og_name] = pd.Series(vals, index=idx, name=og_name, dtype=int)
 
-        # XXX: Debug or output?
+        # TODO: Debug or output?
         print(100 * i / len(OG_labels))
 
     # interpret the results:
@@ -107,12 +104,13 @@ def SPARQLWrap(taxonomy_level):
     df.reset_index(drop=False, inplace=True)
     df.to_csv(user.path() / "SPARQLWrapper.csv", index=False)
 
+    # TODO: What's the purpose of this code?
+
     df['Organisms'] = df['Organisms'].astype("category")
     df['Organisms'].cat.set_categories(organisms, inplace=True)
     df.sort_values(["Organisms"], inplace=True)
 
     df.columns = ['Organisms', *OG_names]
-
     df = df[df['Organisms'].isin(organisms)]  #Select Main Species
     df = df.iloc[:, 1:]
     df = df[OG_names]
@@ -123,17 +121,14 @@ def SPARQLWrap(taxonomy_level):
     df.to_csv(user.path() / "Presence-Vectors.csv", index=False)
 
 
-def Correlation_Img(taxonomy_level):
+def correlation_img(taxonomy_level):
     # taxonomy = str(taxonomy_level.split('-')[0])
-    with open('assets/data/' + taxonomy_level + ".txt") as organisms_list:
+    with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
     organisms = [x.strip() for x in organisms]
-    # print(organisms)
 
     csv_data = read_csv(user.path() / 'OG.csv', sep=';')
-    OG_list = csv_data['label']
     OG_names = csv_data['Name']
-    OG_list = [x.strip() for x in OG_list]
 
     df = pd.read_csv(user.path() / "SPARQLWrapper.csv")
     df = df.iloc[:, 1:]
@@ -147,7 +142,8 @@ def Correlation_Img(taxonomy_level):
     df = df.fillna(0).astype(float)
     # df = df.clip(upper=1)
     df = df.loc[:, (df != 0).any(axis=0)]
-    dendro = sns.clustermap(
+
+    sns.clustermap(
         df.corr(),
         cmap='seismic',
         metric="correlation",
@@ -155,45 +151,28 @@ def Correlation_Img(taxonomy_level):
         col_colors=[rgbs],
         row_colors=[rgbs],
     )
+    # TODO: replace static filenames to dynamic (perhaps based on hash of request)
+    file_name = "Correlation.png"
 
-    pic_IObytes = io.BytesIO()
-    plt.savefig(pic_IObytes, format='png')
-    pic_IObytes.seek(0)
-
-    pic_hash = base64.b64encode(pic_IObytes.getvalue()).decode('utf-8')
-
-    # html_text = mpld3.fig_to_html(dendro)
-
-    plt.savefig('assets/images/Correlation.png', dpi=70, bbox_inches="tight")
-    return html.Img(src='data:image/png;base64,{}'.format(pic_hash))
+    # TODO: what to serve? do we need  dpi=70, bbox_inches="tight" ?
+    plt.savefig(user.path()/file_name)
+    return user.url_for(file_name)
     # return html_text
 
-
-def Presence_Img(taxonomy_level):
+def presence_img(taxonomy_level):
     print(taxonomy_level)
 
-    if os.path.isfile('assets/images/Presence.png') == True:
-        os.remove('assets/images/Presence.png')
-
-    if os.path.isfile('assets/images/Presence2.png') == True:
-        os.remove('assets/images/Presence2.png')
-
-    # taxonomy = str(taxonomy_level.split('-')[0])
     #Create organisms list
-    with open('assets/data/' + taxonomy_level + ".txt") as organisms_list:
+    with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
     organisms = [x.strip() for x in organisms]
     csv_data = read_csv(user.path() / 'OG.csv', sep=';')
-    OG_list = csv_data['label']
-    OG_names = csv_data['Name']
-    OG_list = [x.strip() for x in OG_list]
-
-    Prots_to_show = OG_names
-    MainSpecies = organisms
+    og_names = csv_data['Name']
+    main_species = organisms
 
     df4 = read_csv(user.path()/"Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
-    # df4 = df4[df4['Organisms'].isin(MainSpecies)]
+
     levels = [0, 1]
     colors = [
         'yellow',
@@ -203,17 +182,12 @@ def Presence_Img(taxonomy_level):
     my_cmap, norm = matplotlib.colors.from_levels_and_colors(levels, colors, extend='max')
     sns.set(font_scale=2.2)
 
-    Prots_to_show = Prots_to_show.tolist()
-
-    for idx, item in enumerate(Prots_to_show):
-        if '-' in item:
-            item = item.split("-")[0]
-            Prots_to_show[idx] = item
+    prots_to_show = [x.split("-", maxsplit=1)[0] for x in og_names]
 
     phylo = sns.clustermap(
         df4,
         metric="euclidean",
-        figsize=(len(Prots_to_show), old_div(len(MainSpecies), 2)),
+        figsize=(len(prots_to_show), len(main_species) // 2),
         # figsize=(len(Prots_to_show)/10, len(MainSpecies)/20),
         linewidth=0.90,
         row_cluster=False,
@@ -221,30 +195,26 @@ def Presence_Img(taxonomy_level):
         cmap=my_cmap,
         norm=norm,
         # yticklabels=MainSpecies,
-        xticklabels=Prots_to_show,
+        xticklabels=prots_to_show,
         annot=True,
     )
 
     phylo.cax.set_visible(False)
     phylo.ax_col_dendrogram.set_visible(False)
-    # phylo.cax.set_visible(False)
-    # ax.tick_params(labeltop=True)
 
-    if os.path.isfile("Presence-Vector.csv"):
-        os.remove("Presence-Vector.csv")
+    plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
 
-    if os.path.isfile('assets/images/concat_phylo.png'):
-        os.remove('assets/images/concat_phylo.png')
+    concat_img = concat_phylo(
+        f'assets/images/{taxonomy_level}.png',
+        str(user.path() / 'Presence.png')
+    )
+    concat_phylo_filename = 'concat_phylo.png'
+    concat_img.save(user.path() / concat_phylo_filename)
 
-    plt.savefig('assets/images/Presence.png', dpi=70, bbox_inches="tight")
-
-    png_file = 'assets/images/' + str(taxonomy_level) + '.png'
-    concat_phylo(png_file, 'assets/images/Presence.png').save('assets/images/concat_phylo.png')
-
-    phylo2 = sns.clustermap(
+    sns.clustermap(
         df4,
         metric="euclidean",
-        figsize=(len(Prots_to_show), old_div(len(MainSpecies), 2)),
+        figsize=(len(prots_to_show), len(main_species) // 2),
         # figsize=(len(Prots_to_show)/100,len(MainSpecies)/200),
         linewidth=0.90,
         row_cluster=False,
@@ -252,22 +222,11 @@ def Presence_Img(taxonomy_level):
         cmap=my_cmap,
         norm=norm,
         # yticklabels=MainSpecies,
-        xticklabels=Prots_to_show,
+        xticklabels=prots_to_show,
         annot=True,
     )
-    plt.savefig('assets/images/Presence2.png', dpi=70, bbox_inches="tight")
-    del taxonomy_level
-    del df4
 
-    pic_IObytes = io.BytesIO()
-    plt.savefig(pic_IObytes, format='png')
-    pic_IObytes.seek(0)
-    pic_hash = base64.b64encode(pic_IObytes.getvalue()).decode('utf-8')
-
-    return html.Img(src='data:image/png;base64,{}'.format(pic_hash), style={'height': '612px', 'width': '200px'})
-
-
-# def build_graph(city):
-#     data = [go.Scatter(x=df.index, y=df[city], marker={'color': 'orange'})]
-#     graph = dcc.Graph(figure={'data': data, 'layout': go.Layout(title='{} Population Change'.format(city), yaxis={'title': 'Population'}, hovermode='closest')})
-#     return graph
+    presence_name = 'Presence2.png'
+    # TODO: what to serve? do we need  dpi=70, bbox_inches="tight" ?
+    plt.savefig(user.path() / presence_name)
+    return user.url_for(concat_phylo_filename), user.url_for(presence_name)

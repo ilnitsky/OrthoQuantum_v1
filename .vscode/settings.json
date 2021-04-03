@@ -1,0 +1,6 @@
+{
+    "python.linting.pylamaEnabled": false,
+    "python.linting.enabled": true,
+    "python.pythonPath": "/Users/andrew/.pyenv/versions/kenga/bin/python",
+    "python.linting.pylintEnabled": true
+}

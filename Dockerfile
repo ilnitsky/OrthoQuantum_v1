@@ -20,5 +20,6 @@ RUN python3 -m pip install -r ./requirements.txt  &&\
 COPY --chown=www:www ./Dash_app .
 
 EXPOSE 8050
-
-ENTRYPOINT ["python3", "main_app.py"]
+ENV FLASK_APP=main_app.py
+ENV FLASK_ENV=development
+ENTRYPOINT ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=8050"]

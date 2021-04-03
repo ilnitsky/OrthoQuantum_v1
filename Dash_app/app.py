@@ -12,7 +12,7 @@ import dash_html_components as html
 import pandas as pd
 from pandas import read_csv
 
-from SPARQLWrapper import SPARQLWrapper, JSON
+import SPARQLWrapper
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
@@ -20,12 +20,7 @@ import plotly.graph_objects as go
 
 from PIL import Image
 
-## Navbar
-from navbar import Navbar
-
-nav = Navbar()
-
-endpoint = SPARQLWrapper("http://sparql.orthodb.org/sparql")
+from . import user
 
 header = html.H3('Select the name of an Illinois city to see its population!')
 
@@ -53,94 +48,79 @@ def concat_phylo(im1, im2):
 
 
 def SPARQLWrap(taxonomy_level):
+    taxonomy = taxonomy_level.split('-')[0]
 
-    taxonomy = str(taxonomy_level.split('-')[0])
-    with open('assets/data/' + taxonomy_level + ".txt") as organisms_list:
+    # XXX: injection possible
+    with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
+    # TODO: pre-strip everything in files
     organisms = [x.strip() for x in organisms]
 
-    csv_data = read_csv('OG.csv', sep=';')
-    OG_list = csv_data['label']
+    csv_data = read_csv(user.path() / 'OG.csv', sep=';')
+    OG_labels = csv_data['label']
     OG_names = csv_data['Name']
-    OG_list = [x.strip() for x in OG_list]
 
-    Prots_to_show = OG_names
-    MainSpecies = organisms
+    df = pd.DataFrame(data={"Organisms": organisms}, dtype=object)
+    df.set_index('Organisms')
+    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
-    if os.path.isfile('SPARQLWrapper.csv'):
-        os.remove("SPARQLWrapper.csv")
+    for i, og_label in enumerate(OG_labels):
+        try:
+            endpoint.setQuery(f"""prefix : <http://purl.orthodb.org/>
+            select
+            (count(?gene) as ?count_orthologs)
+            ?org_name
+            where {{
+            ?gene a :Gene.
+            ?gene :name ?Gene_name.
+            ?gene up:organism/a ?taxon.
+            ?taxon up:scientificName ?org_name.
+            ?gene :memberOf odbgroup:{og_label}.
+            ?gene :memberOf ?og.
+            ?og :ogBuiltAt [up:scientificName "{taxonomy}"].
+            }}
+            GROUP BY ?org_name
+            ORDER BY ?org_name
+            """)
+            endpoint.setReturnFormat(SPARQLWrapper.JSON)
 
-    if os.path.isfile('Presence-Vectors.csv'):
-        os.remove("Presence-Vectors.csv")
-    results = []
-    for i in OG_list:
-        OG = i + "."
-        query = """prefix : <http://purl.orthodb.org/>
-        select
-        (count(?gene) as ?count_orthologs)
-        ?org_name
-        where {
-        ?gene a :Gene.
-        ?gene :name ?Gene_name.
-        ?gene up:organism/a ?taxon.
-        ?taxon up:scientificName ?org_name.
-        ?gene :memberOf odbgroup:%s
-        ?gene :memberOf ?og.
-        ?og :ogBuiltAt [up:scientificName "%s"].
-        }
-        GROUP BY ?org_name
-        ORDER BY ?org_name
-        """ % (OG, taxonomy)
-        endpoint.setQuery(query)
-        endpoint.setReturnFormat(JSON)
-        results.append(endpoint.query().convert())
-        index_of = OG_list.index(i)
-        print(100 * index_of / len(OG_list))
-        if index_of % 50 == 0:
-            time.sleep(1)
+            data = endpoint.query().convert()["results"]["bindings"]
+        except Exception:
+            data = ()
 
-    result_table = {"Organisms": organisms}
-    df = pd.DataFrame(data=result_table, dtype=object)
+        # Small trick: preallocating the length of the arrays
+        idx = [None] * len(data)
+        vals = [None] * len(data)
+
+        for j, res in enumerate(data):
+            idx[j] = res["org_name"]["value"]
+            vals[j]= res["count_orthologs"]["value"]
+
+        df.merge(pd.Series(vals, index=idx, name=og_label), how='left', on='Organisms')
+
+        # XXX: Debug or output?
+        print(100 * i / len(OG_labels))
 
     # interpret the results:
-    g = 0
-    for p in results:
+    df.fillna(0, inplace=True)
+    df.to_csv(user.path() / "SPARQLWrapper.csv", index=False)
 
-        first_iter_df = pd.DataFrame(columns=["Organisms", OG_list[g]])
-        for res in p["results"]["bindings"]:
-            second_iter_df = pd.DataFrame([[res["org_name"]["value"], res["count_orthologs"]["value"]]], columns=["Organisms", OG_list[g]])
-            first_iter_df = first_iter_df.append(second_iter_df)
-        df = pd.merge(df, first_iter_df, on="Organisms", how="left")
-        g = g + 1
+    df.reset_index(drop=True, inplace=True)
 
-    df_results = df.fillna(0)
-    df_results.columns = pd.concat([pd.Series(['Organisms']), OG_names])
-    df_results.to_csv("SPARQLWrapper.csv", index=False)
+    df['Organisms'] = df['Organisms'].astype("category")
+    df['Organisms'].cat.set_categories(organisms, inplace=True)
+    df.sort_values(["Organisms"], inplace=True)
 
-    Prots_to_show = OG_names
-    MainSpecies = organisms
+    df.columns = ['Organisms', *OG_names]
 
-    df4 = df_results.reset_index(drop=True)
-    df4['Organisms'] = df4['Organisms'].astype("category")
-    df4['Organisms'].cat.set_categories(MainSpecies, inplace=True)
-    df4 = df4.sort_values(["Organisms"])
-    OG_names_1 = ['Organisms']
-    OG_names_1.extend(OG_names)
-    df4.columns = OG_names_1
-    df4 = df4[df4['Organisms'].isin(MainSpecies)]  #Select Main Species
-    df4 = df4.iloc[:, 1:]
-    df4 = df4[OG_names]
-    #SHOW THE PRESENCE VECTORS
-    df4 = df4[Prots_to_show]
+    df = df[df['Organisms'].isin(organisms)]  #Select Main Species
+    df = df.iloc[:, 1:]
+    df = df[OG_names]
 
-    for column in df4:
-        df4[column] = df4[column].astype(float)
+    for column in df:
+        df[column] = df[column].astype(float)
 
-    del taxonomy_level
-    del organisms
-    del result_table
-
-    df4.to_csv("Presence-Vectors.csv", index=False)
+    df.to_csv(user.path() / "Presence-Vectors.csv", index=False)
 
 
 def Correlation_Img(taxonomy_level):
@@ -155,7 +135,7 @@ def Correlation_Img(taxonomy_level):
     OG_names = csv_data['Name']
     OG_list = [x.strip() for x in OG_list]
 
-    df = pd.read_csv("SPARQLWrapper.csv")
+    df = pd.read_csv(user.path() / "SPARQLWrapper.csv")
     df = df.iloc[:, 1:]
     df.columns = OG_names
     pres_df = df.apply(pd.value_counts).fillna(0)
@@ -211,7 +191,7 @@ def Presence_Img(taxonomy_level):
     Prots_to_show = OG_names
     MainSpecies = organisms
 
-    df4 = read_csv("Presence-Vectors.csv")
+    df4 = read_csv(user.path()/"Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
     # df4 = df4[df4['Organisms'].isin(MainSpecies)]
     levels = [0, 1]
@@ -287,7 +267,7 @@ def Presence_Img(taxonomy_level):
     return html.Img(src='data:image/png;base64,{}'.format(pic_hash), style={'height': '612px', 'width': '200px'})
 
 
-def build_graph(city):
-    data = [go.Scatter(x=df.index, y=df[city], marker={'color': 'orange'})]
-    graph = dcc.Graph(figure={'data': data, 'layout': go.Layout(title='{} Population Change'.format(city), yaxis={'title': 'Population'}, hovermode='closest')})
-    return graph
+# def build_graph(city):
+#     data = [go.Scatter(x=df.index, y=df[city], marker={'color': 'orange'})]
+#     graph = dcc.Graph(figure={'data': data, 'layout': go.Layout(title='{} Population Change'.format(city), yaxis={'title': 'Population'}, hovermode='closest')})
+#     return graph

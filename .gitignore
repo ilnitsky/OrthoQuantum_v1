@@ -2,3 +2,4 @@ __pycache__
 *.pyc
 Dash_app/myenv
 Dash_app/assets/images
+user_storage

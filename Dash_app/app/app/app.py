@@ -40,7 +40,7 @@ def SPARQL_wrap(taxonomy_level):
     taxonomy = taxonomy_level.split('-')[0]
 
     # TODO: injection possible
-    with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
+    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
 
     # TODO: pre-strip everything in files to remove this
@@ -117,7 +117,7 @@ def SPARQL_wrap(taxonomy_level):
 
 def correlation_img(taxonomy_level):
     # taxonomy = str(taxonomy_level.split('-')[0])
-    with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
+    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
     organisms = [x.strip() for x in organisms]
 
@@ -157,7 +157,7 @@ def presence_img(taxonomy_level):
     print(taxonomy_level)
 
     #Create organisms list
-    with open(f'assets/data/{taxonomy_level}.txt') as organisms_list:
+    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
         organisms = organisms_list.readlines()
     organisms = [x.strip() for x in organisms]
     csv_data = read_csv(user.path() / 'OG.csv', sep=';')
@@ -199,7 +199,7 @@ def presence_img(taxonomy_level):
     plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
 
     concat_img = concat_phylo(
-        f'assets/images/{taxonomy_level}.png',
+        f'app/assets/images/{taxonomy_level}.png',
         str(user.path() / 'Presence.png')
     )
     concat_phylo_filename = 'concat_phylo.png'

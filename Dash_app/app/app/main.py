@@ -286,3 +286,4 @@ def serve_user_file(uid, name):
         flask.abort(403)
     response = flask.make_response(flask.send_from_directory(user.path(), name))
     response.headers["Cache-Control"] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response

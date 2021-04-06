@@ -1,6 +1,7 @@
 import os
 import os.path
 import re
+import time
 
 from dash import Dash
 from dash.dependencies import Input, Output, State
@@ -260,19 +261,20 @@ def call(clicks, level):
     corri = correlation_img(level)
     concat, presi = presence_img(level)
 
-    # HACK: nocache={clicks} is untill each image has a unique name
+    t = time.time()
+    # HACK: nocache={t} is untill each image has a unique name
     return html.Div([
         dbc.Row([
             dbc.Col([dbc.Col(html.Div(
-                html.Img(src=f"{corri}?nocache={clicks}")
+                html.Img(src=f'{corri}?nocache={t}')
             ))]),
             dbc.Col([dbc.Col(html.Div(
-                html.Img(src=f"{presi}?nocache={clicks}", style={'height': '612px', 'width': '200px'})
+                html.Img(src=f'{presi}?nocache={t}', style={'height': '612px', 'width': '200px'})
             ))]),
         ]),
         dbc.Row([
             dbc.Col([]),
-            dbc.Col([html.Img(src=f"{concat}?nocache={clicks}", style={'width': '1500px'})]),
+            dbc.Col([html.Img(src=f'{concat}?nocache={t}', style={'width': '1500px'})]),
             dbc.Col([]),
         ])
     ])
@@ -282,4 +284,5 @@ def call(clicks, level):
 def serve_user_file(uid, name):
     if flask.session.get("USER_ID", '') != uid:
         flask.abort(403)
-    return flask.send_from_directory(user.path(), name)
+    response = flask.make_response(flask.send_from_directory(user.path(), name))
+    response.headers["Cache-Control"] = 'no-store, no-cache, must-revalidate, max-age=0'

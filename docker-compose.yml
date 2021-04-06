@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.2"
 services:
   web:
     build: ./dash_app
@@ -7,8 +7,8 @@ services:
     environment:
       # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
       SECRET_KEY: "SECRET_KEY_CHANGE_ME"
-    volumes:
-      - "./user_storage:/app/user_data"
+    # volumes:
+    #   - "./user_storage:/app/user_data"
 
   # redis:
   #   image: "redis:alpine"

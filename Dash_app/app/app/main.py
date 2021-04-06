@@ -117,7 +117,6 @@ def update_output(clicks, input_value, dropdown_value):
         for uniprot_name in missing_ids:
             try:
                 resp = requests.get(f"http://www.uniprot.org/uniprot/{uniprot_name}.fasta").text
-                # TODO: why only 100 letters? Is it correct
                 fasta_query = "".join(resp.split("\n")[1:])[:100]
                 resp = requests.get(f"https://v101.orthodb.org/blast?level=2&species=2&seq={fasta_query}&skip=0&limit=100").text
                 og_handle = resp.split(",")[2].split(":")[1]

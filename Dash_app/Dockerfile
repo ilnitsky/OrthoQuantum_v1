@@ -1,11 +1,6 @@
-# FROM python:3.9.2-slim-buster
-
 FROM tiangolo/uwsgi-nginx-flask:python3.8
 
-ENV LISTEN_PORT 8050
-EXPOSE 8050
-
-RUN useradd -ms /bin/nologin www                     &&\
+RUN useradd -ms /bin/nologin www                      &&\
     python3 -m pip install --upgrade pip             &&\
     rm -rf ~/.cache/pip/*                            &&\
     apt-get update                                   &&\
@@ -19,9 +14,15 @@ COPY --chown=www:www ./app/requirements.txt /app/
 RUN python3 -m pip install -r ./requirements.txt     &&\
     rm -rf ~/.cache/pip/*
 
-COPY ./app/ /app/
+COPY ./nginx-site.conf /etc/nginx/conf.d/nginx.conf
+
+COPY --chown=www:www ./app/ /app/
 
 ENV UWSGI_CHEAPER 1
 ENV UWSGI_PROCESSES 4
+
+ENV MPLCONFIGDIR /app/matplotlib-conf/
+
+EXPOSE 8050
 
 WORKDIR /app/

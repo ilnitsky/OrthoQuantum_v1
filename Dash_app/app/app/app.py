@@ -98,8 +98,6 @@ def SPARQL_wrap(taxonomy_level):
     df.reset_index(drop=False, inplace=True)
     df.to_csv(user.path() / "SPARQLWrapper.csv", index=False)
 
-    # TODO: What's the purpose of this code?
-
     df['Organisms'] = df['Organisms'].astype("category")
     df['Organisms'].cat.set_categories(organisms, inplace=True)
     df.sort_values(["Organisms"], inplace=True)
@@ -148,7 +146,6 @@ def correlation_img(taxonomy_level):
     # TODO: replace static filenames to dynamic (perhaps based on hash of request)
     file_name = "Correlation.png"
 
-    # TODO: what to serve? do we need  dpi=70, bbox_inches="tight" ?
     plt.savefig(user.path()/file_name)
     return user.url_for(file_name)
     # return html_text
@@ -221,6 +218,5 @@ def presence_img(taxonomy_level):
     )
 
     presence_name = 'Presence2.png'
-    # TODO: what to serve? do we need  dpi=70, bbox_inches="tight" ?
     plt.savefig(user.path() / presence_name)
     return user.url_for(concat_phylo_filename), user.url_for(presence_name)

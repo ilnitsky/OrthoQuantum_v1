@@ -4,3 +4,4 @@ Dash_app/myenv
 Dash_app/assets/images
 user_storage
 .pylintrc
+workspace.code-workspace

@@ -9,12 +9,15 @@ import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+
 import flask
 
 import SPARQLWrapper
 import pandas as pd
 
 import requests
+
+import phydthree_component
 
 from .app import SPARQL_wrap, presence_img, correlation_img
 
@@ -24,7 +27,44 @@ from . import user
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 
-dash_app = Dash(__name__, server=app, suppress_callback_exceptions=True, external_stylesheets=[dbc.themes.UNITED])
+
+# external JavaScript files
+external_scripts = [
+    {
+        'src': 'https://code.jquery.com/jquery-2.2.4.min.js',
+        'integrity': 'sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=',
+        'crossorigin': 'anonymous'
+    },
+    # {
+    #     'src': 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js',
+    #     'integrity': 'sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa',
+    #     'crossorigin': 'anonymous'
+    # },
+    {
+        'src': 'https://d3js.org/d3.v3.min.js',
+        # 'integrity': 'sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa',
+        # 'crossorigin': 'anonymous'
+    },
+]
+# external CSS stylesheets
+external_stylesheets = [
+    # {
+    #     'href': 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css',
+    #     'rel': 'stylesheet',
+    #     'integrity': "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u",
+    #     'crossorigin': 'anonymous'
+    # },
+    # {
+    #     'href': 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css',
+    #     'rel': 'stylesheet',
+    #     'integrity': "sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp",
+    #     'crossorigin': 'anonymous'
+    # },
+    dbc.themes.UNITED,
+]
+
+
+dash_app = Dash(__name__, server=app, suppress_callback_exceptions=True, external_scripts=external_scripts, external_stylesheets=external_stylesheets)
 dash_app.layout = layout.index
 
 def login(dst):
@@ -259,7 +299,7 @@ def call(clicks, level):
 
     SPARQL_wrap(level)
     corri = correlation_img(level)
-    concat, presi = presence_img(level)
+    pres_xml_url = presence_img(level)
 
     t = time.time()
     # HACK: nocache={t} is untill each image has a unique name
@@ -269,14 +309,20 @@ def call(clicks, level):
                 html.Img(src=f'{corri}?nocache={t}')
             ))]),
             dbc.Col([dbc.Col(html.Div(
-                html.Img(src=f'{presi}?nocache={t}', style={'height': '612px', 'width': '200px'})
+                phydthree_component.PhydthreeComponent(
+                    url=f'{pres_xml_url}?nocache={t}'
+                ),
             ))]),
+            # dbc.Col([dbc.Col(html.Div(
+            #     html.Img(src=f'{presi}?nocache={t}', style={'height': '612px', 'width': '200px'})
+            # ))]),
         ]),
-        dbc.Row([
-            dbc.Col([]),
-            dbc.Col([html.Img(src=f'{concat}?nocache={t}', style={'width': '1500px'})]),
-            dbc.Col([]),
-        ])
+
+        # dbc.Row([
+        #     dbc.Col([]),
+        #     dbc.Col([html.Img(src=f'{concat}?nocache={t}', style={'width': '1500px'})]),
+        #     dbc.Col([]),
+        # ])
     ])
 
 
@@ -285,5 +331,8 @@ def serve_user_file(uid, name):
     if flask.session.get("USER_ID", '') != uid:
         flask.abort(403)
     response = flask.make_response(flask.send_from_directory(user.path(), name))
+    if name.lower().endswith(".xml"):
+        response.mimetype = "text/xml"
     response.headers["Cache-Control"] = 'no-store, no-cache, must-revalidate, max-age=0'
+
     return response

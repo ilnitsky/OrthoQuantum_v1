@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-import random
 
 from lxml import etree as ET
 
@@ -21,10 +20,11 @@ tr_table = {
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         raise RuntimeError("1 argument: path to newick file")
     in_path = Path(sys.argv[1])
     out_path = Path(sys.argv[2])
+    txt_path = Path(sys.argv[3])
 
     newick = in_path.read_text().strip()
     # id_counter = 0
@@ -47,8 +47,8 @@ def main():
 
 
 
-    ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
     # ET.register_namespace("", "http://www.phyloxml.org")
+    ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
     NS = {
         "xsi": "http://www.w3.org/2001/XMLSchema-instance",
         "": "http://www.phyloxml.org"
@@ -60,45 +60,36 @@ def main():
     )
     root = tree.getroot()
 
-    id_counter = 1
-    for node in root.iterfind(".//clade", NS):
-        if node.find("./clade", NS) is not None:
+    for name_node in root.iterfind(".//name", NS):
+        new_name = name_node.text.replace("_", " ").strip()
+        if new_name == "Cebus imitator":
+            new_name = "Cebus capucinus imitator"
+        name_node.text = new_name
+
+    # pre-strip
+    with txt_path.open("r") as f:
+        lines = f.readlines()
+
+    name_2_id = {}
+    for i in range(len(lines)):
+        name = lines[i].strip()
+        lines[i] = name
+        name_2_id[name] = str(i)
+
+    with txt_path.open("w") as f:
+        f.write('\n'.join(lines))
+
+
+    for clade_node in root.iterfind(".//clade", NS):
+        if clade_node.find("./clade", NS) is not None:
             continue
         el = ET.Element("id")
-        el.text = str(id_counter)
-        id_counter += 1
-        node.append(el)
+        el.text = name_2_id[clade_node.find("./name", NS).text]
+        clade_node.append(el)
 
     # from IPython import embed; embed()
     tree.write(out_str, xml_declaration=True)
 
-    # TODO: This will be done at runtime, in response to user request
-    parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(out_str, parser)
-    root = tree.getroot()
-    graphs = ET.SubElement(root, "graphs")
-    graph = ET.SubElement(graphs, "graph", type="heatmap")
-    ET.SubElement(graph, "name").text = "Heatmap test"
-    legend = ET.SubElement(graph, "legend", show="1")
-
-    legend_names = [f"PROT_{i}" for i in range(0, 100)]
-    for ln in legend_names:
-        field = ET.SubElement(legend, "field")
-        ET.SubElement(field, "name").text = ln
-
-    gradient = ET.SubElement(legend, "gradient")
-    ET.SubElement(gradient, "name").text = "Custom"
-    ET.SubElement(gradient, "classes").text = "2"
-
-    ###
-
-    data = ET.SubElement(graph, "data")
-    for id_node in root.iterfind(".//id", NS):
-        values = ET.SubElement(data, "values", {"for":id_node.text})
-        for _ in legend_names:
-            ET.SubElement(values, "value").text = random.choice(("0", "100"))
-
-    tree.write(out_str, xml_declaration=True)
 
 
 if __name__ == "__main__":

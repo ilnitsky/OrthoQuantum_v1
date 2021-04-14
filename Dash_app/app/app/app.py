@@ -8,10 +8,17 @@ import SPARQLWrapper
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
+from lxml import etree as ET
 
 from PIL import Image
 
 from . import user
+
+ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+NS = {
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "": "http://www.phyloxml.org"
+}
 
 def concat_phylo(taxonomy_path, presence_path):
     subprocess.call([
@@ -154,12 +161,11 @@ def presence_img(taxonomy_level):
     print(taxonomy_level)
 
     #Create organisms list
-    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
-        organisms = organisms_list.readlines()
-    organisms = [x.strip() for x in organisms]
+    with open(f'app/assets/data/{taxonomy_level}.txt') as f:
+        organisms = f.read().splitlines()
+    # organisms = [x.strip() for x in organisms]
     csv_data = read_csv(user.path() / 'OG.csv', sep=';')
     og_names = csv_data['Name']
-    main_species = organisms
 
     df4 = read_csv(user.path()/"Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
@@ -178,45 +184,75 @@ def presence_img(taxonomy_level):
     phylo = sns.clustermap(
         df4,
         metric="euclidean",
-        figsize=(len(prots_to_show), len(main_species) // 2),
+        figsize=(len(prots_to_show), len(organisms) // 2),
         # figsize=(len(Prots_to_show)/10, len(MainSpecies)/20),
         linewidth=0.90,
         row_cluster=False,
         #   col_cluster=False,
         cmap=my_cmap,
         norm=norm,
-        # yticklabels=MainSpecies,
+        # yticklabels=main_species,
         xticklabels=prots_to_show,
         annot=True,
     )
+    print(phylo.data.columns, flush=True)
+    print(phylo.data, flush=True)
+    print(phylo.data.describe(), flush=True)
 
-    phylo.cax.set_visible(False)
-    phylo.ax_col_dendrogram.set_visible(False)
+    # TODO: This will be done at runtime, in response to user request
+    parser = ET.XMLParser(remove_blank_text=True)
+    tree = ET.parse(f'app/assets/data/{taxonomy_level}.xml', parser)
+    root = tree.getroot()
+    graphs = ET.SubElement(root, "graphs")
+    graph = ET.SubElement(graphs, "graph", type="heatmap")
+    ET.SubElement(graph, "name").text = "Presense"
+    legend = ET.SubElement(graph, "legend", show="1")
 
-    plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
+    for col_name in phylo.data.columns:
+        field = ET.SubElement(legend, "field")
+        ET.SubElement(field, "name").text = col_name
 
-    concat_img = concat_phylo(
-        f'app/assets/images/{taxonomy_level}.png',
-        str(user.path() / 'Presence.png')
-    )
-    concat_phylo_filename = 'concat_phylo.png'
-    concat_img.save(user.path() / concat_phylo_filename)
+    gradient = ET.SubElement(legend, "gradient")
+    ET.SubElement(gradient, "name").text = "Custom"
+    ET.SubElement(gradient, "classes").text = "2"
 
-    sns.clustermap(
-        df4,
-        metric="euclidean",
-        figsize=(len(prots_to_show), len(main_species) // 2),
-        # figsize=(len(Prots_to_show)/100,len(MainSpecies)/200),
-        linewidth=0.90,
-        row_cluster=False,
-        #   col_cluster=False,
-        cmap=my_cmap,
-        norm=norm,
-        # yticklabels=MainSpecies,
-        xticklabels=prots_to_show,
-        annot=True,
-    )
+    data = ET.SubElement(graph, "data")
+    for index, row in phylo.data.iterrows():
+        values = ET.SubElement(data, "values", {"for":str(index)})
+        for col_name in phylo.data.columns:
+            ET.SubElement(values, "value").text = f"{row[col_name] * 100:.0f}"
 
-    presence_name = 'Presence2.png'
-    plt.savefig(user.path() / presence_name)
-    return user.url_for(concat_phylo_filename), user.url_for(presence_name)
+    fn = f'{taxonomy_level}_cluser.xml'
+    tree.write(str(user.path()/fn), xml_declaration=True)
+
+    return user.url_for(fn)
+    # phylo.cax.set_visible(False)
+    # phylo.ax_col_dendrogram.set_visible(False)
+
+    # plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
+
+    # concat_img = concat_phylo(
+    #     f'app/assets/images/{taxonomy_level}.png',
+    #     str(user.path() / 'Presence.png')
+    # )
+    # concat_phylo_filename = 'concat_phylo.png'
+    # concat_img.save(user.path() / concat_phylo_filename)
+
+    # sns.clustermap(
+    #     df4,
+    #     metric="euclidean",
+    #     figsize=(len(prots_to_show), len(main_species) // 2),
+    #     # figsize=(len(Prots_to_show)/100,len(MainSpecies)/200),
+    #     linewidth=0.90,
+    #     row_cluster=False,
+    #     #   col_cluster=False,
+    #     cmap=my_cmap,
+    #     norm=norm,
+    #     # yticklabels=MainSpecies,
+    #     xticklabels=prots_to_show,
+    #     annot=True,
+    # )
+
+    # presence_name = 'Presence2.png'
+    # plt.savefig(user.path() / presence_name)
+    # return user.url_for(concat_phylo_filename), user.url_for(presence_name)

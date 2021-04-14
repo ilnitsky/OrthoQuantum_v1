@@ -142,9 +142,15 @@ def correlation_img(taxonomy_level):
     # df = df.clip(upper=1)
     df = df.loc[:, (df != 0).any(axis=0)]
 
+    customPalette = sns.color_palette([
+        "#f72585","#b5179e","#7209b7","#560bad","#480ca8",
+        "#3a0ca3","#3f37c9","#4361ee","#4895ef","#4cc9f0",
+    ],as_cmap=True)
+
+
     sns.clustermap(
         df.corr(),
-        cmap='seismic',
+        cmap=customPalette,
         metric="correlation",
         figsize=(15, 15),
         col_colors=[rgbs],

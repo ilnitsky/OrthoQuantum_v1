@@ -1,0 +1,7 @@
+include phydthree_component/phydthree_component.min.js
+include phydthree_component/phydthree_component.min.js.map
+include phydthree_component/metadata.json
+include phydthree_component/package-info.json
+include README.md
+include LICENSE
+include package.json

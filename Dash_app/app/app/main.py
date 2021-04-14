@@ -306,23 +306,18 @@ def call(clicks, level):
     return html.Div([
         dbc.Row([
             dbc.Col([dbc.Col(html.Div(
-                html.Img(src=f'{corri}?nocache={t}')
-            ))]),
-            dbc.Col([dbc.Col(html.Div(
-                phydthree_component.PhydthreeComponent(
-                    url=f'{pres_xml_url}?nocache={t}'
-                ),
+                html.Img(src=f'{corri}?nocache={t}', id="corr")
             ))]),
             # dbc.Col([dbc.Col(html.Div(
             #     html.Img(src=f'{presi}?nocache={t}', style={'height': '612px', 'width': '200px'})
             # ))]),
         ]),
 
-        # dbc.Row([
-        #     dbc.Col([]),
-        #     dbc.Col([html.Img(src=f'{concat}?nocache={t}', style={'width': '1500px'})]),
-        #     dbc.Col([]),
-        # ])
+        dbc.Row([
+            dbc.Col([phydthree_component.PhydthreeComponent(
+                        url=f'{pres_xml_url}?nocache={t}'
+                    )]),
+        ])
     ])
 
 

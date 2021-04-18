@@ -201,9 +201,6 @@ def presence_img(taxonomy_level):
         xticklabels=prots_to_show,
         annot=True,
     )
-    print(phylo.data.columns, flush=True)
-    print(phylo.data, flush=True)
-    print(phylo.data.describe(), flush=True)
 
     # TODO: This will be done at runtime, in response to user request
     parser = ET.XMLParser(remove_blank_text=True)

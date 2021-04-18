@@ -21,8 +21,22 @@ export default class PhydthreeComponent extends Component {
         this.redraw()
     }
     redraw() {
+        console.log("redraw!")
         var ref = this.ref;
-        d3.select(ref.current).html("");
+        // try {
+        //     d3.selectAll(".heatmap").exit();
+        //     // d3.select(ref.current).select("svg").remove();
+
+        // } catch (error) {
+
+        // }
+        // try {
+        //     d3.selectAll(".heatmap").remove()
+        //     // d3.select(ref.current).select("svg").remove();
+
+        // } catch (error) {
+
+        // }
         var opts = {
             dynamicHide: true,
             height: 800,
@@ -50,12 +64,11 @@ export default class PhydthreeComponent extends Component {
         };
         // vv url from props
         d3.xml(this.props.url, function (err, xml) {
-            console.log("err", err);
+            console.log("err", err, xml);
             if (err != null){
                 d3.select(ref.current).text("Error");
             }else{
                 var tree = phyd3.phyloxml.parse(xml);
-                d3.select(ref.current).html("");
                 phyd3.phylogram.build(ref.current, tree, opts);
             }
         });
@@ -63,7 +76,7 @@ export default class PhydthreeComponent extends Component {
 
     render() {
         return (
-            <div ref={this.ref} id="phyd3">Loading</div>
+            <div><div ref={this.ref} id="phyd3"></div></div>
         );
     }
 

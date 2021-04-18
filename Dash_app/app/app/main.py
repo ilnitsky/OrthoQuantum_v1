@@ -95,7 +95,6 @@ def select_level(value):
     return f'Selected "{value}" orthology level'
 
 
-FASTA_CLEANUP = str.maketrans('', '', '["]')
 INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
 @dash_app.callback(
@@ -159,28 +158,25 @@ def update_output(clicks, input_value, dropdown_value):
             try:
                 resp = requests.get(f"http://www.uniprot.org/uniprot/{uniprot_name}.fasta").text
                 fasta_query = "".join(resp.split("\n")[1:])[:100]
-                resp = requests.get(f"https://v101.orthodb.org/blast?level=2&species=2&seq={fasta_query}&skip=0&limit=100").text
-                og_handle = resp.split(",")[2].split(":")[1]
-                og_handle = og_handle.translate(FASTA_CLEANUP).strip()
+                resp = requests.get(f"https://v101.orthodb.org/blast", params={
+                    "level": 2,
+                    "species": 2,
+                    "seq": fasta_query,
+                    "skip": 0,
+                    "limit": 1,
+                }).json()
+                # Throws exception if not found
+                og_handle = resp["data"][0]
                 # yapf: disable
-                data_tuples.append(
-                    (
+                data_tuples.append((
                         og_handle,
                         og_handle,
                         uniprot_name,
-                    )
-                )
-                # yapf: enable
-            except Exception:
-                # TODO: log something?
-                pass
-            else:
+                    ))
                 found_ids.add(uniprot_name)
+            except Exception:
+                pass
         missing_ids = requested_ids - found_ids
-
-        if missing_ids:
-            # TODO: tried 2 methods, couldn't find the data for these IDs. Report to user?
-            print(f"Missing IDs: {', '.join(missing_ids)}")
 
     uniprot_df = pd.DataFrame(columns=['label', 'Name', 'PID'], data=data_tuples)
     uniprot_df.replace("", float('nan'), inplace=True)
@@ -286,7 +282,17 @@ def update_output(clicks, input_value, dropdown_value):
         for i in og_info_df.columns
     ]
 
-    return dash_table.DataTable(data=dash_data, columns=dash_columns, filter_action="native")
+    data = []
+    if missing_ids:
+        data.append(
+            dbc.Alert([
+                f"Unknown proteins: {', '.join(missing_ids)}"
+            ], className="alert-warning")
+        )
+    data.append(
+        dash_table.DataTable(data=dash_data, columns=dash_columns, filter_action="native"),
+    )
+    return html.Div(data)
 
 
 @dash_app.callback(

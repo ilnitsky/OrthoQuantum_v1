@@ -32,7 +32,7 @@ app.secret_key = os.environ["SECRET_KEY"]
 
 
 CACHE_TTL = 3*30*24*60*60 # 90 days
-CACHE_TTL = 20 # 20 sec
+# CACHE_TTL = 20 # 20 sec
 
 # external JavaScript files
 external_scripts = [

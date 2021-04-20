@@ -194,13 +194,19 @@ def presence_img(taxonomy_level):
         # figsize=(len(Prots_to_show)/10, len(MainSpecies)/20),
         linewidth=0.90,
         row_cluster=False,
-        #   col_cluster=False,
+        col_cluster=True,
         cmap=my_cmap,
         norm=norm,
         # yticklabels=main_species,
         xticklabels=prots_to_show,
         annot=True,
     )
+    # print(f"{phylo.data.columns=}")
+    # print(f"{phylo.data2d.columns=}")
+    # print(f"{phylo.dendrogram_col.reordered_ind=}")
+    # phylo.cax.set_visible(False)
+    # phylo.ax_col_dendrogram.set_visible(False)
+    # plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
 
     # TODO: This will be done at runtime, in response to user request
     parser = ET.XMLParser(remove_blank_text=True)
@@ -211,9 +217,9 @@ def presence_img(taxonomy_level):
     ET.SubElement(graph, "name").text = "Presense"
     legend = ET.SubElement(graph, "legend", show="1")
 
-    for col_name in phylo.data.columns:
+    for col_idx in phylo.dendrogram_col.reordered_ind :
         field = ET.SubElement(legend, "field")
-        ET.SubElement(field, "name").text = col_name
+        ET.SubElement(field, "name").text = phylo.data.columns[col_idx]
 
     gradient = ET.SubElement(legend, "gradient")
     ET.SubElement(gradient, "name").text = "Custom"
@@ -222,17 +228,14 @@ def presence_img(taxonomy_level):
     data = ET.SubElement(graph, "data")
     for index, row in phylo.data.iterrows():
         values = ET.SubElement(data, "values", {"for":str(index)})
-        for col_name in phylo.data.columns:
-            ET.SubElement(values, "value").text = f"{row[col_name] * 100:.0f}"
+        for col_idx in phylo.dendrogram_col.reordered_ind:
+            ET.SubElement(values, "value").text = f"{row[phylo.data.columns[col_idx]] * 100:.0f}"
 
     fn = f'{taxonomy_level}_cluser.xml'
     tree.write(str(user.path()/fn), xml_declaration=True)
 
     return user.url_for(fn)
-    # phylo.cax.set_visible(False)
-    # phylo.ax_col_dendrogram.set_visible(False)
 
-    # plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
 
     # concat_img = concat_phylo(
     #     f'app/assets/images/{taxonomy_level}.png',

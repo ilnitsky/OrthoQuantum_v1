@@ -2361,11 +2361,11 @@ window.requestAnimFrame = (function(){
                             }
                             jQuery("#groupLabelModal").modal('show');
                         } else if (!mouseEvent.shiftKey && !mouseEvent.altKey && !mouseEvent.ctrlKey) {
-                            if (options.popupAction !== undefined)  {
-                                options.popupAction(d);
-                            } else {
-                                renderPopup(d);
-                            }
+                            // if (options.popupAction !== undefined)  {
+                            //     options.popupAction(d);
+                            // } else {
+                            //     renderPopup(d);
+                            // }
                         }
                     })
                     .style("z-index", 100)

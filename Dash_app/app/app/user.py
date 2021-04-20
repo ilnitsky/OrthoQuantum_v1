@@ -4,6 +4,9 @@ import secrets
 
 import flask
 
+import redis
+db = redis.Redis("redis")
+
 # TODO: change to something more proper
 # data will be stored at DATA_PATH / "user_id"
 

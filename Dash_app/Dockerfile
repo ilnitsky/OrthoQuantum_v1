@@ -82,15 +82,6 @@ RUN set -ex \
   && yarn --version
 
 
-# RUN apt-get update                                            &&\
-#     apt-get install -y ca-certificates  --no-install-recommends &&\
-#     python3 -m pip install --upgrade pip wheel                &&\
-#     rm -rf ~/.cache/pip/*                                     &&\
-#     rm -rf /var/lib/apt/lists/*                               &&\
-#     rm -rf /usr/share/doc                                     &&\
-#     rm -rf /usr/share/man                                     &&\
-#     apt-get clean
-
 COPY phydthree_component/package*.json /phydthree_component/
 WORKDIR /phydthree_component/
 
@@ -106,35 +97,24 @@ RUN npm run build  &&\
     python3 setup.py sdist bdist_wheel
 
 
-# COPY phyd3/ /node-app/
-
-# RUN node dist.js &&\
-#     mkdir dist/assets  &&\
-#     cp dist/js/*min* dist/assets/ &&\
-#     cp dist/css/*min* dist/assets/
-
-
-
-
 FROM tiangolo/uwsgi-nginx-flask:python3.8
 
 RUN useradd -ms /bin/bash www                                       &&\
     apt-get update                                                  &&\
-    apt-get install -y imagemagick ca-certificates build-essential    \
-                       python3-lxml --no-install-recommends         &&\
+    apt-get install -y imagemagick ca-certificates                    \
+                    --no-install-recommends                         &&\
     python3 -m pip install --upgrade pip                            &&\
-    python3 -m pip install lxml==4.6.3                              &&\
+    python3 -m pip install pipenv                                   &&\
     rm -rf ~/.cache/pip/*                                           &&\
-    apt-get purge -y --auto-remove build-essential                  &&\
     rm -rf /var/lib/apt/lists/*                                     &&\
     rm -rf /usr/share/doc                                           &&\
     rm -rf /usr/share/man                                           &&\
     apt-get clean
+
 # Installing dependencies separately in order to take advantage of docker caching mechanism
+COPY ./app/Pipfile* /app/
 
-COPY ./app/requirements.txt /app/
-
-RUN python3 -m pip install -r /app/requirements.txt                 &&\
+RUN pipenv install --deploy --system  &&\
     rm -rf ~/.cache/pip/*
 
 COPY --from=phyd3-comp-builder /phydthree_component/dist/phydthree_component-0.0.1.tar.gz /app/
@@ -152,8 +132,6 @@ RUN chown -R www:www /app/ && chown www:www /app
 
 ENV UWSGI_CHEAPER 1
 ENV UWSGI_PROCESSES 4
-
-ENV MPLCONFIGDIR /app/matplotlib-conf/
 
 EXPOSE 8050
 

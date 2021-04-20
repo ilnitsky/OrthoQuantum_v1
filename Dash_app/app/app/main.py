@@ -1,7 +1,10 @@
+from collections import defaultdict
 import os
 import os.path
 import re
 import time
+import json
+import itertools
 
 from dash import Dash
 from dash.dependencies import Input, Output, State
@@ -27,6 +30,9 @@ from . import user
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 
+
+CACHE_TTL = 3*30*24*60*60 # 90 days
+CACHE_TTL = 20 # 20 sec
 
 # external JavaScript files
 external_scripts = [
@@ -69,7 +75,6 @@ dash_app.layout = layout.index
 
 def login(dst):
     # TODO: dsiplay login layout, login, redirect to the original destintation
-    print("register")
     user.register()
     return dcc.Location(pathname=dst, id="some_id", hash="1", refresh=True)
 
@@ -97,18 +102,8 @@ def select_level(value):
 
 INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
-@dash_app.callback(
-    Output('output_div', 'children'),
-    [Input('submit-button', 'n_clicks')],
-    [State('username', 'value'), State('dropdown', 'value')],
-)
-def update_output(clicks, input_value, dropdown_value):
-    if clicks is None:
-        # Initial load, don't do anything
-        return
 
-    level = dropdown_value.split('-')[0]
-    uniprot_ac = INVALID_PROT_IDS.sub("", input_value).upper().split()
+def orthodb_get(level:str, prot_ids:list):
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
     # TODO: think about possible injection here (filter by letters and numbers only?)
@@ -122,7 +117,7 @@ def update_output(clicks, input_value, dropdown_value):
         :ogBuiltAt [up:scientificName "{level}"];
         :name ?og_description;
         !:memberOf/:xref/:xrefResource ?xref
-        filter (?xref in ({', '.join(f'uniprot:{v}' for v in uniprot_ac)}))
+        filter (?xref in ({', '.join(f'uniprot:{v}' for v in prot_ids)}))
         ?gene a :Gene; :memberOf ?og.
         ?gene :xref [a :Xref; :xrefResource ?xref ].
         ?gene :name ?gene_name.
@@ -131,54 +126,109 @@ def update_output(clicks, input_value, dropdown_value):
     endpoint.setReturnFormat(SPARQLWrapper.JSON)
     n = endpoint.query().convert()
 
-    requested_ids = set(uniprot_ac)
-    found_ids = set()
-
-    # Tuples of 'label', 'Name', 'PID'
-    data_tuples = []
+    # # Tuples of 'label', 'Name', 'PID'
+    res = defaultdict(list)
 
     for result in n["results"]["bindings"]:
-        # yapf: disable
-        data_tuples.append(
-            (
-                result["og"]["value"].split('/')[-1].strip(),
-                result["gene_name"]["value"],
-                result["gene_name"]["value"],
-            )
-        )
-        # yapf: enable
         prot_id = result["xref"]["value"].rsplit("/", 1)[-1].strip().upper()
-        found_ids.add(prot_id)
+        res[prot_id].append((
+            result["og"]["value"].split('/')[-1].strip(),
+            result["gene_name"]["value"],
+            result["gene_name"]["value"],
+        ))
 
-    missing_ids = requested_ids - found_ids
+    return res
 
-    # if requested_ids is not empty - adding more data via slow request
-    if missing_ids:
-        for uniprot_name in missing_ids:
-            try:
-                resp = requests.get(f"http://www.uniprot.org/uniprot/{uniprot_name}.fasta").text
-                fasta_query = "".join(resp.split("\n")[1:])[:100]
-                resp = requests.get(f"https://v101.orthodb.org/blast", params={
-                    "level": 2,
-                    "species": 2,
-                    "seq": fasta_query,
-                    "skip": 0,
-                    "limit": 1,
-                }).json()
-                # Throws exception if not found
-                og_handle = resp["data"][0]
-                # yapf: disable
-                data_tuples.append((
-                        og_handle,
-                        og_handle,
-                        uniprot_name,
-                    ))
-                found_ids.add(uniprot_name)
-            except Exception:
-                pass
-        missing_ids = requested_ids - found_ids
+def uniprot_get(prot_ids:set):
+    res = defaultdict(list)
+    for prot_id in prot_ids:
+        try:
+            resp = requests.get(f"http://www.uniprot.org/uniprot/{prot_id}.fasta").text
+            fasta_query = "".join(resp.split("\n")[1:])[:100]
+            resp = requests.get(f"https://v101.orthodb.org/blast", params={
+                "level": 2,
+                "species": 2,
+                "seq": fasta_query,
+                "skip": 0,
+                "limit": 1,
+            }).json()
+            # Throws exception if not found
+            og_handle = resp["data"][0]
 
-    uniprot_df = pd.DataFrame(columns=['label', 'Name', 'PID'], data=data_tuples)
+            res[prot_id].append((
+                og_handle,
+                og_handle,
+                prot_id,
+            ))
+        except Exception:
+            pass
+    return res
+
+
+def get_prots(level:str, requested_ids:list):
+    prots = defaultdict(list)
+
+    results = user.db.mget(tuple(
+        f"/cache/uniprot/{prot_id}"
+        for prot_id in requested_ids
+    ))
+    for prot_id, cache_res in zip(requested_ids, results):
+        if cache_res:
+            prots[prot_id] = json.loads(cache_res)
+    print(f"From cache {prots=}")
+    cache_misses = [
+        rid
+        for rid in requested_ids
+        if rid not in prots.keys()
+    ]
+    if cache_misses:
+        prots.update(orthodb_get(level, cache_misses))
+        print(f"From orthodb {prots=}")
+        sparql_misses = cache_misses - prots.keys()
+        if sparql_misses:
+            prots.update(uniprot_get(sparql_misses))
+            print(f"From uniprot {prots=}")
+
+    # using pipeline to avoid makeing many small requests
+    with user.db.pipeline(transaction=False) as pipe:
+        new_keys = cache_misses & prots.keys()
+        # Add all new prots to the cache
+        for prot_id in new_keys:
+            pipe.set(
+                f"/cache/uniprot/{prot_id}",
+                json.dumps(prots[prot_id], separators=(',', ':')),
+            )
+        # set TTL for all new prots
+        for prot_id in prots.keys():
+            pipe.expire(f"/cache/uniprot/{prot_id}", CACHE_TTL)
+
+        pipe.execute()
+
+    return prots
+
+
+@dash_app.callback(
+    Output('output_div', 'children'),
+    [Input('submit-button', 'n_clicks')],
+    [State('username', 'value'), State('dropdown', 'value')],
+)
+def update_output(clicks, input_value, dropdown_value):
+    if clicks is None:
+        # Initial load, don't do anything
+        return
+    # TODO: level is related to prot id?
+    level = dropdown_value.split('-')[0]
+
+    requested_ids = list(dict.fromkeys( # removing duplicates
+        INVALID_PROT_IDS.sub("", input_value).upper().split(),
+    ))
+
+    prots = get_prots(level, requested_ids)
+
+    uniprot_df = pd.DataFrame(
+        columns=['label', 'Name', 'PID'],
+        data=itertools.chain.from_iterable(prots.values()),
+    )
     uniprot_df.replace("", float('nan'), inplace=True)
     uniprot_df.dropna(axis="index", how="any", inplace=True)
     uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
@@ -199,35 +249,6 @@ def update_output(clicks, input_value, dropdown_value):
 
     uniprot_df.to_csv(user.path()/'OG.csv', sep=';', index=False)
 
-    og_string = ', '.join(f'odbgroup:{og}' for og in og_list)
-
-    #SPARQL query
-    endpoint.setQuery(f"""
-    prefix : <http://purl.orthodb.org/>
-    select *
-    where {{
-    ?og a :OrthoGroup;
-        rdfs:label ?label;
-        :name ?description;
-        :ogBuiltAt [up:scientificName ?clade];
-        :ogEvolRate ?evolRate;
-        :ogPercentSingleCopy ?percentSingleCopy;
-        :ogPercentInSpecies ?percentInSpecies;
-        :ogTotalGenesCount ?totalGenesCount;
-        :ogMultiCopyGenesCount ?multiCopyGenesCount;
-        :ogSingleCopyGenesCount ?singleCopyGenesCount;
-        :ogInSpeciesCount ?inSpeciesCount;
-        :cladeTotalSpeciesCount ?cladeTotalSpeciesCount .
-    optional {{ ?og :ogMedianProteinLength ?medianProteinLength}}
-    optional {{ ?og :ogStddevProteinLength ?stddevProteinLength}}
-    optional {{ ?og :ogMedianExonsCount ?medianExonsCount}}
-    optional {{ ?og :ogStddevExonsCount ?stddevExonsCount}}
-    filter (?og in ({og_string}))
-    }}
-    """)
-    endpoint.setReturnFormat(SPARQLWrapper.JSON)
-    result = endpoint.query().convert()
-
     dash_columns = [
         "label",
         "description",
@@ -243,17 +264,78 @@ def update_output(clicks, input_value, dropdown_value):
         "og"
     ]
 
-    # yapf: disable
-    og_info = (
-        tuple(
-            res[col]["value"]
-            for col in dash_columns
-        )
-        for res in result["results"]["bindings"]
-    )
-    # yapf: enable
+    cache_misses = []
 
-    og_info_df = pd.DataFrame(og_info, columns=dash_columns)
+    og_info = defaultdict(dict)
+
+    with user.db.pipeline(transaction=False) as pipe:
+        for og in og_list:
+            pipe.hmget(f"/cache/ortho/{og}", dash_columns)
+
+        for og, data in zip(og_list, pipe.execute()):
+            for col_name, val in zip(dash_columns, data):
+                if val is None:
+                    cache_misses.append(og)
+                    break
+                og_info[og][col_name] = val.decode()
+
+    print(f"{og_info=}")
+    print(f"{cache_misses=}")
+
+
+    if cache_misses:
+        og_string = ', '.join(f'odbgroup:{og}' for og in cache_misses)
+
+        endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
+
+        #SPARQL query
+        endpoint.setQuery(f"""
+        prefix : <http://purl.orthodb.org/>
+        select *
+        where {{
+        ?og a :OrthoGroup;
+            rdfs:label ?label;
+            :name ?description;
+            :ogBuiltAt [up:scientificName ?clade];
+            :ogEvolRate ?evolRate;
+            :ogPercentSingleCopy ?percentSingleCopy;
+            :ogPercentInSpecies ?percentInSpecies;
+            :ogTotalGenesCount ?totalGenesCount;
+            :ogMultiCopyGenesCount ?multiCopyGenesCount;
+            :ogSingleCopyGenesCount ?singleCopyGenesCount;
+            :ogInSpeciesCount ?inSpeciesCount;
+            :cladeTotalSpeciesCount ?cladeTotalSpeciesCount .
+        optional {{ ?og :ogMedianProteinLength ?medianProteinLength}}
+        optional {{ ?og :ogStddevProteinLength ?stddevProteinLength}}
+        optional {{ ?og :ogMedianExonsCount ?medianExonsCount}}
+        optional {{ ?og :ogStddevExonsCount ?stddevExonsCount}}
+        filter (?og in ({og_string}))
+        }}
+        """)
+        endpoint.setReturnFormat(SPARQLWrapper.JSON)
+        result = endpoint.query().convert()
+
+        for og, data in zip(cache_misses, result["results"]["bindings"]):
+            for field in dash_columns:
+                og_info[og][field] = data[field]["value"]
+
+
+    with user.db.pipeline(transaction=False) as pipe:
+        for og in cache_misses:
+            pipe.hmset(f"/cache/ortho/{og}", og_info[og])
+        for og in og_info.keys():
+            pipe.expire(f"/cache/ortho/{og}", CACHE_TTL)
+        pipe.execute()
+
+    print(f"{og_info=}")
+
+    og_info_df = pd.DataFrame(
+        (
+            vals.values()
+            for vals in og_info.values()
+        ),
+        columns=dash_columns,
+    )
     og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
 
     display_columns = [
@@ -283,11 +365,13 @@ def update_output(clicks, input_value, dropdown_value):
     ]
 
     data = []
+    missing_ids = requested_ids - prots.keys()
     if missing_ids:
         data.append(
-            dbc.Alert([
-                f"Unknown proteins: {', '.join(missing_ids)}"
-            ], className="alert-warning")
+            dbc.Alert(
+                [f"Unknown proteins: {', '.join(missing_ids)}"],
+                className="alert-warning",
+            )
         )
     data.append(
         dash_table.DataTable(data=dash_data, columns=dash_columns, filter_action="native"),

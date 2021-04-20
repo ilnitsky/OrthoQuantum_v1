@@ -38,8 +38,8 @@ export default class PhydthreeComponent extends Component {
 
         // }
         var opts = {
-            dynamicHide: true,
-            height: 800,
+            dynamicHide: false,
+            height: 2000,
             invertColors: false,
             lineupNodes: true,
             showDomains: false,
@@ -49,7 +49,7 @@ export default class PhydthreeComponent extends Component {
             showGraphLegend: true,
             showLength: false,
             showNodeNames: true,
-            showNodesType: "all",
+            showNodesType: "only leaf",
             nodeHeight: 10,
             scaleY:3,
             showPhylogram: true,

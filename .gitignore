@@ -277,3 +277,4 @@ user_storage
 blast
 workspace.code-workspace
 redis_data
+.sub_git

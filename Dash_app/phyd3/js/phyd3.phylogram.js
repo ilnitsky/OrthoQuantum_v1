@@ -868,6 +868,7 @@ window.requestAnimFrame = (function(){
             changeLeafVisibility();
             applyZoomTransform();
             applyLeafTransform();
+            applyLabelGroupTransform();
         }
 
         function highlightSearch() {
@@ -2250,6 +2251,21 @@ window.requestAnimFrame = (function(){
             // layout the tree nodess
             nodes = tree(onodes);
 
+            // color the tree
+            for (var i=0; i<nodes.length; i++){
+                var node = nodes[i]
+                if ((node.taxonomies === undefined) || (node.taxonomies.length === 0)){
+                    continue
+                }
+                onodes.groups[node.id] = {
+                    id: node.id, // d.id,
+                    depth: node.depth,
+                    label: '',
+                    foregroundColor: onodes.taxcolors[node.taxonomies[0].code].color.replace("0x", "#"),
+                    backgroundColor: getBackgroundColor()
+                };
+                groupNodes(onodes, node.id);
+            }
             // modify node locations
             if (!options.showPhylogram) {
                 phyd3.phylogram.scaleBranchLengths(nodes, treeWidth*options.scaleX);
@@ -2348,18 +2364,18 @@ window.requestAnimFrame = (function(){
                             resetZoom();
                             repaint();
                         } else if (mouseEvent.shiftKey && !mouseEvent.altKey && !mouseEvent.ctrlKey) {
-                            jQuery("#groupID").val(d.id);
-                            jQuery("#groupDepth").val(d.depth);
-                            if (onodes.groups[d.id]) {
-                                jQuery("#groupLabel").val(onodes.groups[d.id].label);
-                                jQuery("#groupLabelForegroundCP").colorpicker('setValue', onodes.groups[d.id].foregroundColor);
-                                jQuery("#groupLabelBackgroundCP").colorpicker('setValue', onodes.groups[d.id].backgroundColor);
-                            } else {
-                                jQuery("#groupLabel").val('');
-                                jQuery("#groupLabelForegroundCP").colorpicker('setValue', getForegroundColor());
-                                jQuery("#groupLabelBackgroundCP").colorpicker('setValue', getBackgroundColor());
-                            }
-                            jQuery("#groupLabelModal").modal('show');
+                            // jQuery("#groupID").val(d.id);
+                            // jQuery("#groupDepth").val(d.depth);
+                            // if (onodes.groups[d.id]) {
+                            //     jQuery("#groupLabel").val(onodes.groups[d.id].label);
+                            //     jQuery("#groupLabelForegroundCP").colorpicker('setValue', onodes.groups[d.id].foregroundColor);
+                            //     jQuery("#groupLabelBackgroundCP").colorpicker('setValue', onodes.groups[d.id].backgroundColor);
+                            // } else {
+                            //     jQuery("#groupLabel").val('');
+                            //     jQuery("#groupLabelForegroundCP").colorpicker('setValue', getForegroundColor());
+                            //     jQuery("#groupLabelBackgroundCP").colorpicker('setValue', getBackgroundColor());
+                            // }
+                            // jQuery("#groupLabelModal").modal('show');
                         } else if (!mouseEvent.shiftKey && !mouseEvent.altKey && !mouseEvent.ctrlKey) {
                             // if (options.popupAction !== undefined)  {
                             //     options.popupAction(d);

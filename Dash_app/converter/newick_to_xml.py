@@ -40,6 +40,15 @@ def convert(newick_file, phyloxml_file, txt_file, name_replacements={}, taxa_col
             E.name("demo tree"),
             E.description("tree test"),
         ),
+        E.taxonomies(
+            *(
+                E.taxonomy(
+                    E.color(tax["color"]),
+                    code=tax["code"],
+                )
+                for tax in taxa_colors.values()
+            )
+        )
     )
 
     phylo = my_doc.find("./phylogeny", NS)

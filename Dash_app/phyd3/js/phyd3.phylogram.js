@@ -2252,19 +2252,20 @@ window.requestAnimFrame = (function(){
             nodes = tree(onodes);
 
             // color the tree
+            console.log("tree layout")
             for (var i=0; i<nodes.length; i++){
-                var node = nodes[i]
-                if ((node.taxonomies === undefined) || (node.taxonomies.length === 0)){
+                var cur_tree_node = nodes[i]
+                if ((cur_tree_node.taxonomies === undefined) || (cur_tree_node.taxonomies.length === 0)){
                     continue
                 }
-                onodes.groups[node.id] = {
-                    id: node.id, // d.id,
-                    depth: node.depth,
+                onodes.groups[cur_tree_node.id] = {
+                    id: cur_tree_node.id, // d.id,
+                    depth: cur_tree_node.depth,
                     label: '',
-                    foregroundColor: onodes.taxcolors[node.taxonomies[0].code].color.replace("0x", "#"),
+                    foregroundColor: onodes.taxcolors[cur_tree_node.taxonomies[0].code].color.replace("0x", "#"),
                     backgroundColor: getBackgroundColor()
                 };
-                groupNodes(onodes, node.id);
+                groupNodes(onodes, cur_tree_node.id);
             }
             // modify node locations
             if (!options.showPhylogram) {

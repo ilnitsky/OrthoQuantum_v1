@@ -5,21 +5,9 @@ from lxml.builder import ElementMaker
 
 tokens = re.compile(r"[^(),;]+|\(|\)|,|;")
 
-def convert(newick_file, phyloxml_file, txt_file, name_replacements={}, taxa_colors={}):
+def convert(newick_file, phyloxml_file, txt_file, taxa_colors={}):
     with open(newick_file) as f:
         newick = f.read().strip()
-
-    with open(txt_file) as f:
-        lines = f.readlines()
-
-    name_2_id = {}
-    for i in range(len(lines)):
-        name = lines[i].strip()
-        lines[i] = name
-        name_2_id[name] = str(i)
-
-    with open(txt_file, "w") as f:
-        f.write('\n'.join(lines))
 
     ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
     NS = {
@@ -50,18 +38,22 @@ def convert(newick_file, phyloxml_file, txt_file, name_replacements={}, taxa_col
             )
         )
     )
-
+    names = []
     phylo = my_doc.find("./phylogeny", NS)
     cursor = phylo
     name = None
     going_down = True
+    cur_id = 0
     for tok in tokens.finditer(newick):
         m = tok.group(0)
         if m == ")" or m == ",":
             ET.SubElement(cursor, "name").text = name
             if going_down:
                 # leaf node, put id
-                ET.SubElement(cursor, "id").text = name_2_id[name]
+                ET.SubElement(cursor, "id").text = str(cur_id)
+                names.append(name)
+                cur_id += 1
+
                 going_down = False
             if name in taxa_colors:
                 tax = ET.SubElement(cursor, "taxonomy")
@@ -82,13 +74,15 @@ def convert(newick_file, phyloxml_file, txt_file, name_replacements={}, taxa_col
             break
         else:
             name = m.replace("_", " ").strip()
-            name = name_replacements.get(name, name)
 
     # print(ET.tostring(my_doc, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode())
     ET.ElementTree(
         my_doc,
         parser=ET.XMLParser(remove_blank_text=True),
-    ).write(phyloxml_file, xml_declaration=True, encoding="UTF-8")
+    ).write(phyloxml_file, xml_declaration=True, encoding="ASCII")
+
+    with open(txt_file, "w") as txtfile:
+        txtfile.write('\n'.join(names))
 
 
 def main():
@@ -99,11 +93,8 @@ def main():
 
     convert(
         str(newick/"phyloT_vertebrata_newick.txt"),
-        str(phyloxml/"Vertebrata.xml"),
+        str(data/"Vertebrata.xml"),
         str(data/"Vertebrata.txt"),
-        name_replacements={
-            "Cebus imitator": "Cebus capucinus imitator",
-        },
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -111,7 +102,6 @@ def main():
             }
         }
     )
-
 
 if __name__ == "__main__":
     main()

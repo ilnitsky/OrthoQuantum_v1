@@ -29,7 +29,7 @@ body = dbc.Container(
                 [
                     html.H2("OrthoQuantum v1.0"),
                     html.P("""Download presence and study orthology group presence.
-                            Use UniProt Acccesion Codes of your proteins to create a list with corresponding
+                            Use UniProt Accesion Codes of your proteins to create a list with corresponding
                             Orthology groups"""),
                     dbc.Button("View tutorial", color="secondary", href="/blast"),
                 ],

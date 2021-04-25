@@ -1,3 +1,4 @@
+# build phyd3 library
 FROM node:15.14-slim AS phyd3-builder
 
 COPY phyd3/package*.json /node-app/
@@ -13,8 +14,9 @@ RUN node dist.js &&\
     cp dist/css/*min* dist/assets/
 
 
+# build phyd3 component for dash
 FROM python:3.9-buster AS phyd3-comp-builder
-
+# Copied from node:15.14-slim dockerfile
 RUN groupadd --gid 1000 node \
   && useradd --uid 1000 --gid node --shell /bin/bash --create-home node
 
@@ -81,6 +83,7 @@ RUN set -ex \
   # smoke test
   && yarn --version
 
+# End of copied section
 
 COPY phydthree_component/package*.json /phydthree_component/
 WORKDIR /phydthree_component/
@@ -97,18 +100,19 @@ RUN npm run build  &&\
     python3 setup.py sdist bdist_wheel
 
 
-FROM tiangolo/uwsgi-nginx-flask:python3.8
+FROM tiangolo/meinheld-gunicorn:python3.8
 
-RUN useradd -ms /bin/bash www                                       &&\
-    apt-get update                                                  &&\
-    apt-get install -y imagemagick ca-certificates                    \
-                    --no-install-recommends                         &&\
-    python3 -m pip install --upgrade pip                            &&\
-    python3 -m pip install pipenv                                   &&\
-    rm -rf ~/.cache/pip/*                                           &&\
-    rm -rf /var/lib/apt/lists/*                                     &&\
-    rm -rf /usr/share/doc                                           &&\
-    rm -rf /usr/share/man                                           &&\
+RUN useradd -ms /bin/bash www               &&\
+    apt-get update                          &&\
+    apt-get upgrade -y                      &&\
+    apt-get install -y ca-certificates        \
+                    --no-install-recommends &&\
+    python3 -m pip install --upgrade pip    &&\
+    python3 -m pip install pipenv           &&\
+    rm -rf ~/.cache/pip/*                   &&\
+    rm -rf /var/lib/apt/lists/*             &&\
+    rm -rf /usr/share/doc                   &&\
+    rm -rf /usr/share/man                   &&\
     apt-get clean
 
 # Installing dependencies separately in order to take advantage of docker caching mechanism
@@ -123,16 +127,13 @@ RUN python3 -m pip install phydthree_component-0.0.1.tar.gz         &&\
     rm -f /app/phydthree_component-0.0.1.tar.gz                     &&\
     rm -rf ~/.cache/pip/*
 
-COPY ./nginx/site.conf /etc/nginx/conf.d/nginx.conf
-
 COPY ./app/ /app/
 COPY --from=phyd3-builder /node-app/dist/assets/* /app/app/assets/
 
 RUN chown -R www:www /app/ && chown www:www /app
 
-ENV UWSGI_CHEAPER 1
-ENV UWSGI_PROCESSES 4
-
 EXPOSE 8050
 
 WORKDIR /app/
+
+ENV MPLCONFIGDIR=/app/matplotlib-conf

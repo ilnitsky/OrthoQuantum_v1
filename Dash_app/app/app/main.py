@@ -216,7 +216,6 @@ def update_output(clicks, input_value, dropdown_value):
     if clicks is None:
         # Initial load, don't do anything
         return
-    # TODO: level is related to prot id?
     level = dropdown_value.split('-')[0]
 
     requested_ids = list(dict.fromkeys( # removing duplicates

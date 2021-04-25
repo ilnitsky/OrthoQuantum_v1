@@ -1,165 +1,165 @@
-Thecamonas trahens ATCC 50062
-Guillardia theta CCMP2712
-Crithidia fasciculata
-Trypanosoma cruzi marinkellei
 Heterostelium album PN500
 Cavenderia fasciculata
-Sarcocystis neurona
+Trypanosoma cruzi marinkellei
+Crithidia fasciculata
+Guillardia theta CCMP2712
+Thecamonas trahens ATCC 50062
 Saprolegnia diclina VS20
 Aphanomyces invadans
-Ostreococcus lucimarinus CCE9901
-Helicosporidium sp. ATCC 50920
-Chlorella variabilis
-Klebsormidium nitens
-Physcomitrella patens
-Selaginella moellendorffii
-Amborella trichopoda
-Aquilegia coerulea
-Macleaya cordata
-Zostera marina
-Aegilops tauschii
-Triticum urartu
-Arabidopsis thaliana
-Camelina sativa
-Ipomoea nil
-Petunia axillaris
-Capsicum annuum
-Solanum tuberosum
-Solanum lycopersicum
-Capsaspora owczarzaki ATCC 30864
-Fonticula alba
-Sphaeroforma arctica JP610
-Batrachochytrium salamandrivorans
-Vavraia culicis subsp. floridensis
-Nosema ceranae
-Rhodotorula taiwanensis
-Malassezia sympodialis ATCC 42132
-Malassezia globosa CBS 7966
-Schizopora paradoxa
-Sanghuangporus baumii
-Schizophyllum commune H4-8
-Hypsizygus marmoreus
-Saitoella complicata NRRL Y-17804
-Schizosaccharomyces cryophilus OY26
-Pachysolen tannophilus NRRL Y-2460
-Candida tropicalis MYA-3404
-Candida parapsilosis
-Zymoseptoria brevis
-Ramularia collo-cygni
-Fonsecaea pedrosoi CBS 271.37
-Penicillium griseofulvum
-Aspergillus brasiliensis CBS 101740
-Rhynchosporium commune
-Marssonina coronariae
-Diplocarpon rosae
-Fusarium graminearum
-Stachybotrys chlorohalonata IBT 40285
-Acremonium chrysogenum ATCC 11550
-Ustilaginoidea virens
+Sarcocystis neurona
 Amphimedon queenslandica
-Trichoplax adhaerens
 Hydra vulgaris
-Exaiptasia pallida
 Nematostella vectensis
-Mizuhopecten yessoensis
-Caenorhabditis remanei
-Brugia malayi
-Loa loa
-Euroglyphus maynei
-Sarcoptes scabiei
-Ixodes scapularis
-Galendromus occidentalis
-Tropilaelaps mercedesae
-Varroa jacobsoni
-Strigamia maritima
-Daphnia magna
-Ladona fulva
-Ephemera danica
-Agrilus planipennis
-Nicrophorus vespilloides
-Amyelois transitella
-Pieris rapae
-Ooceraea biroi
-Eufriesea mexicana
-Ceratosolen solmsi marchali
-Fopius arisanus
-Anopheles albimanus
-Culex quinquefasciatus
-Aedes albopictus
-Aedes aegypti
-Glossina austeni
-Drosophila yakuba
-Drosophila melanogaster
-Ceratitis capitata
-Rhagoletis zephyria
-Saccoglossus kowalevskii
-Strongylocentrotus purpuratus
-Acanthaster planci
-Ciona intestinalis
+Exaiptasia diaphana
 Branchiostoma floridae
-Pygocentrus nattereri
-Danio rerio
-Notothenia coriiceps
-Xiphophorus maculatus
-Poecilia formosa
-Paralichthys olivaceus
+Ciona intestinalis
 Lates calcarifer
-Latimeria chalumnae
-Nanorana parkeri
-Xenopus laevis
-Xenopus tropicalis
-Gekko japonicus
-Python bivittatus
-Anolis carolinensis
-Pogona vitticeps
-Alligator mississippiensis
-Struthio camelus
-Tinamus guttatus
-Merops nubicus
-Aquila chrysaetos
-Haliaeetus albicilla
-Chaetura pelagica
-Calypte anna
-Cyanistes caeruleus
-Lonchura striata
-Taeniopygia guttata
-Pelecanus crispus
-Phalacrocorax carbo
-Egretta garzetta
-Numida meleagris
-Meleagris gallopavo
-Coturnix japonica
-Gallus gallus
+Paralichthys olivaceus
+Notothenia coriiceps
+Poecilia formosa
+Xiphophorus maculatus
+Danio rerio
+Pygocentrus nattereri
 Sarcophilus harrisii
-Orycteropus afer
-Condylura cristata
-Manis javanica
-Ursus maritimus
-Equus caballus
-Sus scrofa
-Orcinus orca
-Tursiops truncatus
-Vicugna pacos
-Camelus bactrianus
-Odocoileus virginianus
-Bos taurus
-Pantholops hodgsonii
-Ovis aries musimon
-Galeopterus variegatus
-Tupaia chinensis
+Propithecus coquereli
+Otolemur garnettii
+Macaca fascicularis
+Piliocolobus tephrosceles
+Nomascus leucogenys
+Pongo abelii
+Pan troglodytes
+Pan paniscus
+Gorilla gorilla gorilla
+Homo sapiens
+Saimiri boliviensis boliviensis
 Mesocricetus auratus
 Meriones unguiculatus
 Rattus norvegicus
 Mus musculus
 Mus caroli
-Propithecus coquereli
-Otolemur garnettii
-Saimiri boliviensis boliviensis
-Piliocolobus tephrosceles
-Macaca fascicularis
-Nomascus leucogenys
-Pongo abelii
-Homo sapiens
-Gorilla gorilla gorilla
-Pan paniscus
-Pan troglodytes
+Galeopterus variegatus
+Tupaia chinensis
+Ursus maritimus
+Manis javanica
+Camelus bactrianus
+Vicugna pacos
+Sus scrofa
+Orcinus orca
+Tursiops truncatus
+Odocoileus virginianus
+Pantholops hodgsonii
+Ovis aries musimon
+Bos taurus
+Condylura cristata
+Equus caballus
+Orycteropus afer
+Tinamus guttatus
+Struthio camelus
+Haliaeetus albicilla
+Aquila chrysaetos
+Egretta garzetta
+Pelecanus crispus
+Phalacrocorax carbo
+Merops nubicus
+Calypte anna
+Chaetura pelagica
+Cyanistes caeruleus
+Taeniopygia guttata
+Lonchura striata
+Numida meleagris
+Gallus gallus
+Meleagris gallopavo
+Coturnix japonica
+Alligator mississippiensis
+Gekko japonicus
+Pogona vitticeps
+Anolis carolinensis
+Python bivittatus
+Xenopus tropicalis
+Xenopus laevis
+Nanorana parkeri
+Latimeria chalumnae
+Saccoglossus kowalevskii
+Acanthaster planci
+Strongylocentrotus purpuratus
+Brugia malayi
+Loa loa
+Caenorhabditis remanei
+Tropilaelaps mercedesae
+Varroa jacobsoni
+Galendromus occidentalis
+Ixodes scapularis
+Sarcoptes scabiei
+Euroglyphus maynei
+Strigamia maritima
+Ladona fulva
+Ephemera danica
+Pieris rapae
+Amyelois transitella
+Agrilus planipennis
+Nicrophorus vespilloides
+Fopius arisanus
+Ceratosolen solmsi marchali
+Ooceraea biroi
+Eufriesea mexicana
+Anopheles albimanus
+Culex quinquefasciatus
+Aedes albopictus
+Aedes aegypti
+Glossina austeni
+Rhagoletis zephyria
+Ceratitis capitata
+Drosophila melanogaster
+Drosophila yakuba
+Daphnia magna
+Mizuhopecten yessoensis
+Trichoplax adhaerens
+Sphaeroforma arctica JP610
+Fonticula alba
+Vavraia culicis subsp. floridensis
+Nosema ceranae
+Batrachochytrium salamandrivorans
+Schizophyllum commune H4-8
+Hypsizygus marmoreus
+Schizopora paradoxa
+Sanghuangporus baumii
+Malassezia globosa CBS 7966
+Malassezia sympodialis ATCC 42132
+Rhodotorula taiwanensis
+Saitoella complicata NRRL Y-17804
+Schizosaccharomyces cryophilus OY26
+Marssonina coronariae
+Diplocarpon rosae
+Rhynchosporium commune
+Stachybotrys chlorohalonata IBT 40285
+Ustilaginoidea virens
+Fusarium graminearum
+Acremonium chrysogenum ATCC 11550
+Ramularia collo-cygni
+Zymoseptoria brevis
+Fonsecaea pedrosoi CBS 271.37
+Penicillium griseofulvum
+Aspergillus brasiliensis CBS 101740
+Candida tropicalis MYA-3404
+Candida parapsilosis
+Pachysolen tannophilus NRRL Y-2460
+Capsaspora owczarzaki ATCC 30864
+Amborella trichopoda
+Macleaya cordata
+Aquilegia coerulea
+Camelina sativa
+Arabidopsis thaliana
+Ipomoea nil
+Solanum lycopersicum
+Solanum tuberosum
+Capsicum annuum
+Petunia axillaris
+Aegilops tauschii
+Triticum urartu
+Zostera marina
+Selaginella moellendorffii
+Physcomitrium patens
+Klebsormidium nitens
+Chlorella variabilis
+Helicosporidium sp. ATCC 50920
+Ostreococcus lucimarinus CCE9901

@@ -109,9 +109,63 @@ def main():
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
+                "color": "0x06d6a0",
+            },
+            "Ecdysozoa": {
+                "code": "ecd",
+                "color": "0xee6c4d",
+            },
+            "Viridiplantae": {
+                "code": "vir",
+                "color": "0xef476f",
+            },
+            "Protista": {
+                "code": "pro",
+                "color": "0x073b4c",
+            },
+            "Actinopterygii": {
+                "code": "act",
+                "color": "0x118ab2",
+            },
+            "Fungi": {
+                "code": "fun",
+                "color": "0xb5179e",
+            },
+            "Sauropsida": {
+                "code": "sau",
+                "color": "0xb98b73",
+            }
+ 
+        }
+    )
+    convert(
+        str(newick/"phyloT_Eukaryota_newick.txt"),
+        str(data/"Eukaryota.xml"),
+        str(data/"Eukaryota.txt"),
+        taxa_colors={
+            "Mammalia": {
+                "code": "mam",
                 "color": "0x40FF00",
             }
         }
+    )
+    convert(
+        str(newick/"phyloT_Protista_newick.txt"),
+        str(data/"Protista.xml"),
+        str(data/"Protista.txt"),
+        taxa_colors={
+           
+            }
+        
+    )
+    convert(
+        str(newick/"phyloT_Viridiplantae_newick.txt"),
+        str(data/"Viridiplantae.xml"),
+        str(data/"Viridiplantae.txt"),
+        taxa_colors={
+           
+            }
+        
     )
 if __name__ == "__main__":
     main()

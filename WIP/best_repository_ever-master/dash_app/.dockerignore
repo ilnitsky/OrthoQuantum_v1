@@ -1,0 +1,4 @@
+*/__pycache__
+*/node_modules
+./phyd3/dist
+*/venv

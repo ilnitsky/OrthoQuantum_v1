@@ -102,6 +102,16 @@ def main():
             }
         }
     )
-
+    convert(
+        str(newick/"phyloT_Eukaryota-full_newick.txt"),
+        str(data/"Eukaryota-full.xml"),
+        str(data/"Eukaryota-full.txt"),
+        taxa_colors={
+            "Mammalia": {
+                "code": "mam",
+                "color": "0x40FF00",
+            }
+        }
+    )
 if __name__ == "__main__":
     main()

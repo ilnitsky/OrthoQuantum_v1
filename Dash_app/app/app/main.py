@@ -169,7 +169,7 @@ def get_prots(level:str, requested_ids:list):
     prots = defaultdict(list)
 
     results = user.db.mget(tuple(
-        f"/cache/uniprot/{prot_id}"
+        f"/cache/uniprot/{level}/{prot_id}"
         for prot_id in requested_ids
     ))
     for prot_id, cache_res in zip(requested_ids, results):
@@ -195,12 +195,12 @@ def get_prots(level:str, requested_ids:list):
         # Add all new prots to the cache
         for prot_id in new_keys:
             pipe.set(
-                f"/cache/uniprot/{prot_id}",
+                f"/cache/uniprot/{level}/{prot_id}",
                 json.dumps(prots[prot_id], separators=(',', ':')),
             )
         # set TTL for all new prots
         for prot_id in prots.keys():
-            pipe.expire(f"/cache/uniprot/{prot_id}", CACHE_TTL)
+            pipe.expire(f"/cache/uniprot/{level}/{prot_id}", CACHE_TTL)
 
         pipe.execute()
 

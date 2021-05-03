@@ -1,7 +1,5 @@
-import json
 import multiprocessing
 from os import environ
-
 
 cores = 1 if environ.get("DEBUG") else multiprocessing.cpu_count()
 workers_per_core = 4.0

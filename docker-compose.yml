@@ -8,10 +8,34 @@ services:
       # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
       SECRET_KEY: "SECRET_KEY_CHANGE_ME"
       DEBUG: "1"
-    # volumes:
-    #   - "./user_storage:/app/user_data"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - "user_data:/app/user_data"
+
 
   redis:
     build: ./redis
     # volumes:
     #   - "./redis_data:/data"
+
+
+  worker:
+    build: ./worker
+    volumes:
+      - "user_data:/app/user_data"
+
+volumes:
+  user_data:
+    driver: local
+    driver_opts:
+        type: none
+        o: bind
+        device: ./user_storage
+
+networks:
+  default:
+    external:
+      name: kenga_net
+
+
+# export SYSTEM_VERSION_COMPAT=1

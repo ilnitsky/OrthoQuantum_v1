@@ -13,6 +13,7 @@ dash-bootstrap-components = "*"
 requests = "*"
 seaborn = "*"
 lxml = "*"
+celery = "*"
 
 [dev-packages]
 pylint = "*"

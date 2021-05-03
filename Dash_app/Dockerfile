@@ -102,7 +102,7 @@ RUN npm run build  &&\
 
 FROM tiangolo/meinheld-gunicorn:python3.8
 
-RUN useradd -ms /bin/bash www               &&\
+RUN useradd -ms /bin/bash -u 1234 www       &&\
     apt-get update                          &&\
     apt-get upgrade -y                      &&\
     apt-get install -y ca-certificates        \

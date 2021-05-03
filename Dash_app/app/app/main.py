@@ -1,38 +1,36 @@
-from collections import defaultdict
 import os
 import os.path
-import re
 import time
 import json
-import itertools
+import secrets
 
-from dash import Dash
-from dash.dependencies import Input, Output, State
+import urllib.parse as urlparse
+from dash import Dash, callback_context, no_update
+from dash.dependencies import Input, Output, State, DashDependency
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-
+import redis
 import flask
 
-import SPARQLWrapper
-import pandas as pd
+import celery
 
-import requests
-
-import phydthree_component
+from phydthree_component import PhydthreeComponent
 
 from .app import SPARQL_wrap, presence_img, correlation_img
 
 from . import layout
 from . import user
 
+from functools import partial, wraps
+import sys
+
+# print= partial(print, file=sys.stderr, flush=True)
+
+
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
-
-
-CACHE_TTL = 3*30*24*60*60 # 90 days
-# CACHE_TTL = 20 # 20 sec
 
 # external JavaScript files
 external_scripts = [
@@ -78,20 +76,72 @@ def login(dst):
     user.register()
     return dcc.Location(pathname=dst, id="some_id", hash="1", refresh=True)
 
+def new_task():
+    user_id = flask.session["USER_ID"]
+    t = int(time.time())
+    for _ in range(100):
+        task_id = secrets.token_hex(16)
+        res = user.db.msetnx({
+            f"/tasks/{task_id}/user_id": user_id,
+            f"/tasks/{task_id}/created": t,
+            f"/tasks/{task_id}/accessed": t,
+        })
+        if res:
+            break
+    else:
+        raise RuntimeError("Failed to create a unique task_id")
 
-@dash_app.callback(Output('page-content', 'children'), [Input('url', 'pathname')])
-def router_page(pathname):
-    pathname = pathname.rstrip('/')
+    # Possible race condition, task_counter is only for statistics and ordering
+    task_no = user.db.incr(f"/users/{user_id}/task_counter")
+    user.db.set(f"/tasks/{task_id}/name", f"Request {task_no}")
+
+    # Publishes the task to the system, must be the last action
+    user.db.rpush(f"/users/{user_id}/tasks", task_id)
+
+    return task_id
+
+def get_task(task_id):
+    """Checks that task_id is valid and active, sets /accessed date to current"""
+    if '/' in task_id:
+        return False
+    res = user.db.set(f"/tasks/{task_id}/accessed", int(time.time()), xx=True)
+    return res
+
+
+
+@dash_app.callback(
+    Output('page-content', 'children'),
+    Output('location', 'search'),
+    Input('location', 'href'),
+)
+def router_page(href):
+    url = urlparse.urlparse(href)
+    pathname = url.path.rstrip('/')
+    search = f'?{url.query}'
+
     if pathname == '/dashboard':
         if not user.is_logged_in():
-            return login(pathname)
-        return layout.dashboard
-    if pathname == '/reports':
-        return layout.reports
-    if pathname == '/blast':
-        return layout.blast
+            return login(pathname), search
 
-    return '404'
+        args = urlparse.parse_qs(url.query)
+        for arg in args:
+            args[arg] = args[arg][0]
+
+        create_task = True
+        if 'task_id' in args:
+            create_task = not get_task(args['task_id'])
+
+        if create_task:
+            args['task_id'] = new_task()
+            search = f"?{urlparse.urlencode(args)}"
+
+        return layout.dashboard(args['task_id']), search
+    if pathname == '/reports':
+        return layout.reports, search
+    if pathname == '/blast':
+        return layout.blast, search
+
+    return '404', search
 
 
 # TODO: need this?
@@ -100,318 +150,433 @@ def select_level(value):
     return f'Selected "{value}" orthology level'
 
 
-INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
+celery_app = celery.Celery('main', broker='redis://redis/1', backend='redis://redis/1')
 
 
-def orthodb_get(level:str, prot_ids:list):
-    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
+class DashProxy():
+    def __init__(self, args):
+        self._data = {}
+        self._input_order = []
+        self._output_order = []
+        self._outputs = {}
+        self.triggered = None
+        self.first_load = False
+        self.triggered : set
 
-    # TODO: think about possible injection here (filter by letters and numbers only?)
-    # using INVALID_PROT_IDS to filter all of the nasty possible chars.
-    # which are allowed symblos for `level`?
-    endpoint.setQuery(f"""
-    prefix : <http://purl.orthodb.org/>
-    select ?og ?og_description ?gene_name ?xref
-    where {{
-        ?og a :OrthoGroup;
-        :ogBuiltAt [up:scientificName "{level}"];
-        :name ?og_description;
-        !:memberOf/:xref/:xrefResource ?xref
-        filter (?xref in ({', '.join(f'uniprot:{v}' for v in prot_ids)}))
-        ?gene a :Gene; :memberOf ?og.
-        ?gene :xref [a :Xref; :xrefResource ?xref ].
-        ?gene :name ?gene_name.
-    }}
-    """)
-    endpoint.setReturnFormat(SPARQLWrapper.JSON)
-    n = endpoint.query().convert()
+        for arg in args:
+            if not isinstance(arg, DashDependency):
+                continue
+            k = (arg.component_id, arg.component_property)
 
-    # # Tuples of 'label', 'Name', 'PID'
-    res = defaultdict(list)
+            if isinstance(arg, (Input, State)):
+                self._input_order.append(k)
+            elif isinstance(arg, Output):
+                self._output_order.append(k)
+            else:
+                raise RuntimeError("Unknown DashDependency")
 
-    for result in n["results"]["bindings"]:
-        prot_id = result["xref"]["value"].rsplit("/", 1)[-1].strip().upper()
-        res[prot_id].append((
-            result["og"]["value"].split('/')[-1].strip(),
-            result["gene_name"]["value"],
-            result["gene_name"]["value"],
+    def __getitem__(self, key):
+        if key in self._outputs:
+            return self._outputs[key]
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._outputs[key] = value
+
+    def _enter(self, args):
+        for k, val in zip(self._input_order, args):
+            self._data[k] = val
+        triggers = callback_context.triggered
+
+        if len(triggers) == 1 and triggers[0]['prop_id'] == ".":
+            self.first_load = True
+            self.triggered = set()
+        else:
+            self.triggered = set(
+                tuple(item['prop_id'].rsplit('.', maxsplit=1))
+                for item in callback_context.triggered
+            )
+
+    def _exit(self):
+        res = tuple(
+            self._outputs.get(k, no_update)
+            for k in self._output_order
+        )
+
+        self._outputs.clear()
+        self._data.clear()
+        self.triggered.clear()
+
+        return res
+
+    @wraps(dash_app.callback)
+    @classmethod
+    def callback(cls, *args, **kwargs):
+        def deco(func):
+            dp = cls(args)
+            def wrapper(*args2):
+                dp._enter(args2)
+                func(dp)
+                return dp._exit()
+            return dash_app.callback(*args, **kwargs)(wrapper)
+        return deco
+
+def decode_int(*items:bytes, default=0) -> int:
+    if len(items)==1:
+        return int(items[0]) if items[0] else default
+
+    return map(
+        lambda x: int(x) if x else default,
+        items,
+    )
+
+
+def decode_str(*items, default=''):
+    if len(items)==1:
+        return items[0].decode() if items[0] else default
+
+    return map(
+        lambda x: x.decode() if x else default,
+        items,
+    )
+
+def display_progress(status, total, current, msg):
+    if status in ('Enqueued', 'Executing', 'Error'):
+        pbar = {
+            "style": {"height": "30px"}
+        }
+        if total < 0:
+            # Special progress bar modes:
+            # -1 unknown length style
+            # -2 static message
+            # -3 Waiting in the queue
+            pbar['max'] = 100
+            pbar['value'] = 100
+            animate = total != -2 # not static message
+            pbar['animated'] = animate
+            pbar['striped'] = animate
+
+            if total == -3:
+                llid = decode_int(user.db.get("/queueinfo/last_launched_id")) + 1
+                if current > llid:
+                    msg = f"~{current - llid} tasks before yours"
+                else:
+                    msg = "almost running"
+        else:
+            # normal progressbar
+            pbar['animated'] = False
+            pbar['striped'] = False
+            pbar['max'] = total
+            pbar['value'] = current
+            msg = f"{msg} ({current}/{total})"
+
+        if status == 'Error':
+            pbar['color'] = 'danger'
+        else:
+            pbar['color'] = 'info'
+
+        return dbc.Row(
+                dbc.Col(
+                    dbc.Progress(
+                        children=html.Span(
+                            msg,
+                            className="justify-content-center d-flex position-absolute w-100",
+                            style={"color": "black"},
+                        ),
+                        **pbar,
+                    ),
+                    md=8, lg=6,
+                ),
+            justify='center')
+    return None
+
+
+@DashProxy.callback(
+    Output('table-progress-updater', 'disabled'), # refresh_disabled
+
+    Output('uniprotAC', 'value'),
+    Output('dropdown', 'value'),
+    Output('dropdown2', 'value'),
+
+    Output('output_row', 'children'), # output
+
+    Output('input_version', 'data'),
+    Output('submit-button2', 'disabled'),
+
+    Input('submit-button', 'n_clicks'),
+    Input('table-progress-updater', 'n_intervals'),
+
+    State('task_id', 'data'),
+    State('input_version', 'data'),
+
+    State('uniprotAC', 'value'),
+    State('dropdown', 'value'),
+    State('dropdown2', 'value'),
+
+)
+def table(dp:DashProxy):
+    """Perform action (cancel/start building the table)"""
+    task_id = dp['task_id', 'data']
+    if ('submit-button', 'n_clicks') in dp.triggered:
+        # Sending data
+        with user.db.pipeline(transaction=True) as pipe:
+            pipe.incr(f"/tasks/{task_id}/stage/table/version")
+            pipe.execute_command("COPY", f"/tasks/{task_id}/stage/table/version", f"/tasks/{task_id}/stage/table/input_version", "REPLACE")
+            pipe.mset({
+                f"/tasks/{task_id}/request/proteins": dp['uniprotAC', 'value'],
+                f"/tasks/{task_id}/request/dropdown1": dp['dropdown', 'value'],
+                f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
+            })
+            # Remove the data
+            pipe.unlink(
+                f"/tasks/{task_id}/stage/table/dash-table",
+                f"/tasks/{task_id}/stage/table/message",
+                f"/tasks/{task_id}/stage/table/missing_msg",
+                f"/tasks/{task_id}/stage/table/status",
+            )
+            new_version = pipe.execute()[0]
+            dp['input_version', 'data'] = new_version
+        dp['submit-button2', 'disabled'] = True
+        # enqueuing the task
+        celery_app.signature(
+            'tasks.build_table',
+            args=(task_id, new_version)
+        ).apply_async()
+
+        # Trying to set status to enqueued if the task isn't already running
+        with user.db.pipeline(transaction=True) as pipe:
+            while True:
+                try:
+                    pipe.watch(f"/tasks/{task_id}/stage/table/status")
+                    status = pipe.get(f"/tasks/{task_id}/stage/table/status")
+                    if status is not None:
+                        # Task has already modified it to something else, so we are not enqueued
+                        break
+                    # Task is still in the queue
+                    pipe.multi()
+                    pipe.mset({
+                        f"/tasks/{task_id}/stage/table/status": 'Enqueued',
+                        f"/tasks/{task_id}/stage/table/total": -3,
+                    })
+                    pipe.incr("/queueinfo/cur_id")
+                    pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/table/current", "REPLACE")
+                    pipe.execute()
+                    break
+                except redis.WatchError:
+                    continue
+
+    # fill the output row
+    # here because of go click, first launch or interval
+    with user.db.pipeline(transaction=True) as pipe:
+        while True:
+            try:
+                pipe.watch(f"/tasks/{task_id}/stage/table/input_version")
+                input_version = pipe.get(f"/tasks/{task_id}/stage/table/input_version")
+                input_version = decode_int(input_version)
+
+                keys = [
+                    f"/tasks/{task_id}/stage/table/status",
+                    f"/tasks/{task_id}/stage/table/message",
+                    f"/tasks/{task_id}/stage/table/current",
+                    f"/tasks/{task_id}/stage/table/total",
+                    f"/tasks/{task_id}/stage/table/missing_msg",
+                    f"/tasks/{task_id}/stage/table/dash-table",
+                ]
+                if input_version > dp['input_version', 'data']:
+                    # db has newer data, fetch it also
+                    keys.extend((
+                        f"/tasks/{task_id}/request/proteins",
+                        f"/tasks/{task_id}/request/dropdown1",
+                        f"/tasks/{task_id}/request/dropdown2",
+                    ))
+                pipe.multi()
+                pipe.set(f"/tasks/{task_id}/accessed", int(time.time()))
+                pipe.mget(*keys)
+                exec_res = pipe.execute()[-1]
+                status, msg, current, total, missing_msg, table_data, *extra = exec_res
+                status, msg, missing_msg = decode_str(status, msg, missing_msg)
+                current, total = decode_int(current, total)
+
+                if extra:
+                    proteins, dropdown, dropdown2 = decode_str(*extra)
+                    if input_version:
+                        dp['input_version', 'data'] = input_version
+                    if proteins:
+                        dp['uniprotAC', 'value'] = proteins
+                    if dropdown:
+                        dp['dropdown', 'value'] = dropdown
+                    if dropdown2:
+                        dp['dropdown2', 'value'] = dropdown2
+                break
+            except redis.WatchError:
+                continue
+
+    dp['table-progress-updater', 'disabled'] = (status not in ('Enqueued', 'Executing'))
+
+    output = []
+    if missing_msg:
+        output.append(
+            dbc.Row(
+                dbc.Col(
+                    dbc.Alert(
+                        f"Unknown proteins: {missing_msg[:-2]}",
+                        className="alert-warning",
+                    ),
+                    md=8, lg=6,
+                ),
+                justify='center',
+            ),
+        )
+
+    progress_bar = display_progress(status, total, current, msg)
+    if progress_bar is not None:
+        output.append(progress_bar)
+
+    if status == 'Done':
+        data = json.loads(table_data)
+        output.append(
+            dbc.Row(dbc.Col(
+                html.Div(
+                    dash_table.DataTable(**data, filter_action="native"),
+                    style={"overflow-x": "scroll"},
+                    className="pb-3",
+                ),
+                md=12,
+            ),
+            justify='center',
         ))
 
-    return res
-
-def uniprot_get(prot_ids:set):
-    res = defaultdict(list)
-    for prot_id in prot_ids:
-        try:
-            resp = requests.get(f"http://www.uniprot.org/uniprot/{prot_id}.fasta").text
-            fasta_query = "".join(resp.split("\n")[1:])[:100]
-            resp = requests.get(f"https://v101.orthodb.org/blast", params={
-                "level": 2,
-                "species": 2,
-                "seq": fasta_query,
-                "skip": 0,
-                "limit": 1,
-            }).json()
-            # Throws exception if not found
-            og_handle = resp["data"][0]
-
-            res[prot_id].append((
-                og_handle,
-                og_handle,
-                prot_id,
-            ))
-        except Exception:
-            pass
-    return res
+    dp['submit-button2', 'disabled'] = status != 'Done'
+    dp['output_row', 'children'] = html.Div(children=output)
 
 
-def get_prots(level:str, requested_ids:list):
-    prots = defaultdict(list)
+# @DashProxy.callback(
+#     Output('heatmap-progress-updater', 'disabled'),
+#     Output('tree-progress-updater', 'disabled'),
 
-    results = user.db.mget(tuple(
-        f"/cache/uniprot/{level}/{prot_id}"
-        for prot_id in requested_ids
-    ))
-    for prot_id, cache_res in zip(requested_ids, results):
-        if cache_res:
-            prots[prot_id] = json.loads(cache_res)
-    print(f"From cache {prots=}")
-    cache_misses = [
-        rid
-        for rid in requested_ids
-        if rid not in prots.keys()
-    ]
-    if cache_misses:
-        prots.update(orthodb_get(level, cache_misses))
-        print(f"From orthodb {prots=}")
-        sparql_misses = cache_misses - prots.keys()
-        if sparql_misses:
-            prots.update(uniprot_get(sparql_misses))
-            print(f"From uniprot {prots=}")
-
-    # using pipeline to avoid makeing many small requests
-    with user.db.pipeline(transaction=False) as pipe:
-        new_keys = cache_misses & prots.keys()
-        # Add all new prots to the cache
-        for prot_id in new_keys:
-            pipe.set(
-                f"/cache/uniprot/{level}/{prot_id}",
-                json.dumps(prots[prot_id], separators=(',', ':')),
-            )
-        # set TTL for all new prots
-        for prot_id in prots.keys():
-            pipe.expire(f"/cache/uniprot/{level}/{prot_id}", CACHE_TTL)
-
-        pipe.execute()
-
-    return prots
+#     Input('heatmap-progress-updater', 'n_intervals'),
+#     Input('tree-progress-updater', 'n_intervals'),
 
 
-@dash_app.callback(
-    Output('output_div', 'children'),
-    [Input('submit-button', 'n_clicks')],
-    [State('username', 'value'), State('dropdown', 'value')],
-)
-def update_output(clicks, input_value, dropdown_value):
-    if clicks is None:
-        # Initial load, don't do anything
-        return
-    level = dropdown_value.split('-')[0]
+#     Input('submit-button2', 'n_clicks'),
+#     Input('submit-button2', 'disabled'),
 
-    requested_ids = list(dict.fromkeys( # removing duplicates
-        INVALID_PROT_IDS.sub("", input_value).upper().split(),
-    ))
+#     State('dropdown2', 'value'),
+#     State('task_id', 'data'),
+# )
+# def call(dp:DashProxy):
+#     task_id = dp['task_id', 'data']
+#     level = dp['dropdown2', 'value']
+#     render_new = False
+#     disable = False
+#     if ('submit-button', 'n_clicks') in dp.triggered:
+#         render_new = True
+#         #start rendering
+#         keys = [
+#             f"/tasks/{task_id}/stage/table/status",
+#             f"/tasks/{task_id}/stage/table/message",
+#             f"/tasks/{task_id}/stage/table/current",
+#             f"/tasks/{task_id}/stage/table/total",
+#             f"/tasks/{task_id}/stage/table/missing_msg",
+#             f"/tasks/{task_id}/stage/table/dash-table",
+#         ]
+#     if ('submit-button2', 'disabled') in dp.triggered:
+#         disable = dp['submit-button2', 'disabled']
 
-    prots = get_prots(level, requested_ids)
+#     ...
+#     output = []
 
-    uniprot_df = pd.DataFrame(
-        columns=['label', 'Name', 'PID'],
-        data=itertools.chain.from_iterable(prots.values()),
-    )
-    uniprot_df.replace("", float('nan'), inplace=True)
-    uniprot_df.dropna(axis="index", how="any", inplace=True)
-    uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
+#     if render_new or disable:
+#          with user.db.pipeline(transaction=True) as pipe:
+#             pipe.incr(f"/tasks/{task_id}/stage/heatmap/version")
+#             pipe.incr(f"/tasks/{task_id}/stage/tree/version")
+#             pipe.unlink(
+#                 f"/tasks/{task_id}/stage/heatmap/status",
+#                 f"/tasks/{task_id}/stage/tree/status",
+#             )
+#             res = pipe.execute()
+#             heatmap_ver = res[0]
+#             tree_ver = res[1]
 
-    og_list = []
-    names = []
-    uniprot_ACs = []
+#     if render_new:
+#         pipe.set(f"/tasks/{task_id}/accessed", int(time.time()))
+#         celery_app.signature(
+#             'tasks.build_heatmap',
+#             args=(task_id, heatmap_ver)
+#         ).apply_async()
+#         celery_app.signature(
+#             'tasks.build_tree',
+#             args=(task_id, heatmap_ver)
+#         ).apply_async()
 
-    # TODO: DataFrame.groupby would be better, but need an example to test
-    for row in uniprot_df[uniprot_df.is_duplicate == False].itertuples():
-        dup_row_names = uniprot_df[uniprot_df.label == row.label].Name.unique()
-        og_list.append(row.label)
-        names.append("-".join(dup_row_names))
-        uniprot_ACs.append(row.PID)
+#         dp['heatmap-progress-updater', 'disabled'] = False
+#         dp['tree-progress-updater', 'disabled'] = False
 
-    #SPARQL Look For Presence of OGS in Species
-    uniprot_df = pd.DataFrame(columns=['label', 'Name', 'UniProt_AC'], data=zip(og_list, names, uniprot_ACs))
+#     if ('heatmap-progress-updater', 'n_intervals') in dp.triggered:
+#         with user.db.pipeline(transaction=True) as pipe:
+#             pipe.mget(
+#                 f"/tasks/{task_id}/stage/heatmap/status",
+#                 f"/tasks/{task_id}/stage/heatmap/message",
+#                 f"/tasks/{task_id}/stage/heatmap/current",
+#                 f"/tasks/{task_id}/stage/heatmap/total",
+#             )
+#             status, message, current, total = pipe.execute()
+#             current, total = decode_int(current, total)
+#             status, message = decode_str(status, message)
 
-    uniprot_df.to_csv(user.path()/'OG.csv', sep=';', index=False)
+#             progress_bar = display_progress(status, total, current, f"Heatmap: {message}")
+#             if progress_bar:
+#                 output.append(progress_bar)
 
-    dash_columns = [
-        "label",
-        "description",
-        "clade",
-        "evolRate",
-        "totalGenesCount",
-        "multiCopyGenesCount",
-        "singleCopyGenesCount",
-        "inSpeciesCount",
-        # "medianExonsCount", "stddevExonsCount",
-        "medianProteinLength",
-        "stddevProteinLength",
-        "og"
-    ]
+#             if status == "Done":
+#                 output.append(
+#                     dbc.Row(
+#                         dbc.Col(
+#                             html.Img(
+#                                 src=f'/files/{task_id}/Correlation.png?nocache={int(time.time())}',
+#                                 id="corr",
+#                             )
+#                         ),
+#                     ),
+#                 )
+#     if ('tree-progress-updater', 'n_intervals') in dp.triggered:
+#         with user.db.pipeline(transaction=True) as pipe:
+#             pipe.mget(
+#                 f"/tasks/{task_id}/stage/tree/status",
+#                 f"/tasks/{task_id}/stage/tree/message",
+#                 f"/tasks/{task_id}/stage/tree/current",
+#                 f"/tasks/{task_id}/stage/tree/total",
+#             )
+#             status, message, current, total = pipe.execute()
+#             current, total = decode_int(current, total)
+#             status, message = decode_str(status, message)
 
-    cache_misses = []
-
-    og_info = defaultdict(dict)
-
-    with user.db.pipeline(transaction=False) as pipe:
-        for og in og_list:
-            pipe.hmget(f"/cache/ortho/{og}", dash_columns)
-
-        for og, data in zip(og_list, pipe.execute()):
-            for col_name, val in zip(dash_columns, data):
-                if val is None:
-                    cache_misses.append(og)
-                    break
-                og_info[og][col_name] = val.decode()
-
-    print(f"{og_info=}")
-    print(f"{cache_misses=}")
-
-
-    if cache_misses:
-        og_string = ', '.join(f'odbgroup:{og}' for og in cache_misses)
-
-        endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
-
-        #SPARQL query
-        endpoint.setQuery(f"""
-        prefix : <http://purl.orthodb.org/>
-        select *
-        where {{
-        ?og a :OrthoGroup;
-            rdfs:label ?label;
-            :name ?description;
-            :ogBuiltAt [up:scientificName ?clade];
-            :ogEvolRate ?evolRate;
-            :ogPercentSingleCopy ?percentSingleCopy;
-            :ogPercentInSpecies ?percentInSpecies;
-            :ogTotalGenesCount ?totalGenesCount;
-            :ogMultiCopyGenesCount ?multiCopyGenesCount;
-            :ogSingleCopyGenesCount ?singleCopyGenesCount;
-            :ogInSpeciesCount ?inSpeciesCount;
-            :cladeTotalSpeciesCount ?cladeTotalSpeciesCount .
-        optional {{ ?og :ogMedianProteinLength ?medianProteinLength}}
-        optional {{ ?og :ogStddevProteinLength ?stddevProteinLength}}
-        optional {{ ?og :ogMedianExonsCount ?medianExonsCount}}
-        optional {{ ?og :ogStddevExonsCount ?stddevExonsCount}}
-        filter (?og in ({og_string}))
-        }}
-        """)
-        endpoint.setReturnFormat(SPARQLWrapper.JSON)
-        result = endpoint.query().convert()
-
-        for og, data in zip(cache_misses, result["results"]["bindings"]):
-            for field in dash_columns:
-                og_info[og][field] = data[field]["value"]
+#             progress_bar = display_progress(status, total, current, f"Tree: {message}")
+#             if progress_bar:
+#                 output.append(progress_bar)
+#             if status == "Done":
+#                 output.append(
+#                     dbc.Row(
+#                         dbc.Col(
+#                             PhydthreeComponent(
+#                                 url=f'/files/{task_id}/{level}_cluser.xml?nocache={int(time.time())}'
+#                             )
+#                         ),
+#                     ),
+#                 )
+#     dp['table-progress-updater', 'disabled'] = (status not in ('Enqueued', 'Executing'))
 
 
-    with user.db.pipeline(transaction=False) as pipe:
-        for og in cache_misses:
-            pipe.hmset(f"/cache/ortho/{og}", og_info[og])
-        for og in og_info.keys():
-            pipe.expire(f"/cache/ortho/{og}", CACHE_TTL)
-        pipe.execute()
-
-    print(f"{og_info=}")
-
-    og_info_df = pd.DataFrame(
-        (
-            vals.values()
-            for vals in og_info.values()
-        ),
-        columns=dash_columns,
-    )
-    og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
-
-    display_columns = [
-        "label",
-        "Name",
-        "description",
-        "clade",
-        "evolRate",
-        "totalGenesCount",
-        "multiCopyGenesCount",
-        "singleCopyGenesCount",
-        "inSpeciesCount",
-        # "medianExonsCount", "stddevExonsCount",
-        "medianProteinLength",
-        "stddevProteinLength"
-    ]
-    og_info_df = og_info_df[display_columns]
-
-    #prepare datatable update
-    dash_data = og_info_df.to_dict('records')
-    dash_columns = [
-        {
-            "name": i,
-            "id": i,
-        }
-        for i in og_info_df.columns
-    ]
-
-    data = []
-    missing_ids = requested_ids - prots.keys()
-    if missing_ids:
-        data.append(
-            dbc.Alert(
-                [f"Unknown proteins: {', '.join(missing_ids)}"],
-                className="alert-warning",
-            )
-        )
-    data.append(
-        dash_table.DataTable(data=dash_data, columns=dash_columns, filter_action="native"),
-    )
-    return html.Div(data)
+#     SPARQL_wrap(level)
+#     corri = correlation_img(level)
+#     pres_xml_url = presence_img(level)
 
 
-@dash_app.callback(
-    Output('output_div2', 'children'),
-    [Input('submit-button2', 'n_clicks'), Input('dropdown2', 'value')],
-)
-def call(clicks, level):
-    if clicks is None:
-        return
-
-    SPARQL_wrap(level)
-    corri = correlation_img(level)
-    pres_xml_url = presence_img(level)
-
-    t = time.time()
-    # HACK: nocache={t} is untill each image has a unique name
-    return html.Div([
-        dbc.Row([
-            dbc.Col([dbc.Col(html.Div(
-                html.Img(src=f'{corri}?nocache={t}', id="corr")
-            ))]),
-            # dbc.Col([dbc.Col(html.Div(
-            #     html.Img(src=f'{presi}?nocache={t}', style={'height': '612px', 'width': '200px'})
-            # ))]),
-        ]),
-
-        dbc.Row([
-            dbc.Col([phydthree_component.PhydthreeComponent(
-                        url=f'{pres_xml_url}?nocache={t}'
-                    )]),
-        ])
-    ])
 
 
-@dash_app.server.route('/files/<uid>/<name>')
-def serve_user_file(uid, name):
+@dash_app.server.route('/files/<task_id>/<name>')
+def serve_user_file(task_id, name):
+    uid = decode_str(user.db.get(f"/tasks/{task_id}/userid"))
     if flask.session.get("USER_ID", '') != uid:
         flask.abort(403)
     response = flask.make_response(flask.send_from_directory(user.path(), name))

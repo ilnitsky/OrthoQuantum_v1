@@ -25,9 +25,19 @@ navbar = dbc.NavbarSimple(
 body = dbc.Container(
     [
         dbc.Row([
+            dbc.Col([
+                html.H2("OrthoQuantum v1.0"),
+            ], md=4),
+            dbc.Col([
+                html.Hr(style={
+                    "margin-top": "2rem",
+                    "margin-bottom": "0",
+                }),
+            ], md=8),
+        ]),
+        dbc.Row([
             dbc.Col(
                 [
-                    html.H2("OrthoQuantum v1.0"),
                     html.P("""Download presence and study orthology group presence.
                             Use UniProt Accesion Codes of your proteins to create a list with corresponding
                             Orthology groups"""),
@@ -38,9 +48,10 @@ body = dbc.Container(
             html.Br(),
             html.Br(),
             dbc.Col([
-                html.H2("___________________________________"),
-                html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
-            ]),
+                    html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
+                ],
+                md=8,
+            ),
         ])
     ],
     className="mt-4",
@@ -48,201 +59,209 @@ body = dbc.Container(
 
 og_from_input = html.Div(children=[
     dbc.Row([
-        dbc.Col(html.Div("")),
-        dbc.Col(
-            html.Div([
-                dcc.Dropdown(options=[
-                    {
-                        'label': 'Eukaryota (compact)',
-                        'value': 'Eukaryota'
-                    },
-                    {
-                        'label': 'Eukaryota (all species)',
-                        'value': 'Eukaryota-full'
-                    },
-                    {
-                        'label': 'Metazoa',
-                        'value': 'Metazoa'
-                    },
-                    {
-                        'label': 'Vertebrata',
-                        'value': 'Vertebrata'
-                    },
-                    {
-                        'label': 'Tetrapoda',
-                        'value': 'Tetrapoda'
-                    },
-                    {
-                        'label': 'Actinopterygii',
-                        'value': 'Actinopterygii'
-                    },
-                    {
-                        'label': 'Bacteria (all 5500 species)',
-                        'value': 'Bacteria'
-                    },
-                    {
-                        'label': 'Protista',
-                        'value': 'Protista'
-                    },
-                    {
-                        'label': 'Archaea',
-                        'value': 'Archaea'
-                    },
-                    {
-                        'label': 'Fungi',
-                        'value': 'Fungi'
-                    },
-                    {
-                        'label': 'Viridiplantae',
-                        'value': 'Viridiplantae'
-                    },
-                    {
-                        'label': 'Aves',
-                        'value': 'Aves'
-                    },
-                ],
-                             placeholder="Select a taxon (level of orthology)",
-                             value='Vertebrata',
-                             id='dropdown'),
-                html.Div(id='dd-output-container')
-            ])),
-        dbc.Col(html.Div())
-    ]),
+            dbc.Col(
+                html.Div([
+                    dcc.Dropdown(
+                        placeholder="Select a taxon (level of orthology)",
+                        value='Vertebrata',
+                        id='dropdown',
+                        options=[
+                            {
+                                'label': 'Eukaryota (compact)',
+                                'value': 'Eukaryota'
+                            },
+                            {
+                                'label': 'Eukaryota (all species)',
+                                'value': 'Eukaryota-full'
+                            },
+                            {
+                                'label': 'Metazoa',
+                                'value': 'Metazoa'
+                            },
+                            {
+                                'label': 'Vertebrata',
+                                'value': 'Vertebrata'
+                            },
+                            {
+                                'label': 'Tetrapoda',
+                                'value': 'Tetrapoda'
+                            },
+                            {
+                                'label': 'Actinopterygii',
+                                'value': 'Actinopterygii'
+                            },
+                            {
+                                'label': 'Bacteria (all 5500 species)',
+                                'value': 'Bacteria'
+                            },
+                            {
+                                'label': 'Protista',
+                                'value': 'Protista'
+                            },
+                            {
+                                'label': 'Archaea',
+                                'value': 'Archaea'
+                            },
+                            {
+                                'label': 'Fungi',
+                                'value': 'Fungi'
+                            },
+                            {
+                                'label': 'Viridiplantae',
+                                'value': 'Viridiplantae'
+                            },
+                            {
+                                'label': 'Aves',
+                                'value': 'Aves'
+                            },
+                        ],
+                    ),
+                    html.Div(id='dd-output-container')
+                ]),
+                md=8,
+                lg=6,
+            ),
+        ],
+        justify='center',
+    ),
     html.Br(),
     dbc.Row([
-        dbc.Col(html.Div()),
         dbc.Col(
             html.Div([
-                dcc.Textarea(id='username', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=6, style={'width': '100%'}),
+                dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=6, style={'width': '100%'}),
                 html.Button(id='submit-button', type='submit', children='Submit'),
-                html.Button(id='su', type='submit', children='From .txt File'),
-            ])),
-        dbc.Col(html.Div(dcc.Loading(
-            id="loading-2",
-            children=[html.Div([html.Div(id="loading-output-2")])],
-            type="circle",
-        ))),
-    ]),
+                # html.Button(id='su', type='submit', children='From .txt File'),
+            ]),
+            md=8,
+            lg=6,
+        ),
+    ], justify='center'),
     html.Br(),
-    dbc.Row([
-        dbc.Col(html.Div()),
-        dbc.Col(html.Div(dbc.Progress(id='progress', striped=True, animated=True))),
-        dbc.Col(html.Div()),
-    ]),
     html.Br(),
-    dbc.Row([
-        dbc.Col(html.Div()),
-        dbc.Col(html.Div(id='output_div')),
-        dbc.Col(html.Div()),
-    ]),
+    html.Div(id='output_row'),
     html.Br(),
     html.Br(),
     dbc.Row([
-        dbc.Col(html.Div("")),
         dbc.Col(
             html.Div([
                 dcc.Dropdown(options=[
-                    {
-                        'label': 'Eukaryota (compact)',
-                        'value': 'Eukaryota'
-                    },
-                    {
-                        'label': 'Eukaryota (all species)',
-                        'value': 'Eukaryota-full'
-                    },
-                    {
-                        'label': 'Metazoa',
-                        'value': 'Metazoa'
-                    },
-                    {
-                        'label': 'Vertebrata',
-                        'value': 'Vertebrata'
-                    },
-                    {
-                        'label': 'Tetrapoda',
-                        'value': 'Tetrapoda'
-                    },
-                    {
-                        'label': 'Actinopterygii',
-                        'value': 'Actinopterygii'
-                    },
-                    {
-                        'label': 'Bacteria (all 5500 species)',
-                        'value': 'Bacteria-full'
-                    },
-                    {
-                        'label': 'Protista',
-                        'value': 'Protista'
-                    },
-                    {
-                        'label': 'Archaea',
-                        'value': 'Archaea'
-                    },
-                    {
-                        'label': 'Fungi',
-                        'value': 'Fungi'
-                    },
-                    {
-                        'label': 'Viridiplantae',
-                        'value': 'Viridiplantae'
-                    },
-                    {
-                        'label': 'Aves',
-                        'value': 'Aves'
-                    },
-                    {
-                        'label': 'Nicotiana',
-                        'value': 'Nicotiana'
-                    },
-                ],
-                             placeholder="Select a taxon (level of orthology)",
-                             value='Vertebrata',
-                             id='dropdown2'),
+                        {
+                            'label': 'Eukaryota (compact)',
+                            'value': 'Eukaryota'
+                        },
+                        {
+                            'label': 'Eukaryota (all species)',
+                            'value': 'Eukaryota-full'
+                        },
+                        {
+                            'label': 'Metazoa',
+                            'value': 'Metazoa'
+                        },
+                        {
+                            'label': 'Vertebrata',
+                            'value': 'Vertebrata'
+                        },
+                        {
+                            'label': 'Tetrapoda',
+                            'value': 'Tetrapoda'
+                        },
+                        {
+                            'label': 'Actinopterygii',
+                            'value': 'Actinopterygii'
+                        },
+                        {
+                            'label': 'Bacteria (all 5500 species)',
+                            'value': 'Bacteria-full'
+                        },
+                        {
+                            'label': 'Protista',
+                            'value': 'Protista'
+                        },
+                        {
+                            'label': 'Archaea',
+                            'value': 'Archaea'
+                        },
+                        {
+                            'label': 'Fungi',
+                            'value': 'Fungi'
+                        },
+                        {
+                            'label': 'Viridiplantae',
+                            'value': 'Viridiplantae'
+                        },
+                        {
+                            'label': 'Aves',
+                            'value': 'Aves'
+                        },
+                        {
+                            'label': 'Nicotiana',
+                            'value': 'Nicotiana'
+                        },
+                    ],
+                    placeholder="Select a taxon (level of orthology)",
+                    value='Vertebrata',
+                    id='dropdown2',
+                ),
                 html.Div(id='dd2-output-container')
-            ])),
-        dbc.Col(html.Div())
-    ]),
+            ]),
+            md=8,
+            lg=6,
+
+        ),
+    ], justify='center'),
     html.Br(),
     dbc.Row([
-        dbc.Col(html.Div()),
-        dbc.Col([html.Button(id='submit-button2', type='submit', children='Go')]),
-        dbc.Col(html.Div(
+        dbc.Col(
+            html.Button(id='submit-button2', type='submit', disabled=True, children='Go'),
+            md=8,
+            lg=6,
 
-            # dcc.Location(id = 'url', refresh = True),
-            # html.Div(id = 'page-content')
-        )),
-    ]),
+        ),
+    ], justify='center'),
 ])
 
-dashboard = html.Div([
-    navbar,
-    body,
-    html.Br(),
-    html.Br(),
-    og_from_input,
-    html.Div(id='output_div2'),
-    dcc.Link('Navigate to "Images"', href='/reports'),
-    # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
-])
+
+def dashboard(task_id):
+    return html.Div([
+        dcc.Store(id='task_id', data=task_id),
+        dcc.Store(id='input_version', data=0),
+        dcc.Interval(
+            id='table-progress-updater',
+            interval=500, # in milliseconds
+            disabled=True,
+        ),
+        body,
+        html.Br(),
+        html.Br(),
+        og_from_input,
+        dcc.Interval(
+            id='heatmap-progress-updater',
+            interval=500, # in milliseconds
+            disabled=True,
+        ),
+        html.Div(id='heatmap-output-container'),
+        dcc.Interval(
+            id='tree-progress-updater',
+            interval=500, # in milliseconds
+            disabled=True,
+        ),
+        html.Div(id='tree-output-container'),
+        dcc.Link('Navigate to "Images"', href='/reports'),
+        # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
+    ])
 
 reports = html.Div([
-    navbar,
-    dbc.Container(
-        [
-            dbc.Row([
-                dbc.Col(
-                    [
-                        html.H2("Image outputs"),
-                        html.P("""Download presence and study orthology group presence"""),
-                        #    dbc.Button("View details", color="secondary"),
-                    ],
-                    md=4,
-                ),
-                dbc.Col([]),
-            ])
-        ],
-        className="mt-4",
-    ),
+    dbc.Row([
+        dbc.Col(
+            [
+                html.H2("Image outputs"),
+                html.P("""Download presence and study orthology group presence"""),
+                #    dbc.Button("View details", color="secondary"),
+            ],
+            md=4,
+        ),
+        dbc.Col([]),
+    ]),
     html.Div([
         # dcc.Dropdown(
         #     id='image-dropdown',
@@ -255,7 +274,6 @@ reports = html.Div([
 
 
 blast = html.Div([
-    navbar,
     body,
     html.Div(id='1'),
     html.Br(),
@@ -268,6 +286,10 @@ blast = html.Div([
 
 
 index = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content')
+    navbar,
+    dcc.Location(id='location', refresh=False),
+    dbc.Container(
+        id='page-content',
+        fluid=True,
+    )
 ])

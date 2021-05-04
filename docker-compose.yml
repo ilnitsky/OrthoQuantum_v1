@@ -26,16 +26,16 @@ services:
 
 volumes:
   user_data:
-    driver: local
-    driver_opts:
-        type: none
-        o: bind
-        device: ./user_storage
+#     driver: local
+#     driver_opts:
+#         type: none
+#         o: bind
+#         device: ./user_storage
 
-networks:
-  default:
-    external:
-      name: kenga_net
+# networks:
+#   default:
+#     external:
+#       name: kenga_net
 
 
 # export SYSTEM_VERSION_COMPAT=1

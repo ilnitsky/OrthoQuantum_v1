@@ -625,7 +625,7 @@ def do_SPARQLWrapper_Task(dbm: DBManager, task_id, version):
         dbm.set_progress(
             current=i,
             total=len(OG_labels),
-            message="building tree",
+            message="getting correlation data",
         )
 
     # interpret the results:
@@ -670,16 +670,14 @@ def do_SPARQLWrapper_Task(dbm: DBManager, task_id, version):
         )
         # Stops running tasks
         pipe.incr(f"/tasks/{task_id}/stage/tree/version")
-    launch_task('tree', task_id, res3[-1])
-
-    @dbm.tx
-    def res_fin(pipe: Pipeline):
-        pipe.multi()
         pipe.mset({
             f"/tasks/{task_id}/stage/sparql/status": "Done",
             f"/tasks/{task_id}/stage/sparql/message": "",
             f"/tasks/{task_id}/stage/sparql/total": 0,
         })
+    launch_task('tree', task_id, res3[-1])
+
+
 
 
 @app.task()

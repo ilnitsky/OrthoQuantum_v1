@@ -586,7 +586,7 @@ def start_heatmap_and_tree(dp:DashProxy):
     if status in ('Enqueued', 'Executing', 'Error'):
         dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
     elif status == 'Done':
-        dp['tree-output-container', 'children'] = None
+        dp[f'{stage}-output-container', 'children'] = None
         dp['graphics-version', 'data'] = version
 
 

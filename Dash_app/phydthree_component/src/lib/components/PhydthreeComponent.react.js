@@ -21,22 +21,7 @@ export default class PhydthreeComponent extends Component {
         this.redraw()
     }
     redraw() {
-        console.log("redraw!")
         var ref = this.ref;
-        // try {
-        //     d3.selectAll(".heatmap").exit();
-        //     // d3.select(ref.current).select("svg").remove();
-
-        // } catch (error) {
-
-        // }
-        // try {
-        //     d3.selectAll(".heatmap").remove()
-        //     // d3.select(ref.current).select("svg").remove();
-
-        // } catch (error) {
-
-        // }
         var opts = {
             dynamicHide: false,
             height: 2000,

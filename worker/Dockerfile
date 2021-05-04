@@ -13,24 +13,20 @@ RUN useradd -ms /bin/bash -u 1234 www       &&\
     rm -rf /usr/share/man                   &&\
     apt-get clean
 
-# Installing dependencies separately in order to take advantage of docker caching mechanism
-COPY ./app/Pipfile* /app/
-
+USER www:www
+ENV PATH=/home/www/.local/bin:$PATH
 WORKDIR /app/
+
+# Installing dependencies separately in order to take advantage of docker caching mechanism
+COPY --chown=www:www ./app/Pipfile* /app/
 
 RUN pipenv install --deploy --system  &&\
     rm -rf ~/.cache/pip/*
 
-COPY ./app/ /app/
+COPY --chown=www:www ./app/ /app/
 
-RUN chown -R www:www /app/ && chown www:www /app
-
-USER www
 # -O fair (better for long tasks, ?)
 # --prefetch-multiplier - typically long tasks, fetch 1 per worker
 #   -Q, --queues COMMA SEPARATED LIST
 #   -X, --exclude-queues COMMA SEPARATED LIST
-CMD [ "celery", "-A", "tasks", "worker", "-l", "INFO",\
-      "-Q", "celery", "--prefetch-multiplier=1", \
-      "--autoscale=16,1" \
-    ]
+CMD [ "/app/run.sh" ]

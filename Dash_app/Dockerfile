@@ -1,7 +1,8 @@
 # build phyd3 library
 FROM node:15.14-slim AS phyd3-builder
+USER node:node
 
-COPY phyd3/package*.json /node-app/
+COPY --chown=node:node phyd3/package*.json /node-app/
 WORKDIR /node-app/
 
 RUN npm install
@@ -85,16 +86,19 @@ RUN set -ex \
 
 # End of copied section
 
-COPY phydthree_component/package*.json /phydthree_component/
+USER node:node
+ENV PATH=/home/node/.local/bin:$PATH
+
+COPY --chown=node:node phydthree_component/package*.json /phydthree_component/
 WORKDIR /phydthree_component/
 
 RUN npm install
 
-COPY phydthree_component/requirements.txt /phydthree_component/
+COPY --chown=node:node phydthree_component/requirements.txt /phydthree_component/
 RUN python3 -m pip install -r /phydthree_component/requirements.txt &&\
     rm -rf ~/.cache/pip/*
 
-COPY phydthree_component/ /phydthree_component/
+COPY --chown=node:node phydthree_component/ /phydthree_component/
 
 RUN npm run build  &&\
     python3 setup.py sdist bdist_wheel
@@ -103,6 +107,7 @@ RUN npm run build  &&\
 FROM tiangolo/meinheld-gunicorn:python3.8
 
 RUN useradd -ms /bin/bash -u 1234 www       &&\
+    chown -R www:www /app /app/             &&\
     apt-get update                          &&\
     apt-get upgrade -y                      &&\
     apt-get install -y ca-certificates        \
@@ -115,22 +120,23 @@ RUN useradd -ms /bin/bash -u 1234 www       &&\
     rm -rf /usr/share/man                   &&\
     apt-get clean
 
+USER www:www
+ENV PATH=/home/www/.local/bin:$PATH
+
 # Installing dependencies separately in order to take advantage of docker caching mechanism
-COPY ./app/Pipfile* /app/
+COPY --chown=www:www ./app/Pipfile* /app/
 
 RUN pipenv install --deploy --system  &&\
     rm -rf ~/.cache/pip/*
 
-COPY --from=phyd3-comp-builder /phydthree_component/dist/phydthree_component-0.0.1.tar.gz /app/
+COPY --chown=www:www --from=phyd3-comp-builder /phydthree_component/dist/phydthree_component-0.0.1.tar.gz /app/
 
 RUN python3 -m pip install phydthree_component-0.0.1.tar.gz         &&\
     rm -f /app/phydthree_component-0.0.1.tar.gz                     &&\
     rm -rf ~/.cache/pip/*
 
-COPY ./app/ /app/
-COPY --from=phyd3-builder /node-app/dist/assets/* /app/app/assets/
-
-RUN chown -R www:www /app/ && chown www:www /app
+COPY --chown=www:www ./app/ /app/
+COPY --chown=www:www --from=phyd3-builder /node-app/dist/assets/* /app/app/assets/
 
 EXPOSE 8050
 

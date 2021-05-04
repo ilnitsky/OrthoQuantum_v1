@@ -2252,7 +2252,6 @@ window.requestAnimFrame = (function(){
             nodes = tree(onodes);
 
             // color the tree
-            console.log("tree layout")
             for (var i=0; i<nodes.length; i++){
                 var cur_tree_node = nodes[i]
                 if ((cur_tree_node.taxonomies === undefined) || (cur_tree_node.taxonomies.length === 0)){

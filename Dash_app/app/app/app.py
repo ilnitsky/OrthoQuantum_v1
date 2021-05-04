@@ -1,6 +1,4 @@
 ### Dash
-import subprocess
-
 import pandas as pd
 from pandas import read_csv
 
@@ -9,8 +7,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
 from lxml import etree as ET
-
-from PIL import Image
 
 from . import user
 

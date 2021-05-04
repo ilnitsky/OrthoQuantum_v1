@@ -1,4 +1,4 @@
-version: "3.2"
+version: "3"
 services:
   web:
     build: ./dash_app
@@ -12,11 +12,10 @@ services:
     volumes:
       - "user_data:/app/user_data"
 
-
   redis:
     build: ./redis
-    # volumes:
-    #   - "./redis_data:/data"
+    volumes:
+      - "redis_data:/data"
 
 
   worker:
@@ -31,6 +30,12 @@ volumes:
 #         type: none
 #         o: bind
 #         device: ./user_storage
+  redis_data:
+#     driver: local
+#     driver_opts:
+#         type: none
+#         o: bind
+#         device: ./redis_data
 
 # networks:
 #   default:

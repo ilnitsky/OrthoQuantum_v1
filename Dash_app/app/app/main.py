@@ -18,15 +18,10 @@ import celery
 
 from phydthree_component import PhydthreeComponent
 
-from .app import SPARQL_wrap, presence_img, correlation_img
-
 from . import layout
 from . import user
 
-from functools import partial, wraps
-import sys
-
-# print= partial(print, file=sys.stderr, flush=True)
+from functools import wraps
 
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
@@ -279,7 +274,7 @@ def display_progress(status, total, current, msg):
                     children=html.Span(
                         msg,
                         className="justify-content-center d-flex position-absolute w-100",
-                        style={"color": "black"},
+                        style={"color": "black", "will-change": "contents"},
                     ),
                     **pbar,
                 ),
@@ -694,20 +689,13 @@ def tree(dp:DashProxy):
     # fill the output row
     # here because of sparql finish, first launch or interval refresh
 
-    version = user.db.get(f"/tasks/{task_id}/stage/{stage}/version")
-    print(version)
-    status = user.db.get(f"/tasks/{task_id}/stage/{stage}/status")
-    print(status)
-
-    res = user.db.mget(
+    status, msg, current, total, version = user.db.mget(
         f"/tasks/{task_id}/stage/{stage}/status",
         f"/tasks/{task_id}/stage/{stage}/message",
         f"/tasks/{task_id}/stage/{stage}/current",
         f"/tasks/{task_id}/stage/{stage}/total",
         f"/tasks/{task_id}/stage/{stage}/version"
     )
-    print(res)
-    status, msg, current, total, version = res
     status, msg = decode_str(status, msg)
     version, current, total = decode_int(version, current, total)
 
@@ -717,144 +705,20 @@ def tree(dp:DashProxy):
     dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
 
     if status == 'Done':
-        dp['tree-output-container', 'children'] = dbc.Row(
+        dp[f'{stage}-output-container', 'children'] = dbc.Row(
             dbc.Col(
                 PhydthreeComponent(
                     url=f'/files/{task_id}/cluser.xml?nocache={version}'
                 )
             ),
-        ),
-
-
-# @DashProxy.callback(
-#     Output('heatmap-progress-updater', 'disabled'),
-#     Output('tree-progress-updater', 'disabled'),
-
-#     Input('heatmap-progress-updater', 'n_intervals'),
-#     Input('tree-progress-updater', 'n_intervals'),
-
-
-#     Input('submit-button2', 'n_clicks'),
-#     Input('submit-button2', 'disabled'),
-
-#     State('dropdown2', 'value'),
-#     State('task_id', 'data'),
-# )
-# def call(dp:DashProxy):
-#     task_id = dp['task_id', 'data']
-#     level = dp['dropdown2', 'value']
-#     render_new = False
-#     disable = False
-#     if ('submit-button', 'n_clicks') in dp.triggered:
-#         render_new = True
-#         #start rendering
-#         keys = [
-#             f"/tasks/{task_id}/stage/table/status",
-#             f"/tasks/{task_id}/stage/table/message",
-#             f"/tasks/{task_id}/stage/table/current",
-#             f"/tasks/{task_id}/stage/table/total",
-#             f"/tasks/{task_id}/stage/table/missing_msg",
-#             f"/tasks/{task_id}/stage/table/dash-table",
-#         ]
-#     if ('submit-button2', 'disabled') in dp.triggered:
-#         disable = dp['submit-button2', 'disabled']
-
-#     ...
-#     output = []
-
-#     if render_new or disable:
-#          with user.db.pipeline(transaction=True) as pipe:
-#             pipe.incr(f"/tasks/{task_id}/stage/heatmap/version")
-#             pipe.incr(f"/tasks/{task_id}/stage/tree/version")
-#             pipe.unlink(
-#                 f"/tasks/{task_id}/stage/heatmap/status",
-#                 f"/tasks/{task_id}/stage/tree/status",
-#             )
-#             res = pipe.execute()
-#             heatmap_ver = res[0]
-#             tree_ver = res[1]
-
-#     if render_new:
-#         pipe.set(f"/tasks/{task_id}/accessed", int(time.time()))
-#         celery_app.signature(
-#             'tasks.build_heatmap',
-#             args=(task_id, heatmap_ver)
-#         ).apply_async()
-#         celery_app.signature(
-#             'tasks.build_tree',
-#             args=(task_id, heatmap_ver)
-#         ).apply_async()
-
-#         dp['heatmap-progress-updater', 'disabled'] = False
-#         dp['tree-progress-updater', 'disabled'] = False
-
-#     if ('heatmap-progress-updater', 'n_intervals') in dp.triggered:
-#         with user.db.pipeline(transaction=True) as pipe:
-#             pipe.mget(
-#                 f"/tasks/{task_id}/stage/heatmap/status",
-#                 f"/tasks/{task_id}/stage/heatmap/message",
-#                 f"/tasks/{task_id}/stage/heatmap/current",
-#                 f"/tasks/{task_id}/stage/heatmap/total",
-#             )
-#             status, message, current, total = pipe.execute()
-#             current, total = decode_int(current, total)
-#             status, message = decode_str(status, message)
-
-#             progress_bar = display_progress(status, total, current, f"Heatmap: {message}")
-#             if progress_bar:
-#                 output.append(progress_bar)
-
-#             if status == "Done":
-#                 output.append(
-#                     dbc.Row(
-#                         dbc.Col(
-#                             html.Img(
-#                                 src=f'/files/{task_id}/Correlation.png?nocache={int(time.time())}',
-#                                 id="corr",
-#                             )
-#                         ),
-#                     ),
-#                 )
-#     if ('tree-progress-updater', 'n_intervals') in dp.triggered:
-#         with user.db.pipeline(transaction=True) as pipe:
-#             pipe.mget(
-#                 f"/tasks/{task_id}/stage/tree/status",
-#                 f"/tasks/{task_id}/stage/tree/message",
-#                 f"/tasks/{task_id}/stage/tree/current",
-#                 f"/tasks/{task_id}/stage/tree/total",
-#             )
-#             status, message, current, total = pipe.execute()
-#             current, total = decode_int(current, total)
-#             status, message = decode_str(status, message)
-
-#             progress_bar = display_progress(status, total, current, f"Tree: {message}")
-#             if progress_bar:
-#                 output.append(progress_bar)
-#             if status == "Done":
-#                 output.append(
-#                     dbc.Row(
-#                         dbc.Col(
-#                             PhydthreeComponent(
-#                                 url=f'/files/{task_id}/{level}_cluser.xml?nocache={int(time.time())}'
-#                             )
-#                         ),
-#                     ),
-#                 )
-#     dp['table-progress-updater', 'disabled'] = (status not in ('Enqueued', 'Executing'))
-
-
-#     SPARQL_wrap(level)
-#     corri = correlation_img(level)
-#     pres_xml_url = presence_img(level)
-
-
+        )
 
 
 @dash_app.server.route('/files/<task_id>/<name>')
 def serve_user_file(task_id, name):
-    uid = decode_str(user.db.get(f"/tasks/{task_id}/user_id"))
-    if flask.session.get("USER_ID", '') != uid:
-        flask.abort(403)
+    # uid = decode_str(user.db.get(f"/tasks/{task_id}/user_id"))
+    # if flask.session.get("USER_ID", '') != uid:
+    #     flask.abort(403)
     response = flask.make_response(flask.send_from_directory(f"/app/user_data/{task_id}", name))
     if name.lower().endswith(".xml"):
         response.mimetype = "text/xml"

@@ -20,6 +20,9 @@ import matplotlib.pyplot as plt
 import matplotlib
 from lxml import etree as ET
 
+from protein_fetcher import orthodb_get, uniprot_get, ortho_data_get
+from db import db, cond_cas
+
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 NS = {
     "xsi": "http://www.w3.org/2001/XMLSchema-instance",
@@ -27,8 +30,15 @@ NS = {
 }
 
 
-from protein_fetcher import orthodb_get, uniprot_get, ortho_data_get
-from db import db, queueinfo_upd
+def queueinfo_upd(task_id, stage, client=None):
+    cond_cas(
+        if_key=f"/tasks/{task_id}/stage/{stage}/status",
+        equals_value="Enqueued",
+        set_key="/queueinfo/last_launched_id",
+        to_value_of_this_key_if_larger=f"/tasks/{task_id}/stage/{stage}/current",
+        client=client,
+    )
+
 
 app = celery.Celery('worker', broker='redis://redis/1', backend='redis://redis/1')
 
@@ -85,7 +95,7 @@ class DBManager():
 
     def report_error(self, message, cancel_rest=True):
         @self.tx
-        def res(pipe:Pipeline):
+        def _(pipe:Pipeline):
             pipe.watch(f"/tasks/{self.task_id}/stage/{self.stage}/status")
             status = pipe.get(f"/tasks/{self.task_id}/stage/{self.stage}/status")
             pipe.multi()
@@ -112,12 +122,10 @@ class DBManager():
             self.report_error(e.message, cancel_rest=cancel_on_error)
             if e.__cause__ is not None:
                 e = e.__cause__
-            raise Reject(e, requeue=False)
+            raise Reject(e, requeue=False) from None
         except Exception as e:
             self.report_error("Internal server error", cancel_rest=cancel_on_error)
-            raise Reject(e, requeue=False)
-
-
+            raise Reject(e, requeue=False) from None
 
     def tx(self, func=None, allow_read_only=False, retry_delay=0) -> list:
         """Decorator immediately runs the function in transaction mode
@@ -136,12 +144,13 @@ class DBManager():
             return partialmethod(self.run_tx, allow_read_only=allow_read_only, retry_delay=retry_delay)
 
         with db.pipeline(transaction=True) as pipe:
+            pipe_execute = pipe.execute
+            pipe.execute = None
             while True:
                 try:
                     pipe.watch(f"/tasks/{self.task_id}/stage/{self.stage}/version")
                     version = int(pipe.get(f"/tasks/{self.task_id}/stage/{self.stage}/version"))
                     can_write = version == self.version
-                    print('VERSIONS:', version, self.version)
                     if allow_read_only:
                         args = (pipe, can_write)
                     else:
@@ -151,15 +160,11 @@ class DBManager():
                     try:
                         func(*args)
                     except RollbackException:
-                        with contextlib.suppress(Exception):
-                            pipe.discard()
                         res = None
                     except Exception:
-                        with contextlib.suppress(Exception):
-                            pipe.discard()
                         raise
                     else:
-                        res = pipe.execute()
+                        res = pipe_execute()
                     return res
                 except redis.WatchError:
                     if retry_delay:
@@ -176,6 +181,7 @@ class DBManager():
                 self.progress(flush=True)
         self._can_use_relative_progress -= 1
 
+    # pylint: disable=unused-argument
     def set_progress(self, current=None, total=None, message=None, pipe: Pipeline = None):
         l = locals()
         upd = {
@@ -186,7 +192,7 @@ class DBManager():
         if upd:
             if pipe is None:
                 @self.tx
-                def res(pipe: redis.client.Pipeline):
+                def _(pipe: redis.client.Pipeline):
                     pipe.multi()
                     pipe.mset(upd)
             else:
@@ -209,7 +215,7 @@ class DBManager():
 
         if self._curr_incr or self._total_incr or message is not None:
             @self.tx
-            def res(pipe: redis.client.Pipeline):
+            def _(pipe: redis.client.Pipeline):
                 pipe.multi()
                 if message is not None:
                     pipe.set(f"/tasks/{self.task_id}/stage/{self.stage}/message", message)
@@ -222,6 +228,39 @@ class DBManager():
 
         self.last_progress = time.time()
         return True
+
+    def launch_task(self, stage:str, task_id:str = None):
+        should_launch_task = True
+        if task_id is None:
+            task_id = self.task_id
+        # Trying to set status to enqueued if the task isn't already running
+        @self.tx
+        def _(pipe: Pipeline):
+            nonlocal should_launch_task
+            version = pipe.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            pipe.unlink(f"/tasks/{task_id}/stage/{stage}/status")
+            pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
+            if should_launch_task:
+                app.signature(
+                    f'tasks.build_{stage}',
+                    args=(task_id, version)
+                ).apply_async()
+                should_launch_task = False
+
+            status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
+            if status is not None:
+                # Task has already modified it to something else, so we are not enqueued
+                return
+            # Task is still in the queue
+            pipe.multi()
+            pipe.mset({
+                f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
+                f"/tasks/{task_id}/stage/{stage}/total": -3,
+            })
+            pipe.incr("/queueinfo/cur_id")
+            pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
+
+
 #endregion
 
 def decode_str(item:bytes, default='') -> str:
@@ -246,11 +285,12 @@ def build_table(task_id, version):
 
 def do_build_table(dbm: DBManager, task_id, version):
     prot_ids = None
+    stage = 'table'
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
         nonlocal prot_ids
-        queueinfo_upd(task_id, client=pipe)
+        queueinfo_upd(task_id, stage, client=pipe)
         prot_req = pipe.get(f"/tasks/{task_id}/request/proteins")
 
         prot_ids = list(dict.fromkeys( # removing duplicates
@@ -258,7 +298,7 @@ def do_build_table(dbm: DBManager, task_id, version):
         ))
 
         pipe.multi()
-        pipe.set(f"/tasks/{task_id}/stage/table/status", "Executing")
+        pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(
             current=0,
             total=len(prot_ids),
@@ -316,6 +356,7 @@ def _fetch_proteins(task_id, version, prot_ids, level):
 
 def do_fetch_proteins(dbm:DBManager, task_id, prot_ids, level):
     """Task fetches protein info and puts it into the cache"""
+    stage = "table"
     fake_delay()
     prots = defaultdict(list)
     req_ids = set(prot_ids)
@@ -329,7 +370,7 @@ def do_fetch_proteins(dbm:DBManager, task_id, prot_ids, level):
 
     def write_missing(pipe: Pipeline):
         pipe.multi()
-        pipe.append(f"/tasks/{task_id}/stage/table/missing_msg", f"{', '.join(missing_prots)}, ")
+        pipe.append(f"/tasks/{task_id}/stage/{stage}/missing_msg", f"{', '.join(missing_prots)}, ")
 
     with dbm:
         for prot_id in sparql_misses:
@@ -370,6 +411,7 @@ def _get_orthogroups(task_id, version, prot_ids, level):
     dbm.run_code(do_get_orthogroups, dbm, task_id, prot_ids, level)
 
 def do_get_orthogroups(dbm, task_id, prot_ids, level):
+    stage = "table"
     dbm.set_progress(current=0, total=-1, message="Getting orthogroup info")
 
     data = list(itertools.chain.from_iterable(
@@ -507,58 +549,28 @@ def do_get_orthogroups(dbm, task_id, prot_ids, level):
     table = json.dumps(table_data, ensure_ascii=False, separators=(',', ':'))
 
     @dbm.tx
-    def res(pipe: Pipeline):
+    def _(pipe: Pipeline):
         pipe.multi()
         pipe.mset({
-            f"/tasks/{task_id}/stage/table/status": "Done",
-            f"/tasks/{task_id}/stage/table/dash-table": table,
+            f"/tasks/{task_id}/stage/{stage}/status": "Done",
+            f"/tasks/{task_id}/stage/{stage}/dash-table": table,
         })
 
-
-def launch_task(stage:str, task_id:str, version:int):
-    should_launch_task = True
-    # Trying to set status to enqueued if the task isn't already running
-    with db.pipeline(transaction=True) as pipe:
-        while True:
-            try:
-                pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
-                if should_launch_task:
-                    app.signature(
-                        f'tasks.build_{stage}',
-                        args=(task_id, version)
-                    ).apply_async()
-                    should_launch_task = False
-
-                status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
-                if status is not None:
-                    # Task has already modified it to something else, so we are not enqueued
-                    break
-                # Task is still in the queue
-                pipe.multi()
-                pipe.mset({
-                    f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
-                    f"/tasks/{task_id}/stage/{stage}/total": -3,
-                })
-                pipe.incr("/queueinfo/cur_id")
-                pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
-                pipe.execute()
-                break
-            except redis.WatchError:
-                continue
 
 
 @app.task(name='tasks.SPARQLWrapper')
 def SPARQLWrapper_Task(task_id, version):
     dbm = DBManager("sparql", task_id, version)
-    dbm.run_code(do_SPARQLWrapper_Task, dbm, task_id, version)
+    dbm.run_code(do_SPARQLWrapper_Task, dbm, task_id)
 
-def do_SPARQLWrapper_Task(dbm: DBManager, task_id, version):
+def do_SPARQLWrapper_Task(dbm: DBManager, task_id):
+    stage='sparql'
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
-        queueinfo_upd(task_id, client=pipe)
+        queueinfo_upd(task_id, stage, client=pipe)
         pipe.multi()
-        pipe.set(f"/tasks/{task_id}/stage/sparql/status", "Executing")
+        pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(
             current=50,
             total=100,
@@ -634,17 +646,7 @@ def do_SPARQLWrapper_Task(dbm: DBManager, task_id, version):
     df.reset_index(drop=False, inplace=True)
     df.to_csv(task_dir / "SPARQLWrapper.csv", index=False)
 
-    @dbm.tx
-    def res2(pipe: Pipeline):
-        pipe.multi()
-        # Remove the data
-        pipe.unlink(
-            f"/tasks/{task_id}/stage/heatmap/message",
-            f"/tasks/{task_id}/stage/heatmap/status",
-        )
-        # Stops running tasks
-        pipe.incr(f"/tasks/{task_id}/stage/heatmap/version")
-    launch_task('heatmap', task_id, res2[-1])
+    dbm.launch_task('heatmap')
 
     df['Organisms'] = df['Organisms'].astype("category")
     df['Organisms'].cat.set_categories(organisms, inplace=True)
@@ -660,25 +662,15 @@ def do_SPARQLWrapper_Task(dbm: DBManager, task_id, version):
 
     df.to_csv(task_dir / "Presence-Vectors.csv", index=False)
 
-    @dbm.tx
-    def res3(pipe: Pipeline):
-        pipe.multi()
-        # Remove the data
-        pipe.unlink(
-            f"/tasks/{task_id}/stage/tree/message",
-            f"/tasks/{task_id}/stage/tree/status",
-        )
-        # Stops running tasks
-        pipe.incr(f"/tasks/{task_id}/stage/tree/version")
-    launch_task('tree', task_id, res3[-1])
+    dbm.launch_task('tree')
 
     @dbm.tx
-    def res_fin(pipe: Pipeline):
+    def _(pipe: Pipeline):
         pipe.multi()
         pipe.mset({
-            f"/tasks/{task_id}/stage/sparql/status": "Done",
-            f"/tasks/{task_id}/stage/sparql/message": "",
-            f"/tasks/{task_id}/stage/sparql/total": 0,
+            f"/tasks/{task_id}/stage/{stage}/status": "Done",
+            f"/tasks/{task_id}/stage/{stage}/message": "",
+            f"/tasks/{task_id}/stage/{stage}/total": 0,
         })
 
 
@@ -688,12 +680,13 @@ def build_tree(task_id, version):
     dbm.run_code(do_build_tree, dbm, task_id, version)
 
 def do_build_tree(dbm: DBManager, task_id, version):
+    stage='tree'
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
-        queueinfo_upd(task_id, client=pipe)
+        queueinfo_upd(task_id, stage, client=pipe)
         pipe.multi()
-        pipe.set(f"/tasks/{task_id}/stage/tree/status", "Executing")
+        pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(
             current=0,
             total=-1,
@@ -701,11 +694,9 @@ def do_build_tree(dbm: DBManager, task_id, version):
             pipe=pipe,
         )
         pipe.get(f"/tasks/{task_id}/request/dropdown2")
-    print("do_build_tree", 3)
 
     fake_delay()
     taxonomy_level = decode_str(res[-1])
-    print(taxonomy_level)
 
     task_dir = DATA_PATH / task_id
 
@@ -718,7 +709,7 @@ def do_build_tree(dbm: DBManager, task_id, version):
 
     df4 = None
     @dbm.tx
-    def res2(pipe: Pipeline):
+    def _(pipe: Pipeline):
         nonlocal df4
         df4 = pd.read_csv(task_dir/"Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
@@ -748,14 +739,7 @@ def do_build_tree(dbm: DBManager, task_id, version):
         xticklabels=prots_to_show,
         annot=True,
     )
-    # print(f"{phylo.data.columns=}")
-    # print(f"{phylo.data2d.columns=}")
-    # print(f"{phylo.dendrogram_col.reordered_ind=}")
-    # phylo.cax.set_visible(False)
-    # phylo.ax_col_dendrogram.set_visible(False)
-    # plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
 
-    # TODO: This will be done at runtime, in response to user request
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(f'app/assets/data/{taxonomy_level}.xml', parser)
     root = tree.getroot()
@@ -778,18 +762,16 @@ def do_build_tree(dbm: DBManager, task_id, version):
         for col_idx in phylo.dendrogram_col.reordered_ind:
             ET.SubElement(values, "value").text = f"{row[phylo.data.columns[col_idx]] * 100:.0f}"
 
-    fn = f'cluser.xml'
+    @dbm.tx
+    def _(pipe: Pipeline):
+        tree.write(str(task_dir/'cluser.xml'), xml_declaration=True)
 
     @dbm.tx
-    def res3(pipe: Pipeline):
-        tree.write(str(task_dir/fn), xml_declaration=True)
-
-    @dbm.tx
-    def res_fin(pipe: Pipeline):
+    def _(pipe: Pipeline):
         pipe.multi()
         pipe.mset({
-            f"/tasks/{task_id}/stage/tree/status": "Done",
-            f"/tasks/{task_id}/stage/tree/total": 0,
+            f"/tasks/{task_id}/stage/{stage}/status": "Done",
+            f"/tasks/{task_id}/stage/{stage}/total": 0,
         })
 
 @app.task()
@@ -798,12 +780,13 @@ def build_heatmap(task_id, version):
     dbm.run_code(do_build_heatmap, dbm, task_id, version)
 
 def do_build_heatmap(dbm: DBManager, task_id, version):
+    stage = 'heatmap'
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
-        queueinfo_upd(task_id, client=pipe)
+        queueinfo_upd(task_id, stage, client=pipe)
         pipe.multi()
-        pipe.set(f"/tasks/{task_id}/stage/heatmap/status", "Executing")
+        pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(
             current=0,
             total=-1,
@@ -814,7 +797,6 @@ def do_build_heatmap(dbm: DBManager, task_id, version):
 
     fake_delay()
     taxonomy_level = decode_str(res[-1])
-    print(taxonomy_level)
     task_dir = DATA_PATH / task_id
 
 
@@ -853,15 +835,11 @@ def do_build_heatmap(dbm: DBManager, task_id, version):
         col_colors=[rgbs],
         row_colors=[rgbs],
     )
-    # TODO: replace static filenames to dynamic (perhaps based on hash of request)
-    file_name = "Correlation.png"
 
     @dbm.tx
-    def res_fin(pipe: Pipeline):
+    def _(pipe: Pipeline):
         pipe.multi()
         pipe.mset({
-            f"/tasks/{task_id}/stage/heatmap/status": "Done",
+            f"/tasks/{task_id}/stage/{stage}/status": "Done",
         })
-        plt.savefig(task_dir/file_name)
-    # return html_text
-
+        plt.savefig(task_dir/"Correlation.png")

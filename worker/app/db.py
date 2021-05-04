@@ -22,13 +22,15 @@ _cas_script = db.register_script("""
     end
 """)
 
-def queueinfo_upd(task_id:str, client=None) -> int:
+def cond_cas(if_key, equals_value, set_key, to_value_of_this_key_if_larger, client=None):
     return _cas_script(
         keys=(
-            f"/tasks/{task_id}/stage/table/status",
-            "/queueinfo/last_launched_id",
-            f"/tasks/{task_id}/stage/table/current",
+            if_key, # f"/tasks/{task_id}/stage/table/status",
+            set_key, #"/queueinfo/last_launched_id",
+            to_value_of_this_key_if_larger, # f"/tasks/{task_id}/stage/table/current",
         ),
-        args=("Enqueued",),
+        args=(
+            equals_value,   #"Enqueued",
+        ),
         client=client,
     )

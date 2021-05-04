@@ -1,0 +1,538 @@
+Absidia glauca
+Absidia repens
+Acidomyces richmondensis
+Acremonium chrysogenum ATCC 11550
+Agaricus bisporus var. burnettii JB137-S8
+Allomyces macrogynus ATCC 38327
+Alternaria alternata
+Amanita muscaria Koide BX008
+Amanita thiersii Skay4041
+Anaeromyces robustus
+Anthracocystis flocculosa PF-1
+Armillaria gallica
+Armillaria ostoyae
+Armillaria solidipes
+Arthrobotrys oligospora ATCC 24927
+Ascochyta rabiei
+Ascoidea rubescens DSM 1968
+Ascosphaera apis ARSEF 7405
+Aspergillus aculeatus ATCC 16872
+Aspergillus arachidicola
+Aspergillus bombycis
+Aspergillus brasiliensis CBS 101740
+Aspergillus calidoustus
+Aspergillus campestris IBT 28561
+Aspergillus carbonarius ITEM 5010
+Aspergillus clavatus NRRL 1
+Aspergillus cristatus
+Aspergillus fischeri NRRL 181
+Aspergillus flavus AF70
+Aspergillus fumigatus Af293
+Aspergillus glaucus CBS 516.65
+Aspergillus lentulus
+Aspergillus luchuensis CBS 106.47
+Aspergillus nidulans FGSC A4
+Aspergillus niger
+Aspergillus nomius NRRL 13137
+Aspergillus novofumigatus IBT 16806
+Aspergillus rambellii
+Aspergillus ruber CBS 135680
+Aspergillus steynii IBT 23096
+Aspergillus sydowii CBS 593.65
+Aspergillus taichungensis
+Aspergillus terreus NIH2624
+Aspergillus thermomutatus
+Aspergillus turcosus
+Aspergillus udagawae
+Aspergillus versicolor CBS 583.65
+Aspergillus wentii DTO 134E9
+Aureobasidium melanogenum CBS 110374
+Aureobasidium namibiae CBS 147.97
+Aureobasidium pullulans EXF-150
+Aureobasidium subglaciale EXF-2481
+Auricularia subglabra TFB-10046 SS5
+Babjeviella inositovora NRRL Y-12698
+Basidiobolus meristosporus CBS 931.73
+Batrachochytrium dendrobatidis JAM81
+Batrachochytrium salamandrivorans
+Baudoinia panamericana UAMH 10762
+Beauveria bassiana
+Bipolaris maydis ATCC 48331
+Bipolaris oryzae ATCC 44560
+Bipolaris sorokiniana ND90Pr
+Bipolaris zeicola 26-R-13
+Blastomyces dermatitidis ATCC 26199
+Blastomyces percursus
+Blumeria graminis f. sp. hordei DH14
+Blumeria graminis f. sp. tritici 96224
+Botryobasidium botryosum FD-172 SS1
+Botrytis cinerea B05.10
+Byssochlamys spectabilis No. 5
+Calocera cornea HHB12733
+Calocera viscosa TUFC12733
+Candida albicans SC5314
+Candida dubliniensis CD36
+Candida maltosa Xu316
+Candida orthopsilosis Co 90-125
+Candida parapsilosis
+Candida tropicalis MYA-3404
+Capronia coronata CBS 617.96
+Capronia epimyces CBS 606.96
+Catenaria anguillulae PL171
+Cenococcum geophilum 1.58
+Ceraceosorus bombacis
+Ceratocystis fimbriata CBS 114723
+Cercospora berteroae
+Cercospora beticola
+Cercospora zeina
+Chaetomium globosum CBS 148.51
+Chaetomium thermophilum var. thermophilum DSM 1495
+Choanephora cucurbitarum
+Cladophialophora bantiana CBS 173.52
+Cladophialophora carrionii CBS 160.54
+Cladophialophora immunda
+Cladophialophora yegresii CBS 114405
+Claviceps purpurea 20.1
+Clavispora lusitaniae
+Clohesyomyces aquaticus
+Coccidioides immitis RS
+Coemansia reversa NRRL 1564
+Colletotrichum chlorophyti
+Colletotrichum gloeosporioides Cg-14
+Colletotrichum gloeosporioides Nara gc5
+Colletotrichum graminicola M1.001
+Colletotrichum higginsianum IMI 349063
+Colletotrichum incanum
+Colletotrichum orbiculare MAFF 240422
+Colletotrichum orchidophilum
+Colletotrichum salicis
+Colletotrichum simmondsii
+Colletotrichum sublineola
+Colletotrichum tofieldiae
+Conidiobolus coronatus NRRL 28638
+Coniochaeta ligniaria NRRL 30616
+Coniophora puteana RWD-64-598 SS2
+Coniosporium apollinis CBS 100218
+Coprinopsis cinerea okayama7#130
+Cordyceps brongniartii RCEF 3172
+Cordyceps confragosa RCEF 1005
+Cordyceps confragosa
+Cordyceps fumosorosea ARSEF 2679
+Cordyceps militaris CM01
+Cordyceps sp. RAO-2017
+Cryptococcus amylolentus CBS 6273
+Cryptococcus depauperatus CBS 7841
+Cryptococcus gattii CA1280
+Cryptococcus gattii NT-10
+Cryptococcus gattii VGII CBS 10090
+Cryptococcus neoformans var. grubii
+Cryptococcus neoformans var. neoformans JEC21
+Cutaneotrichosporon oleaginosum
+Cyberlindnera fabianii
+Cyberlindnera jadinii NRRL Y-1542
+Cylindrobasidium torrendii FP15055 ss-10
+Cyphellophora europaea CBS 101466
+Dacryopinax primogenitus
+Dactylellina haptotyla CBS 200.50
+Daedalea quercina L-15889
+Daldinia sp. EC12
+Debaryomyces fabryi
+Debaryomyces hansenii CBS767
+Diaporthe ampelina
+Diaporthe helianthi
+Dichomitus squalens LYAD-421 SS1
+Diplocarpon rosae
+Diplodia corticola
+Diplodia seriata
+Dothistroma septosporum NZE10
+Drechmeria coniospora
+Edhazardia aedis USNM 41457
+Elaphomyces granulatus
+Elsinoe sp. CQ-2017a
+Emergomyces pasteuriana Ep9510
+Emmonsia crescens
+Emmonsia parva UAMH 139
+Emmonsia parva
+Emmonsia sp. CAC-2015a
+Encephalitozoon cuniculi GB-M1
+Encephalitozoon hellem ATCC 50504
+Encephalitozoon intestinalis ATCC 50506
+Encephalitozoon romaleae SJ-2008
+Endocarpon pusillum Z07020
+Epicoccum nigrum
+Eremothecium cymbalariae DBVPG#7215
+Eremothecium gossypii FDAG1
+Eremothecium sinecaudum
+Erysiphe necator
+Erysiphe pulchra
+Escovopsis weberi
+Eutypa lata UCREL1
+Exidia glandulosa HHB12029
+Exophiala aquamarina CBS 119918
+Exophiala dermatitidis NIH/UT8656
+Exophiala mesophila
+Exophiala oligosperma
+Exophiala sideris
+Exophiala spinifera
+Exophiala xenobiotica
+Fibroporia radiculosa
+Fibularhizoctonia sp. CBS 109695
+Fistulina hepatica ATCC 64428
+Fomitiporia mediterranea MF3/22
+Fomitopsis pinicola FP-58527 SS1
+Fonsecaea erecta
+Fonsecaea multimorphosa CBS 102226
+Fonsecaea pedrosoi CBS 271.37
+fungal sp. No.11243
+fungal sp. No.14919
+Fusarium avenaceum
+Fusarium fujikuroi
+Fusarium graminearum
+Fusarium langsethiae
+Fusarium mangiferae
+Fusarium nygamai
+Fusarium oxysporum f. sp. cubense tropical race 4 54006
+Fusarium oxysporum f. sp. radicis-cucumerinum
+Fusarium oxysporum
+Fusarium poae
+Fusarium verticillioides 7600
+Gaeumannomyces tritici R3-111a-1
+Galactomyces candidum
+Galerina marginata CBS 339.88
+Ganoderma sinense ZZ0214-1
+Gelatoporia subvermispora B
+Glarea lozoyensis ATCC 20868
+Gloeophyllum trabeum ATCC 11539
+Glonium stellatum
+Gonapodya prolifera JEL478
+Grifola frondosa
+Grosmannia clavigera kw1407
+Gymnopilus dilepis
+Gymnopus luxurians FD-317 M1
+Hanseniaspora guilliermondii
+Hanseniaspora opuntiae
+Hanseniaspora osmophila
+Hanseniaspora uvarum
+Hanseniaspora valbyensis NRRL Y-1626
+Hebeloma cylindrosporum h7
+Helicocarpus griseus UAMH5409
+Hesseltinella vesiculosa
+Heterobasidion irregulare TC 32-1
+Hirsutella minnesotensis 3608
+Histoplasma capsulatum G186AR
+Histoplasma capsulatum NAm1
+Hortaea werneckii EXF-2000
+Hydnomerulius pinastri MD-312
+Hypholoma sublateritium FD-334 SS-4
+Hyphopichia burtonii NRRL Y-1933
+Hypoxylon sp. CI-4A
+Hypoxylon sp. EC38
+Hypsizygus marmoreus
+Jaapia argillacea MUCL 33604
+Kalmanozyma brasiliensis GHG001
+Kazachstania africana CBS 2517
+Kazachstania naganishii CBS 8797
+Kazachstania saulgeensis
+Kluyveromyces dobzhanskii CBS 2104
+Kluyveromyces lactis
+Kluyveromyces marxianus DMKU3-1042
+Kockovaella imperatae
+Komagataella pastoris
+Komagataella phaffii CBS 7435
+Kuraishia capsulata CBS 1993
+Kwoniella bestiolae CBS 10118
+Kwoniella dejecticola CBS 10117
+Kwoniella heveanensis CBS 569
+Kwoniella mangroviensis CBS 8886
+Kwoniella pini CBS 10737
+Laccaria amethystina LaAM-08-1
+Laccaria bicolor S238N-H82
+Lachancea dasiensis CBS 10888
+Lachancea fermentati
+Lachancea lanzarotensis
+Lachancea meyersii CBS 8951
+Lachancea mirantina
+Lachancea nothofagi CBS 11611
+Lachancea quebecensis
+Lachancea sp. CBS 6924
+Lachancea thermotolerans CBS 6340
+Laetiporus sulphureus 93-53
+Lentinula edodes
+Lepidopterella palustris CBS 459.81
+Leptosphaeria maculans JN3
+Leucoagaricus sp. SymC.cos
+Leucosporidium creatinivorum
+Lichtheimia corymbifera JMRC:FSU:9682
+Lichtheimia ramosa
+Linderina pennispora
+Lipomyces starkeyi NRRL Y-11557
+Lobosporangium transversale
+Lodderomyces elongisporus NRRL YB-4239
+Lomentospora prolificans
+Macrophomina phaseolina MS6
+Madurella mycetomatis
+Magnaporthe oryzae 70-15
+Magnaporthiopsis poae ATCC 64411
+Malassezia globosa CBS 7966
+Malassezia pachydermatis
+Malassezia sp. JP-2017
+Malassezia sympodialis ATCC 42132
+Marssonina brunnea f. sp. 'multigermtubi' MB_m1
+Marssonina coronariae
+Melampsora larici-populina 98AG31
+Meliniomyces bicolor E
+Meliniomyces variabilis F
+Metarhizium acridum CQMa 102
+Metarhizium album ARSEF 1941
+Metarhizium majus ARSEF 297
+Metarhizium rileyi RCEF 4871
+Metarhizium robertsii
+Metschnikowia bicuspidata var. bicuspidata NRRL YB-4993
+Meyerozyma guilliermondii ATCC 6260
+Microbotryum intermedium
+Microbotryum lychnidis-dioicae p1A1 Lamole
+Microdochium bolleyi
+Microsporum canis CBS 113480
+Mixia osmundae IAM 14324
+Moelleriella libera RCEF 2490
+Moesziomyces antarcticus T-34
+Moesziomyces antarcticus
+Moniliophthora roreri MCA 2997
+Mortierella elongata AG-77
+Mortierella verticillata NRRL 6337
+Mucor ambiguus
+Mucor circinelloides f. circinelloides 1006PhL
+Mucor circinelloides f. lusitanicus CBS 277.49
+Mycosphaerella eumusae
+Nadsonia fulvescens var. elongata DSM 6958
+Naematelia encephala
+Nannizzia gypsea CBS 118893
+Naumovozyma castellii CBS 4309
+Naumovozyma dairenensis CBS 421
+Nematocida displodere
+Nematocida parisii ERTm1
+Nematocida sp. 1 ERTm6
+Nematocida sp. ERTm5
+Neocallimastix californiae
+Neofusicoccum parvum UCRNP2
+Neolecta irregularis DAH-3
+Neolentinus lepideus HHB14362 ss-1
+Neonectria ditissima
+Neurospora crassa
+Nosema ceranae
+Obba rivulosa
+Ogataea parapolymorpha DL-1
+Oidiodendron maius Zn
+Ophiocordyceps australis
+Ophiocordyceps camponoti-rufipedis
+Ophiocordyceps unilateralis
+Ophiostoma piceae UAMH 11346
+Ordospora colligata OC4
+Pachysolen tannophilus NRRL Y-2460
+Panaeolus cyanescens
+Paracoccidioides brasiliensis
+Paracoccidioides lutzii Pb01
+Paraphaeosphaeria sporulosa
+Parasitella parasitica
+Parastagonospora nodorum SN15
+Paxillus involutus ATCC 200175
+Paxillus rubicundulus Ve08.2h10
+Penicilliopsis zonata CBS 506.65
+Penicillium antarcticum
+Penicillium arizonense
+Penicillium brasilianum
+Penicillium camemberti
+Penicillium coprophilum
+Penicillium decumbens
+Penicillium digitatum PHI26
+Penicillium expansum
+Penicillium flavigenum
+Penicillium freii
+Penicillium griseofulvum
+Penicillium italicum
+Penicillium nalgiovense
+Penicillium nordicum
+Penicillium occitanis
+Penicillium oxalicum 114-2
+Penicillium roqueforti FM164
+Penicillium rubens Wisconsin 54-1255
+Penicillium steckii
+Penicillium subrubescens
+Penicillium vulpinum
+Peniophora sp. CONT
+Pestalotiopsis fici W106-1
+Pezoloma ericae
+Phaeoacremonium minimum UCRPA7
+Phaeomoniella chlamydospora
+Phanerochaete carnosa HHB-10118-sp
+Phellinus noxius
+Phialocephala scopiformis
+Phialocephala subalpina
+Phialophora americana
+Phialophora attae
+Phlebiopsis gigantea 11061_1 CR5-6
+Phycomyces blakesleeanus NRRL 1555(-)
+Pichia kudriavzevii
+Pichia membranifaciens NRRL Y-2026
+Piloderma croceum F 1598
+Piromyces finnis
+Pisolithus microcarpus 441
+Pisolithus tinctorius Marx 270
+Pleurotus ostreatus PC15
+Plicaturopsis crispa FD-325 SS-3
+Pneumocystis carinii B80
+Pneumocystis jirovecii RU7
+Pneumocystis murina B123
+Pochonia chlamydosporia 170
+Podospora anserina S mat+
+Polytolypa hystricis UAMH7299
+Postia placenta MAD-698-R-SB12
+Protomyces lactucaedebilis
+Pseudocercospora fijiensis CIRAD86
+Pseudogymnoascus destructans 20631-21
+Pseudogymnoascus sp. 05NY08
+Pseudogymnoascus sp. 23342-1-I1
+Pseudogymnoascus sp. VKM F-4281 (FW-2241)
+Pseudogymnoascus sp. VKM F-4513 (FW-928)
+Pseudogymnoascus sp. VKM F-4515 (FW-2607)
+Pseudogymnoascus sp. VKM F-4516 (FW-969)
+Pseudogymnoascus sp. VKM F-4520 (FW-2644)
+Pseudogymnoascus sp. WSF 3629
+Pseudogymnoascus verrucosus
+Pseudomassariella vexata
+Pseudozyma hubeiensis SY62
+Psilocybe cyanescens
+Puccinia coronata var. avenae f. sp. avenae
+Puccinia graminis f. sp. tritici CRL 75-36-700-3
+Puccinia sorghi
+Puccinia striiformis f. sp. tritici PST-78
+Puccinia triticina 1-1 BBBD Race 1
+Punctularia strigosozonata HHB-11173 SS5
+Purpureocillium lilacinum
+Pyrenochaeta sp. DS3sAY3a
+Pyrenophora teres f. teres 0-1
+Pyrenophora tritici-repentis Pt-1C-BFP
+Pyronema omphalodes CBS 100304
+Rachicladosporium antarcticum
+Ramularia collo-cygni
+Rasamsonia emersonii CBS 393.64
+Rhinocladiella mackenziei CBS 650.93
+Rhizoclosmatium globosum
+Rhizoctonia solani 123E
+Rhizoctonia solani
+Rhizophagus irregularis DAOM 181602=DAOM 197198
+Rhizophagus irregularis
+Rhizopogon vesiculosus
+Rhizopogon vinicolor AM-OR11-026
+Rhizopus delemar RA 99-880
+Rhizopus microsporus ATCC 52813
+Rhizopus microsporus
+Rhodotorula graminis WP1
+Rhodotorula sp. JG-1b
+Rhodotorula taiwanensis
+Rhodotorula toruloides NP11
+Rhodotorula toruloides
+Rhynchosporium commune
+Rosellinia necatrix
+Rozella allomycis CSF55
+Rutstroemia sp. NJR-2017a WRK4
+Saccharomyces cerevisiae YJM1573
+Saccharomyces eubayanus
+Saccharomycetaceae sp. 'Ashbya aceri'
+Saitoella complicata NRRL Y-17804
+Sanghuangporus baumii
+Scedosporium apiospermum
+Scheffersomyces stipitis CBS 6054
+Schizophyllum commune H4-8
+Schizopora paradoxa
+Schizosaccharomyces cryophilus OY26
+Schizosaccharomyces japonicus yFS275
+Schizosaccharomyces octosporus yFS286
+Scleroderma citrinum Foug A
+Sclerotinia borealis F-4128
+Sclerotinia sclerotiorum 1980 UF-70
+Serendipita indica DSM 11827
+Serendipita vermifera MAFF 305830
+Serpula lacrymans var. lacrymans S7.3
+Setosphaeria turcica Et28A
+Sistotremastrum niveocremeum HHB9708
+Sordaria macrospora k-hell
+Spathaspora passalidarum NRRL Y-27907
+Sphaerobolus stellatus SS14
+Sphaerulina musiva SO2202
+Spizellomyces punctatus DAOM BR117
+Sporidiobolus salmonicolor
+Sporisorium reilianum SRZ2
+Sporisorium scitamineum
+Sporothrix insectorum RCEF 264
+Sporothrix schenckii ATCC 58251
+Spraguea lophii 42_110
+Stachybotrys chartarum IBT 7711
+Stachybotrys chlorohalonata IBT 40285
+Stagonospora sp. SRC1lsM3a
+Stemphylium lycopersici
+Stereum hirsutum FP-91666 SS1
+Suhomyces tanzawaensis NRRL Y-17324
+Suillus luteus UH-Slu-Lm8-n1
+Syncephalastrum racemosum
+Talaromyces atroroseus
+Talaromyces islandicus
+Talaromyces marneffei ATCC 18224
+Talaromyces stipitatus ATCC 10500
+Talaromyces verruculosus
+Termitomyces sp. J132
+Tetrapisispora blattae CBS 6284
+Tetrapisispora phaffii CBS 4417
+Thermothelomyces thermophila ATCC 42464
+Thielavia terrestris NRRL 8126
+Thielaviopsis punctulata
+Tilletia caries
+Tilletia walkeri
+Tilletiaria anomala UBC 951
+Tolypocladium capitatum
+Tolypocladium ophioglossoides CBS 100239
+Tolypocladium paradoxum
+Torrubiella hemipterigena
+Tortispora caseinolytica NRRL Y-17796
+Torulaspora delbrueckii
+Trametes cinnabarina
+Trametes coccinea BRFM310
+Trametes pubescens
+Trametes versicolor FP-101664 SS1
+Tremella mesenterica DSM 1558
+Trichoderma atroviride IMI 206040
+Trichoderma gamsii
+Trichoderma harzianum
+Trichoderma reesei RUT C-30
+Trichoderma virens Gv29-8
+Trichophyton benhamiae CBS 112371
+Trichophyton rubrum
+Trichophyton tonsurans CBS 112818
+Trichosporon asahii var. asahii CBS 8904
+Tsuchiyaea wingfieldii CBS 7118
+Tuber melanosporum
+Tulasnella calospora MUT 4182
+Umbilicaria pustulata
+Uncinocarpus reesii 1704
+Ustilaginoidea virens
+Ustilago hordei
+Ustilago maydis 521
+Valsa mali var. pyri
+Valsa mali
+Vanderwaltozyma polyspora DSM 70294
+Vavraia culicis subsp. floridensis
+Verruconis gallopava
+Verticillium dahliae
+Verticillium longisporum
+Wallemia ichthyophaga EXF-994
+Wallemia mellicola CBS 633.66
+Wickerhamiella sorbophila
+Wickerhamomyces anomalus NRRL Y-366-8
+Wickerhamomyces ciferrii
+Wolfiporia cocos MD-104 SS10
+Xylona heveae TC161
+Yarrowia lipolytica
+Zygosaccharomyces parabailii
+Zygosaccharomyces rouxii
+Zymoseptoria brevis
+Zymoseptoria tritici ST99CH_1A5

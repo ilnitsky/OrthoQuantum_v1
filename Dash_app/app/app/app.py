@@ -20,28 +20,6 @@ NS = {
     "": "http://www.phyloxml.org"
 }
 
-def concat_phylo(taxonomy_path, presence_path):
-    subprocess.call([
-        "convert",
-        presence_path,
-        "-trim",
-        presence_path,
-    ])
-
-    im1 = Image.open(taxonomy_path)
-    im2 = Image.open(presence_path)
-    new_height = 4140
-    new_width_im1 = new_height * im1.width // im1.height
-    new_width_im2 = new_height * im2.width // im2.height
-
-    im1 = im1.resize((new_width_im1, new_height), Image.ANTIALIAS)
-    im2 = im2.resize((new_width_im2, new_height), Image.ANTIALIAS)
-
-    dst = Image.new('RGB', (im1.width + im2.width, min(im1.height, im2.height)))
-    dst.paste(im1, (0, 0))
-    dst.paste(im2, (im1.width, (im1.height - im2.height) // 2))
-    return dst
-
 
 def SPARQL_wrap(taxonomy_level):
     taxonomy = taxonomy_level.split('-')[0]

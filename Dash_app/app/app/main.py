@@ -28,7 +28,6 @@ import sys
 
 # print= partial(print, file=sys.stderr, flush=True)
 
-
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 
@@ -241,54 +240,52 @@ def decode_str(*items, default=''):
     )
 
 def display_progress(status, total, current, msg):
-    if status in ('Enqueued', 'Executing', 'Error'):
-        pbar = {
-            "style": {"height": "30px"}
-        }
-        if total < 0:
-            # Special progress bar modes:
-            # -1 unknown length style
-            # -2 static message
-            # -3 Waiting in the queue
-            pbar['max'] = 100
-            pbar['value'] = 100
-            animate = total != -2 # not static message
-            pbar['animated'] = animate
-            pbar['striped'] = animate
+    pbar = {
+        "style": {"height": "30px"}
+    }
+    if total < 0:
+        # Special progress bar modes:
+        # -1 unknown length style
+        # -2 static message
+        # -3 Waiting in the queue
+        pbar['max'] = 100
+        pbar['value'] = 100
+        animate = total != -2 # not static message
+        pbar['animated'] = animate
+        pbar['striped'] = animate
 
-            if total == -3:
-                llid = decode_int(user.db.get("/queueinfo/last_launched_id")) + 1
-                if current > llid:
-                    msg = f"~{current - llid} tasks before yours"
-                else:
-                    msg = "almost running"
-        else:
-            # normal progressbar
-            pbar['animated'] = False
-            pbar['striped'] = False
-            pbar['max'] = total
-            pbar['value'] = current
-            msg = f"{msg} ({current}/{total})"
+        if total == -3:
+            llid = decode_int(user.db.get("/queueinfo/last_launched_id")) + 1
+            if current > llid:
+                msg = f"~{current - llid} tasks before yours"
+            else:
+                msg = "almost running"
+    else:
+        # normal progressbar
+        pbar['animated'] = False
+        pbar['striped'] = False
+        pbar['max'] = total
+        pbar['value'] = current
+        msg = f"{msg} ({current}/{total})"
 
-        if status == 'Error':
-            pbar['color'] = 'danger'
-        else:
-            pbar['color'] = 'info'
+    if status == 'Error':
+        pbar['color'] = 'danger'
+    else:
+        pbar['color'] = 'info'
 
-        return dbc.Row(
-                dbc.Col(
-                    dbc.Progress(
-                        children=html.Span(
-                            msg,
-                            className="justify-content-center d-flex position-absolute w-100",
-                            style={"color": "black"},
-                        ),
-                        **pbar,
+    return dbc.Row(
+            dbc.Col(
+                dbc.Progress(
+                    children=html.Span(
+                        msg,
+                        className="justify-content-center d-flex position-absolute w-100",
+                        style={"color": "black"},
                     ),
-                    md=8, lg=6,
+                    **pbar,
                 ),
-            justify='center')
-    return None
+                md=8, lg=6,
+            ),
+        justify='center')
 
 
 @DashProxy.callback(
@@ -317,6 +314,11 @@ def display_progress(status, total, current, msg):
 def table(dp:DashProxy):
     """Perform action (cancel/start building the table)"""
     task_id = dp['task_id', 'data']
+    # if dp.first_load:
+    #     # update accessed timestamp on the first page load
+    #     pipe.set(f"/tasks/{task_id}/accessed", int(time.time()))
+
+
     if ('submit-button', 'n_clicks') in dp.triggered:
         # Sending data
         with user.db.pipeline(transaction=True) as pipe:
@@ -411,8 +413,6 @@ def table(dp:DashProxy):
             except redis.WatchError:
                 continue
 
-    dp['table-progress-updater', 'disabled'] = (status not in ('Enqueued', 'Executing'))
-
     output = []
     if missing_msg:
         output.append(
@@ -427,12 +427,9 @@ def table(dp:DashProxy):
                 justify='center',
             ),
         )
-
-    progress_bar = display_progress(status, total, current, msg)
-    if progress_bar is not None:
-        output.append(progress_bar)
-
-    if status == 'Done':
+    if status in ('Enqueued', 'Executing', 'Error'):
+        output.append(display_progress(status, total, current, msg))
+    elif status == 'Done':
         data = json.loads(table_data)
         output.append(
             dbc.Row(dbc.Col(
@@ -447,7 +444,282 @@ def table(dp:DashProxy):
         ))
 
     dp['submit-button2', 'disabled'] = status != 'Done'
+    dp['table-progress-updater', 'disabled'] = (status not in ('Enqueued', 'Executing'))
     dp['output_row', 'children'] = html.Div(children=output)
+
+
+def launch_task(stage:str, task_id:str, version:int):
+    should_launch_task = True
+    # Trying to set status to enqueued if the task isn't already running
+    with user.db.pipeline(transaction=True) as pipe:
+        while True:
+            try:
+                pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
+                if should_launch_task:
+                    celery_app.signature(
+                        f'tasks.build_{stage}',
+                        args=(task_id, version)
+                    ).apply_async()
+                    should_launch_task = False
+
+                status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
+                if status is not None:
+                    # Task has already modified it to something else, so we are not enqueued
+                    break
+                # Task is still in the queue
+                pipe.multi()
+                pipe.mset({
+                    f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
+                    f"/tasks/{task_id}/stage/{stage}/total": -3,
+                })
+                pipe.incr("/queueinfo/cur_id")
+                pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
+                pipe.execute()
+                break
+            except redis.WatchError:
+                continue
+
+
+@DashProxy.callback(
+    Output('graphics-version', 'data'), # trigger to launch rendering
+    Output('sparql-output-container', 'children'),
+    Output('sparql-working', 'data'),
+
+    Input('sparql-working', 'data'),
+    Input('submit-button2', 'n_clicks'),
+    Input('submit-button2', 'disabled'),
+    Input('progress-updater-2', 'n_intervals'),
+
+    State('task_id', 'data'),
+)
+def start_heatmap_and_tree(dp:DashProxy):
+    # if dp.first_load:
+    #     return
+
+    stage = 'sparql'
+    task_id = dp['task_id', 'data']
+
+    if ('submit-button2', 'disabled') in dp.triggered:
+        if dp['submit-button2', 'disabled']:
+            # First stage data was changed, clear the current data
+            dp['sparql-output-container', 'children'] = None
+            # Stop running tasks
+            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            return
+
+    if ('submit-button2', 'n_clicks') in dp.triggered:
+        if dp['submit-button2', 'disabled']:
+            # button was pressed in disabled state??
+            return
+        # button press triggered
+
+        with user.db.pipeline(transaction=True) as pipe:
+            # Stops running tasks
+            pipe.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            pipe.incr(f"/tasks/{task_id}/stage/heatmap/version")
+            pipe.incr(f"/tasks/{task_id}/stage/tree/version")
+            pipe.mset({
+                f"/tasks/{task_id}/stage/heatmap/status": "Waiting",
+                f"/tasks/{task_id}/stage/tree/status": "Waiting",
+            })
+            # Remove the data
+            pipe.unlink(
+                f"/tasks/{task_id}/stage/{stage}/message",
+                f"/tasks/{task_id}/stage/{stage}/status",
+                f"/tasks/{task_id}/stage/heatmap/message",
+                f"/tasks/{task_id}/stage/tree/message",
+            )
+            sparql_ver = pipe.execute()[0]
+
+        # when sparql is done it will trigger the heatmap and tree tasks
+        celery_app.signature(
+            'tasks.SPARQLWrapper',
+            args=(task_id, sparql_ver)
+        ).apply_async()
+
+        # Trying to set status to enqueued if the task isn't already running
+        with user.db.pipeline(transaction=True) as pipe:
+            while True:
+                try:
+                    pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
+                    status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
+                    if status is not None:
+                        # Task has already modified it to something else, so we are not enqueued
+                        break
+                    # Task is still in the queue
+                    pipe.multi()
+                    pipe.mset({
+                        f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
+                        f"/tasks/{task_id}/stage/{stage}/total": -3,
+                    })
+                    pipe.incr("/queueinfo/cur_id")
+                    pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
+                    pipe.execute()
+                    break
+                except redis.WatchError:
+                    continue
+
+        dp[f'{stage}-working', 'data'] = True
+
+    should_update = (
+        dp[f'{stage}-working', 'data'] or # actively updating right now
+        dp.first_load
+    )
+    if not should_update:
+        # don't need to update our output
+        return
+
+    # fill the output row
+    # here because of "go" click, first launch or interval refresh
+    version, status, msg, current, total = user.db.mget(
+        f"/tasks/{task_id}/stage/{stage}/version",
+        f"/tasks/{task_id}/stage/{stage}/status",
+        f"/tasks/{task_id}/stage/{stage}/message",
+        f"/tasks/{task_id}/stage/{stage}/current",
+        f"/tasks/{task_id}/stage/{stage}/total",
+    )
+    status, msg = decode_str(status, msg)
+    version, current, total = decode_int(version, current, total)
+
+    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
+
+    if status in ('Enqueued', 'Executing', 'Error'):
+        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
+    elif status == 'Done':
+        dp['tree-output-container', 'children'] = None
+        dp['graphics-version', 'data'] = version
+
+
+@DashProxy.callback(
+    Output('heatmap-output-container', 'children'),
+    Output('heatmap-working', 'data'),
+
+    Input('progress-updater-2', 'n_intervals'),
+    Input('graphics-version', 'data'), # trigger to launch rendering
+    Input('submit-button2', 'disabled'),
+
+    State('heatmap-working', 'data'),
+    State('task_id', 'data'),
+)
+def heatmap(dp:DashProxy):
+    stage = 'heatmap'
+    task_id = dp['task_id', 'data']
+    if ('submit-button2', 'disabled') in dp.triggered:
+        if dp['submit-button2', 'disabled']:
+            # First stage data was changed, clear the current data
+            dp['heatmap-output-container', 'children'] = None
+            # Stop running tasks
+            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            return
+
+    should_update = (
+        ('graphics-version', 'data') in dp.triggered or # must start work
+        dp[f'{stage}-working', 'data'] or # actively updating right now
+        dp.first_load
+    )
+    if not should_update:
+        # don't need to update our output
+        return
+
+
+    # fill the output row
+    # here because of sparql finish, first launch or interval refresh
+    version, status, msg, current, total = user.db.mget(
+        f"/tasks/{task_id}/stage/{stage}/version"
+        f"/tasks/{task_id}/stage/{stage}/status",
+        f"/tasks/{task_id}/stage/{stage}/message",
+        f"/tasks/{task_id}/stage/{stage}/current",
+        f"/tasks/{task_id}/stage/{stage}/total",
+    )
+    status, msg = decode_str(status, msg)
+    version, current, total = decode_int(version, current, total)
+
+    if status in ('Enqueued', 'Executing', 'Error'):
+        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
+
+    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
+
+    if status == 'Done':
+        dp[f'{stage}-output-container', 'children'] = dbc.Row(
+            dbc.Col(
+                html.Img(
+                    src=f'/files/{task_id}/Correlation.png?version={version}',
+                    id="corr",
+                )
+            ),
+        )
+
+@dash_app.callback(
+    Output('progress-updater-2', 'disabled'),
+    Input('sparql-working', 'data'),
+    Input('heatmap-working', 'data'),
+    Input('tree-working', 'data'),
+)
+def updater_controller(*is_working):
+    # While there are tasks - keep updater running
+    return not any(is_working)
+
+@DashProxy.callback(
+    Output('tree-output-container', 'children'),
+    Output('tree-working', 'data'),
+
+    Input('progress-updater-2', 'n_intervals'),
+    Input('graphics-version', 'data'), # trigger to launch rendering
+
+    Input('submit-button2', 'disabled'),
+
+    State('tree-working', 'data'),
+    State('task_id', 'data'),
+)
+def tree(dp:DashProxy):
+    stage = 'tree'
+    task_id = dp['task_id', 'data']
+    if ('submit-button2', 'disabled') in dp.triggered:
+        if dp['submit-button2', 'disabled']:
+            # First stage data was changed, clear the current data
+            dp[f'{stage}-output-container', 'children'] = None
+            # Stop running tasks
+            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            return
+
+    should_update = (
+        ('graphics-version', 'data') in dp.triggered or # must start work
+        dp[f'{stage}-working', 'data'] or # actively updating right now
+        dp.first_load
+    )
+    if not should_update:
+        # don't need to update our output
+        return
+
+    # fill the output row
+    # here because of sparql finish, first launch or interval refresh
+
+    res = user.db.mget(
+        f"/tasks/{task_id}/stage/{stage}/version"
+        f"/tasks/{task_id}/stage/{stage}/status",
+        f"/tasks/{task_id}/stage/{stage}/message",
+        f"/tasks/{task_id}/stage/{stage}/current",
+        f"/tasks/{task_id}/stage/{stage}/total",
+    )
+    print(res)
+    version, status, msg, current, total = res
+    status, msg = decode_str(status, msg)
+    version, current, total = decode_int(version, current, total)
+
+    if status in ('Enqueued', 'Executing', 'Error'):
+        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
+
+    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
+
+    if status == 'Done':
+        dp['tree-output-container', 'children'] = dbc.Row(
+            dbc.Col(
+                html.Img(
+                    src=f'/files/{task_id}/Correlation.png?version={version}',
+                    id="corr",
+                )
+            ),
+        ),
 
 
 # @DashProxy.callback(

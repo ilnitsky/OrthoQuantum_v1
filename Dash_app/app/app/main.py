@@ -624,13 +624,13 @@ def heatmap(dp:DashProxy):
 
     # fill the output row
     # here because of sparql finish, first launch or interval refresh
-    version, status, msg, current, total = user.db.mget(
-        f"/tasks/{task_id}/stage/{stage}/version"
+    status, msg, current, total, version = user.db.mget(
         f"/tasks/{task_id}/stage/{stage}/status",
         f"/tasks/{task_id}/stage/{stage}/message",
         f"/tasks/{task_id}/stage/{stage}/current",
         f"/tasks/{task_id}/stage/{stage}/total",
-    )
+        f"/tasks/{task_id}/stage/{stage}/version"
+    )# TODO: version first == bug
     status, msg = decode_str(status, msg)
     version, current, total = decode_int(version, current, total)
 
@@ -694,15 +694,20 @@ def tree(dp:DashProxy):
     # fill the output row
     # here because of sparql finish, first launch or interval refresh
 
+    version = user.db.get(f"/tasks/{task_id}/stage/{stage}/version")
+    print(version)
+    status = user.db.get(f"/tasks/{task_id}/stage/{stage}/status")
+    print(status)
+
     res = user.db.mget(
-        f"/tasks/{task_id}/stage/{stage}/version"
         f"/tasks/{task_id}/stage/{stage}/status",
         f"/tasks/{task_id}/stage/{stage}/message",
         f"/tasks/{task_id}/stage/{stage}/current",
         f"/tasks/{task_id}/stage/{stage}/total",
+        f"/tasks/{task_id}/stage/{stage}/version"
     )
     print(res)
-    version, status, msg, current, total = res
+    status, msg, current, total, version = res
     status, msg = decode_str(status, msg)
     version, current, total = decode_int(version, current, total)
 
@@ -714,9 +719,8 @@ def tree(dp:DashProxy):
     if status == 'Done':
         dp['tree-output-container', 'children'] = dbc.Row(
             dbc.Col(
-                html.Img(
-                    src=f'/files/{task_id}/Correlation.png?version={version}',
-                    id="corr",
+                PhydthreeComponent(
+                    url=f'/files/{task_id}/cluser.xml?nocache={version}'
                 )
             ),
         ),
@@ -848,10 +852,10 @@ def tree(dp:DashProxy):
 
 @dash_app.server.route('/files/<task_id>/<name>')
 def serve_user_file(task_id, name):
-    uid = decode_str(user.db.get(f"/tasks/{task_id}/userid"))
+    uid = decode_str(user.db.get(f"/tasks/{task_id}/user_id"))
     if flask.session.get("USER_ID", '') != uid:
         flask.abort(403)
-    response = flask.make_response(flask.send_from_directory(user.path(), name))
+    response = flask.make_response(flask.send_from_directory(f"/app/user_data/{task_id}", name))
     if name.lower().endswith(".xml"):
         response.mimetype = "text/xml"
     response.headers["Cache-Control"] = 'no-store, no-cache, must-revalidate, max-age=0'

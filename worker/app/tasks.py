@@ -9,11 +9,23 @@ from collections import defaultdict
 from pathlib import Path
 
 import redis
+from redis.client import Pipeline
 import celery
 from celery.exceptions import Ignore, Reject, CeleryError
 
+import SPARQLWrapper
 import pandas as pd
-from redis.client import Pipeline
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib
+from lxml import etree as ET
+
+ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+NS = {
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "": "http://www.phyloxml.org"
+}
+
 
 from protein_fetcher import orthodb_get, uniprot_get, ortho_data_get
 from db import db, queueinfo_upd
@@ -29,7 +41,8 @@ INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
 #region utils
 def fake_delay():
-    # time.sleep(random.randint(5000, 10000)/1000)
+    # import random
+    # time.sleep(random.randint(1000, 2000)/1000)
     pass
 
 
@@ -91,7 +104,8 @@ class DBManager():
     def run_code(self, func, *args, cancel_on_error=True, **kwargs):
         """Runs func with error reporting on exceptions"""
         try:
-            return func(*args, **kwargs)
+            res = func(*args, **kwargs)
+            return res
         except CeleryError:
             raise
         except ReportErrorException as e:
@@ -127,6 +141,7 @@ class DBManager():
                     pipe.watch(f"/tasks/{self.task_id}/stage/{self.stage}/version")
                     version = int(pipe.get(f"/tasks/{self.task_id}/stage/{self.stage}/version"))
                     can_write = version == self.version
+                    print('VERSIONS:', version, self.version)
                     if allow_read_only:
                         args = (pipe, can_write)
                     else:
@@ -498,3 +513,355 @@ def do_get_orthogroups(dbm, task_id, prot_ids, level):
             f"/tasks/{task_id}/stage/table/status": "Done",
             f"/tasks/{task_id}/stage/table/dash-table": table,
         })
+
+
+def launch_task(stage:str, task_id:str, version:int):
+    should_launch_task = True
+    # Trying to set status to enqueued if the task isn't already running
+    with db.pipeline(transaction=True) as pipe:
+        while True:
+            try:
+                pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
+                if should_launch_task:
+                    app.signature(
+                        f'tasks.build_{stage}',
+                        args=(task_id, version)
+                    ).apply_async()
+                    should_launch_task = False
+
+                status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
+                if status is not None:
+                    # Task has already modified it to something else, so we are not enqueued
+                    break
+                # Task is still in the queue
+                pipe.multi()
+                pipe.mset({
+                    f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
+                    f"/tasks/{task_id}/stage/{stage}/total": -3,
+                })
+                pipe.incr("/queueinfo/cur_id")
+                pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
+                pipe.execute()
+                break
+            except redis.WatchError:
+                continue
+
+
+@app.task(name='tasks.SPARQLWrapper')
+def SPARQLWrapper_Task(task_id, version):
+    dbm = DBManager("sparql", task_id, version)
+    dbm.run_code(do_SPARQLWrapper_Task, dbm, task_id, version)
+
+def do_SPARQLWrapper_Task(dbm: DBManager, task_id, version):
+    fake_delay()
+    @dbm.tx
+    def res(pipe: Pipeline):
+        queueinfo_upd(task_id, client=pipe)
+        pipe.multi()
+        pipe.set(f"/tasks/{task_id}/stage/sparql/status", "Executing")
+        dbm.set_progress(
+            current=50,
+            total=100,
+            message="started sparql request",
+            pipe=pipe,
+        )
+        pipe.get(f"/tasks/{task_id}/request/dropdown2")
+
+    fake_delay()
+    taxonomy_level = decode_str(res[-1])
+    taxonomy = taxonomy_level.split('-')[0]
+
+    # TODO: injection possible
+    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
+        organisms = organisms_list.readlines()
+
+    # TODO: pre-strip everything in files to remove this
+    # and similar lines in the codebase
+    organisms = [x.strip() for x in organisms]
+
+    task_dir = DATA_PATH / task_id
+
+    csv_data = pd.read_csv(task_dir/'OG.csv', sep=';')
+    OG_labels = csv_data['label']
+    OG_names = csv_data['Name']
+
+    df = pd.DataFrame(data={"Organisms": organisms}, dtype=object)
+    df.set_index('Organisms', inplace=True)
+    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
+
+    for i, (og_label, og_name) in enumerate(zip(OG_labels, OG_names)):
+        try:
+            endpoint.setQuery(f"""prefix : <http://purl.orthodb.org/>
+            select
+            (count(?gene) as ?count_orthologs)
+            ?org_name
+            where {{
+            ?gene a :Gene.
+            ?gene :name ?Gene_name.
+            ?gene up:organism/a ?taxon.
+            ?taxon up:scientificName ?org_name.
+            ?gene :memberOf odbgroup:{og_label}.
+            ?gene :memberOf ?og.
+            ?og :ogBuiltAt [up:scientificName "{taxonomy}"].
+            }}
+            GROUP BY ?org_name
+            ORDER BY ?org_name
+            """)
+            endpoint.setReturnFormat(SPARQLWrapper.JSON)
+
+            data = endpoint.query().convert()["results"]["bindings"]
+        except Exception:
+            data = ()
+
+        # Small trick: preallocating the length of the arrays
+        idx = [None] * len(data)
+        vals = [None] * len(data)
+
+        for j, res in enumerate(data):
+            idx[j] = res["org_name"]["value"]
+            vals[j]= int(res["count_orthologs"]["value"])
+
+        df[og_name] = pd.Series(vals, index=idx, name=og_name, dtype=int)
+        dbm.set_progress(
+            current=i,
+            total=len(OG_labels),
+            message="building tree",
+        )
+
+    # interpret the results:
+    df.fillna(0, inplace=True)
+
+    df.reset_index(drop=False, inplace=True)
+    df.to_csv(task_dir / "SPARQLWrapper.csv", index=False)
+
+    @dbm.tx
+    def res2(pipe: Pipeline):
+        pipe.multi()
+        # Remove the data
+        pipe.unlink(
+            f"/tasks/{task_id}/stage/heatmap/message",
+            f"/tasks/{task_id}/stage/heatmap/status",
+        )
+        # Stops running tasks
+        pipe.incr(f"/tasks/{task_id}/stage/heatmap/version")
+    launch_task('heatmap', task_id, res2[-1])
+
+    df['Organisms'] = df['Organisms'].astype("category")
+    df['Organisms'].cat.set_categories(organisms, inplace=True)
+    df.sort_values(["Organisms"], inplace=True)
+
+    df.columns = ['Organisms', *OG_names]
+    df = df[df['Organisms'].isin(organisms)]  #Select Main Species
+    df = df.iloc[:, 1:]
+    df = df[OG_names]
+
+    for column in df:
+        df[column] = df[column].astype(float)
+
+    df.to_csv(task_dir / "Presence-Vectors.csv", index=False)
+
+    @dbm.tx
+    def res3(pipe: Pipeline):
+        pipe.multi()
+        # Remove the data
+        pipe.unlink(
+            f"/tasks/{task_id}/stage/tree/message",
+            f"/tasks/{task_id}/stage/tree/status",
+        )
+        # Stops running tasks
+        pipe.incr(f"/tasks/{task_id}/stage/tree/version")
+    launch_task('tree', task_id, res3[-1])
+
+    @dbm.tx
+    def res_fin(pipe: Pipeline):
+        pipe.multi()
+        pipe.mset({
+            f"/tasks/{task_id}/stage/sparql/status": "Done",
+            f"/tasks/{task_id}/stage/sparql/message": "",
+            f"/tasks/{task_id}/stage/sparql/total": 0,
+        })
+
+
+@app.task()
+def build_tree(task_id, version):
+    dbm = DBManager("tree", task_id, version)
+    dbm.run_code(do_build_tree, dbm, task_id, version)
+
+def do_build_tree(dbm: DBManager, task_id, version):
+    fake_delay()
+    @dbm.tx
+    def res(pipe: Pipeline):
+        queueinfo_upd(task_id, client=pipe)
+        pipe.multi()
+        pipe.set(f"/tasks/{task_id}/stage/tree/status", "Executing")
+        dbm.set_progress(
+            current=0,
+            total=-1,
+            message="building tree",
+            pipe=pipe,
+        )
+        pipe.get(f"/tasks/{task_id}/request/dropdown2")
+    print("do_build_tree", 3)
+
+    fake_delay()
+    taxonomy_level = decode_str(res[-1])
+    print(taxonomy_level)
+
+    task_dir = DATA_PATH / task_id
+
+    #Create organisms list
+    with open(f'app/assets/data/{taxonomy_level}.txt') as f:
+        organisms = f.read().splitlines()
+    # organisms = [x.strip() for x in organisms]
+    csv_data = pd.read_csv(task_dir / 'OG.csv', sep=';')
+    og_names = csv_data['Name']
+
+    df4 = None
+    @dbm.tx
+    def res2(pipe: Pipeline):
+        nonlocal df4
+        df4 = pd.read_csv(task_dir/"Presence-Vectors.csv")
+    df4 = df4.clip(upper=1)
+
+    levels = [0, 1]
+    colors = [
+        'yellow',
+        'darkgreen',
+        # 'darkgreen', 'forestgreen',  'limegreen', 'limegreen', 'lime', 'lime', 'lime', 'lime', 'lime', 'lime'
+    ]
+    my_cmap, norm = matplotlib.colors.from_levels_and_colors(levels, colors, extend='max')
+    sns.set(font_scale=2.2)
+
+    prots_to_show = [x.split("-", maxsplit=1)[0] for x in og_names]
+
+    phylo = sns.clustermap(
+        df4,
+        metric="euclidean",
+        figsize=(len(prots_to_show), len(organisms) // 2),
+        # figsize=(len(Prots_to_show)/10, len(MainSpecies)/20),
+        linewidth=0.90,
+        row_cluster=False,
+        col_cluster=True,
+        cmap=my_cmap,
+        norm=norm,
+        # yticklabels=main_species,
+        xticklabels=prots_to_show,
+        annot=True,
+    )
+    # print(f"{phylo.data.columns=}")
+    # print(f"{phylo.data2d.columns=}")
+    # print(f"{phylo.dendrogram_col.reordered_ind=}")
+    # phylo.cax.set_visible(False)
+    # phylo.ax_col_dendrogram.set_visible(False)
+    # plt.savefig(user.path() / 'Presence.png', dpi=70, bbox_inches="tight")
+
+    # TODO: This will be done at runtime, in response to user request
+    parser = ET.XMLParser(remove_blank_text=True)
+    tree = ET.parse(f'app/assets/data/{taxonomy_level}.xml', parser)
+    root = tree.getroot()
+    graphs = ET.SubElement(root, "graphs")
+    graph = ET.SubElement(graphs, "graph", type="heatmap")
+    ET.SubElement(graph, "name").text = "Presense"
+    legend = ET.SubElement(graph, "legend", show="1")
+
+    for col_idx in phylo.dendrogram_col.reordered_ind :
+        field = ET.SubElement(legend, "field")
+        ET.SubElement(field, "name").text = phylo.data.columns[col_idx]
+
+    gradient = ET.SubElement(legend, "gradient")
+    ET.SubElement(gradient, "name").text = "Custom"
+    ET.SubElement(gradient, "classes").text = "2"
+
+    data = ET.SubElement(graph, "data")
+    for index, row in phylo.data.iterrows():
+        values = ET.SubElement(data, "values", {"for":str(index)})
+        for col_idx in phylo.dendrogram_col.reordered_ind:
+            ET.SubElement(values, "value").text = f"{row[phylo.data.columns[col_idx]] * 100:.0f}"
+
+    fn = f'cluser.xml'
+
+    @dbm.tx
+    def res3(pipe: Pipeline):
+        tree.write(str(task_dir/fn), xml_declaration=True)
+
+    @dbm.tx
+    def res_fin(pipe: Pipeline):
+        pipe.multi()
+        pipe.mset({
+            f"/tasks/{task_id}/stage/tree/status": "Done",
+            f"/tasks/{task_id}/stage/tree/total": 0,
+        })
+
+@app.task()
+def build_heatmap(task_id, version):
+    dbm = DBManager("heatmap", task_id, version)
+    dbm.run_code(do_build_heatmap, dbm, task_id, version)
+
+def do_build_heatmap(dbm: DBManager, task_id, version):
+    fake_delay()
+    @dbm.tx
+    def res(pipe: Pipeline):
+        queueinfo_upd(task_id, client=pipe)
+        pipe.multi()
+        pipe.set(f"/tasks/{task_id}/stage/heatmap/status", "Executing")
+        dbm.set_progress(
+            current=0,
+            total=-1,
+            message="building heatmap",
+            pipe=pipe,
+        )
+        pipe.get(f"/tasks/{task_id}/request/dropdown2")
+
+    fake_delay()
+    taxonomy_level = decode_str(res[-1])
+    print(taxonomy_level)
+    task_dir = DATA_PATH / task_id
+
+
+    # taxonomy = str(taxonomy_level.split('-')[0])
+    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
+        organisms = organisms_list.readlines()
+    organisms = [x.strip() for x in organisms]
+
+    csv_data = pd.read_csv(task_dir / 'OG.csv', sep=';')
+    OG_names = csv_data['Name']
+
+    df = pd.read_csv(task_dir / "SPARQLWrapper.csv")
+    df = df.iloc[:, 1:]
+    df.columns = OG_names
+    pres_df = df.apply(pd.value_counts).fillna(0)
+    pres_df_zero_values = pres_df.iloc[0, :]
+    pres_list = [(1 - item / float(len(organisms))) for item in pres_df_zero_values]
+
+    rgbs = [(1 - i, 0, 0) for i in pres_list]
+    sns.set(font_scale=1.2)
+    df = df.fillna(0).astype(float)
+    # df = df.clip(upper=1)
+    df = df.loc[:, (df != 0).any(axis=0)]
+
+    customPalette = sns.color_palette([
+        "#f72585","#b5179e","#7209b7","#560bad","#480ca8",
+        "#3a0ca3","#3f37c9","#4361ee","#4895ef","#4cc9f0",
+    ],as_cmap=True)
+
+
+    sns.clustermap(
+        df.corr(),
+        cmap=customPalette,
+        metric="correlation",
+        figsize=(15, 15),
+        col_colors=[rgbs],
+        row_colors=[rgbs],
+    )
+    # TODO: replace static filenames to dynamic (perhaps based on hash of request)
+    file_name = "Correlation.png"
+
+    @dbm.tx
+    def res_fin(pipe: Pipeline):
+        pipe.multi()
+        pipe.mset({
+            f"/tasks/{task_id}/stage/heatmap/status": "Done",
+        })
+        plt.savefig(task_dir/file_name)
+    # return html_text
+

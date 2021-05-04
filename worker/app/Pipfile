@@ -9,5 +9,8 @@ redis = "*"
 sparqlwrapper = "*"
 pandas = "*"
 requests = "*"
+seaborn = "*"
+matplotlib = "*"
+lxml = "*"
 
 [dev-packages]

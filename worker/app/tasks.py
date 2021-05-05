@@ -135,15 +135,15 @@ class DBManager():
 
     def tx(self, func=None, allow_read_only=False, retry_delay=0) -> list:
         """Decorator immediately runs the function in transaction mode
-        function must not call pipe.execute() or pipe.discard():
+        function must not call pipe.execute():
             return normally to get pipe.execute()'s results assigned to the function name
-            raise any Exception to call pipe.discard and reraise that execption
-            raise RollbackException to call pipe.discard and exit with result "None"
+            raise any Exception to discard transaction and reraise that execption
+            raise RollbackException to discard transaction and exit with result "None"
 
         function may be rerun multiple times in case watch error is triggered, be careful with side-effects
 
         function must accept 1 argument: pipeline in immediate execution state
-        if allow_read_only=True function must accept a second parameter: can_write (bool)
+        if allow_read_only=True function must accept a second argument: can_write (bool)
             in case can_write is false function must not perform any write operations on the object task_id
         """
         if func is None:

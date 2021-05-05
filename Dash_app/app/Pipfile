@@ -6,13 +6,8 @@ name = "pypi"
 [packages]
 flask = "*"
 dash = "*"
-pandas = "*"
-sparqlwrapper = "*"
 redis = "*"
 dash-bootstrap-components = "*"
-requests = "*"
-seaborn = "*"
-lxml = "*"
 celery = "*"
 
 [dev-packages]

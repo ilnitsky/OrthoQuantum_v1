@@ -1,3 +1,7 @@
+FROM buildpack-deps:buster as suexec-builder
+COPY ./su-exec /su-exec
+RUN cd /su-exec && make
+
 FROM python:3.9-slim
 
 RUN useradd -ms /bin/bash -u 1234 www       &&\
@@ -12,6 +16,8 @@ RUN useradd -ms /bin/bash -u 1234 www       &&\
     rm -rf /usr/share/doc                   &&\
     rm -rf /usr/share/man                   &&\
     apt-get clean
+
+COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
 
 USER www:www
 ENV PATH=/home/www/.local/bin:$PATH
@@ -29,4 +35,5 @@ COPY --chown=www:www ./app/ /app/
 # --prefetch-multiplier - typically long tasks, fetch 1 per worker
 #   -Q, --queues COMMA SEPARATED LIST
 #   -X, --exclude-queues COMMA SEPARATED LIST
-CMD [ "/app/run.sh" ]
+USER root:root
+ENTRYPOINT [ "/app/entrypoint.sh" ]

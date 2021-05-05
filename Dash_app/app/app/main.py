@@ -33,11 +33,6 @@ external_scripts = [
         'integrity': 'sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=',
         'crossorigin': 'anonymous'
     },
-    # {
-    #     'src': 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js',
-    #     'integrity': 'sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa',
-    #     'crossorigin': 'anonymous'
-    # },
     {
         'src': 'https://d3js.org/d3.v3.min.js',
         # 'integrity': 'sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa',
@@ -46,18 +41,6 @@ external_scripts = [
 ]
 # external CSS stylesheets
 external_stylesheets = [
-    # {
-    #     'href': 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css',
-    #     'rel': 'stylesheet',
-    #     'integrity': "sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u",
-    #     'crossorigin': 'anonymous'
-    # },
-    # {
-    #     'href': 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css',
-    #     'rel': 'stylesheet',
-    #     'integrity': "sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp",
-    #     'crossorigin': 'anonymous'
-    # },
     dbc.themes.UNITED,
 ]
 
@@ -288,7 +271,6 @@ def display_progress(status, total, current, msg):
 
     Output('uniprotAC', 'value'),
     Output('dropdown', 'value'),
-    Output('dropdown2', 'value'),
 
     Output('output_row', 'children'), # output
 
@@ -303,8 +285,6 @@ def display_progress(status, total, current, msg):
 
     State('uniprotAC', 'value'),
     State('dropdown', 'value'),
-    State('dropdown2', 'value'),
-
 )
 def table(dp:DashProxy):
     """Perform action (cancel/start building the table)"""
@@ -322,7 +302,6 @@ def table(dp:DashProxy):
             pipe.mset({
                 f"/tasks/{task_id}/request/proteins": dp['uniprotAC', 'value'],
                 f"/tasks/{task_id}/request/dropdown1": dp['dropdown', 'value'],
-                f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
             })
             # Remove the data
             pipe.unlink(
@@ -479,6 +458,8 @@ def launch_task(stage:str, task_id:str, version:int):
     Output('graphics-version', 'data'), # trigger to launch rendering
     Output('sparql-output-container', 'children'),
     Output('sparql-working', 'data'),
+    Output('dropdown2', 'value'),
+    Output('input2-version', 'data'),
 
     Input('sparql-working', 'data'),
     Input('submit-button2', 'n_clicks'),
@@ -486,6 +467,9 @@ def launch_task(stage:str, task_id:str, version:int):
     Input('progress-updater-2', 'n_intervals'),
 
     State('task_id', 'data'),
+    State('dropdown2', 'value'),
+    State('input2-version', 'data')
+
 )
 def start_heatmap_and_tree(dp:DashProxy):
     # if dp.first_load:
@@ -508,6 +492,9 @@ def start_heatmap_and_tree(dp:DashProxy):
             return
         # button press triggered
 
+        # hide the data
+        dp['graphics-version', 'data'] = 0
+
         with user.db.pipeline(transaction=True) as pipe:
             # Stops running tasks
             pipe.incr(f"/tasks/{task_id}/stage/{stage}/version")
@@ -516,6 +503,7 @@ def start_heatmap_and_tree(dp:DashProxy):
             pipe.mset({
                 f"/tasks/{task_id}/stage/heatmap/status": "Waiting",
                 f"/tasks/{task_id}/stage/tree/status": "Waiting",
+                f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
             })
             # Remove the data
             pipe.unlink(
@@ -525,7 +513,7 @@ def start_heatmap_and_tree(dp:DashProxy):
                 f"/tasks/{task_id}/stage/tree/message",
             )
             sparql_ver = pipe.execute()[0]
-
+        dp['input2-version', 'data'] = sparql_ver
         # when sparql is done it will trigger the heatmap and tree tasks
         celery_app.signature(
             'tasks.SPARQLWrapper',
@@ -566,15 +554,25 @@ def start_heatmap_and_tree(dp:DashProxy):
 
     # fill the output row
     # here because of "go" click, first launch or interval refresh
-    version, status, msg, current, total = user.db.mget(
+    version, status, msg, current, total, input_version = user.db.mget(
         f"/tasks/{task_id}/stage/{stage}/version",
         f"/tasks/{task_id}/stage/{stage}/status",
         f"/tasks/{task_id}/stage/{stage}/message",
         f"/tasks/{task_id}/stage/{stage}/current",
         f"/tasks/{task_id}/stage/{stage}/total",
+        f"/tasks/{task_id}/stage/{stage}/input2-version"
     )
+
     status, msg = decode_str(status, msg)
-    version, current, total = decode_int(version, current, total)
+    version, current, total, input_version = decode_int(version, current, total, input_version)
+
+    if input_version > dp['input2-version', 'data']:
+        input_val, input_version = user.db.mget(
+            f"/tasks/{task_id}/request/dropdown2",
+            f"/tasks/{task_id}/stage/{stage}/input2-version"
+        )
+        dp['input2-version', 'data'] = decode_int(input_version)
+        dp['dropdown2', 'value'] = decode_str(input_val)
 
     dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
 
@@ -605,6 +603,11 @@ def heatmap(dp:DashProxy):
             dp['heatmap-output-container', 'children'] = None
             # Stop running tasks
             user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            return
+
+    if ('graphics-version', 'data') in dp.triggered:
+        dp[f'{stage}-output-container', 'children'] = None
+        if not dp['graphics-version', 'data']:
             return
 
     should_update = (
@@ -675,6 +678,11 @@ def tree(dp:DashProxy):
             dp[f'{stage}-output-container', 'children'] = None
             # Stop running tasks
             user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            return
+
+    if ('graphics-version', 'data') in dp.triggered:
+        dp[f'{stage}-output-container', 'children'] = None
+        if not dp['graphics-version', 'data']:
             return
 
     should_update = (

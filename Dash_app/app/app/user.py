@@ -15,6 +15,7 @@ DATA_PATH.mkdir(exist_ok=True)
 
 
 def register():
+    # TODO: put in DB
     exc = None
     for _ in range(10):
         try:

@@ -238,6 +238,8 @@ def dashboard(task_id):
         dcc.Store(id='heatmap-working', data=False),
         dcc.Store(id='tree-working', data=False),
         dcc.Store(id='graphics-version', data=0),
+        dcc.Store(id='input2-version', data=0),
+
         dcc.Interval(
             id='progress-updater-2',
             interval=500, # in milliseconds

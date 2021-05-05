@@ -7,6 +7,7 @@ import math
 import re
 from collections import defaultdict
 from pathlib import Path
+import os
 
 import redis
 from redis.client import Pipeline
@@ -22,6 +23,8 @@ from lxml import etree as ET
 
 from protein_fetcher import orthodb_get, uniprot_get, ortho_data_get
 from db import db, cond_cas
+
+DEBUG = 'DEBUG' in os.environ
 
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 NS = {
@@ -56,7 +59,7 @@ def fake_delay():
     pass
 
 
-def chunker(items:list, min_chunk_len, max_chunks):
+def chunker(items:list, min_chunk_len, max_chunks, max_length=None):
     chunk_count = min(
         1 + len(items) // min_chunk_len,
         max_chunks,
@@ -122,10 +125,13 @@ class DBManager():
             self.report_error(e.message, cancel_rest=cancel_on_error)
             if e.__cause__ is not None:
                 e = e.__cause__
-            raise Reject(e, requeue=False) from None
+            raise Reject(e, requeue=False) from e
         except Exception as e:
-            self.report_error("Internal server error", cancel_rest=cancel_on_error)
-            raise Reject(e, requeue=False) from None
+            msg = "Internal server error"
+            if DEBUG:
+                msg += ": " + repr(e)
+            self.report_error(msg, cancel_rest=cancel_on_error)
+            raise Reject(e, requeue=False) from e
 
     def tx(self, func=None, allow_read_only=False, retry_delay=0) -> list:
         """Decorator immediately runs the function in transaction mode

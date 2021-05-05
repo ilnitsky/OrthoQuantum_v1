@@ -1,3 +1,7 @@
+FROM buildpack-deps:buster as suexec-builder
+COPY ./su-exec /su-exec
+RUN cd /su-exec && make
+
 # build phyd3 library
 FROM node:15.14-slim AS phyd3-builder
 USER node:node
@@ -120,6 +124,8 @@ RUN useradd -ms /bin/bash -u 1234 www       &&\
     rm -rf /usr/share/man                   &&\
     apt-get clean
 
+COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
+
 USER www:www
 ENV PATH=/home/www/.local/bin:$PATH
 
@@ -143,3 +149,7 @@ EXPOSE 8050
 WORKDIR /app/
 
 ENV MPLCONFIGDIR=/app/matplotlib-conf
+
+USER root:root
+CMD [ "" ]
+ENTRYPOINT [ "/app/entrypoint.sh" ]

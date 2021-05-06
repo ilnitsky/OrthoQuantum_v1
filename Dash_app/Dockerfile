@@ -99,8 +99,7 @@ WORKDIR /phydthree_component/
 RUN npm install
 
 COPY --chown=node:node phydthree_component/requirements.txt /phydthree_component/
-RUN python3 -m pip install -r /phydthree_component/requirements.txt &&\
-    rm -rf ~/.cache/pip/*
+RUN python3 -m pip --no-cache-dir install -r /phydthree_component/requirements.txt
 
 COPY --chown=node:node phydthree_component/ /phydthree_component/
 
@@ -110,36 +109,33 @@ RUN npm run build  &&\
 
 FROM tiangolo/meinheld-gunicorn:python3.8
 
-RUN useradd -ms /bin/bash -u 1234 www       &&\
-    chown -R www:www /app /app/             &&\
-    apt-get update                          &&\
-    apt-get upgrade -y                      &&\
-    apt-get install -y ca-certificates        \
-                    --no-install-recommends &&\
-    python3 -m pip install --upgrade pip    &&\
-    python3 -m pip install pipenv           &&\
-    rm -rf ~/.cache/pip/*                   &&\
-    rm -rf /var/lib/apt/lists/*             &&\
-    rm -rf /usr/share/doc                   &&\
-    rm -rf /usr/share/man                   &&\
+RUN useradd -ms /bin/bash -u 1234 www           &&\
+    chown -R www:www /app /app/                 &&\
+    apt-get update                              &&\
+    apt-get upgrade -y                          &&\
+    apt-get install -y --no-install-recommends    \
+            ca-certificates                     &&\
+    python3 -m pip --no-cache-dir                 \
+            install --upgrade pip pipenv        &&\
+    rm -rf /var/lib/apt/lists/*                 &&\
+    rm -rf /usr/share/doc                       &&\
+    rm -rf /usr/share/man                       &&\
     apt-get clean
 
-COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
-
-USER www:www
 ENV PATH=/home/www/.local/bin:$PATH
+
+COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
 
 # Installing dependencies separately in order to take advantage of docker caching mechanism
 COPY --chown=www:www ./app/Pipfile* /app/
 
-RUN pipenv install --deploy --system  &&\
-    rm -rf ~/.cache/pip/*
+RUN su-exec www pipenv install --deploy --system --clear
 
-COPY --chown=www:www --from=phyd3-comp-builder /phydthree_component/dist/phydthree_component-0.0.1.tar.gz /app/
+COPY --chown=www:www --from=phyd3-comp-builder \
+     /phydthree_component/dist/phydthree_component-0.0.1.tar.gz /app/
 
-RUN python3 -m pip install phydthree_component-0.0.1.tar.gz         &&\
-    rm -f /app/phydthree_component-0.0.1.tar.gz                     &&\
-    rm -rf ~/.cache/pip/*
+RUN su www -c "python3 -m pip --no-cache-dir install phydthree_component-0.0.1.tar.gz"  &&\
+    rm -f /app/phydthree_component-0.0.1.tar.gz
 
 COPY --chown=www:www ./app/ /app/
 COPY --chown=www:www --from=phyd3-builder /node-app/dist/assets/* /app/app/assets/
@@ -150,6 +146,5 @@ WORKDIR /app/
 
 ENV MPLCONFIGDIR=/app/matplotlib-conf
 
-USER root:root
 CMD [ "" ]
 ENTRYPOINT [ "/app/entrypoint.sh" ]

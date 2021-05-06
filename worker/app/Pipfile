@@ -12,5 +12,6 @@ requests = "*"
 seaborn = "*"
 matplotlib = "*"
 lxml = "*"
+fastcluster = "*"
 
 [dev-packages]

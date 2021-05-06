@@ -16,10 +16,12 @@ from celery.exceptions import Ignore, Reject, CeleryError
 
 import SPARQLWrapper
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import matplotlib
 from lxml import etree as ET
+import fastcluster
+from scipy.cluster import hierarchy
 
 from protein_fetcher import orthodb_get, uniprot_get, ortho_data_get
 from db import db, cond_cas
@@ -707,11 +709,8 @@ def do_build_tree(dbm: DBManager, task_id, version):
     task_dir = DATA_PATH / task_id
 
     #Create organisms list
-    with open(f'app/assets/data/{taxonomy_level}.txt') as f:
-        organisms = f.read().splitlines()
+
     # organisms = [x.strip() for x in organisms]
-    csv_data = pd.read_csv(task_dir / 'OG.csv', sep=';')
-    og_names = csv_data['Name']
 
     df4 = None
     @dbm.tx
@@ -720,31 +719,11 @@ def do_build_tree(dbm: DBManager, task_id, version):
         df4 = pd.read_csv(task_dir/"Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
 
-    levels = [0, 1]
-    colors = [
-        'yellow',
-        'darkgreen',
-        # 'darkgreen', 'forestgreen',  'limegreen', 'limegreen', 'lime', 'lime', 'lime', 'lime', 'lime', 'lime'
-    ]
-    my_cmap, norm = matplotlib.colors.from_levels_and_colors(levels, colors, extend='max')
-    sns.set(font_scale=2.2)
+    # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
+    link = fastcluster.linkage(df4.T.values, method='average', metric='euclidean')
+    dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
 
-    prots_to_show = [x.split("-", maxsplit=1)[0] for x in og_names]
-
-    phylo = sns.clustermap(
-        df4,
-        metric="euclidean",
-        figsize=(len(prots_to_show), len(organisms) // 2),
-        # figsize=(len(Prots_to_show)/10, len(MainSpecies)/20),
-        linewidth=0.90,
-        row_cluster=False,
-        col_cluster=True,
-        cmap=my_cmap,
-        norm=norm,
-        # yticklabels=main_species,
-        xticklabels=prots_to_show,
-        annot=True,
-    )
+    reordered_ind = dendro['leaves']
 
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(f'app/assets/data/{taxonomy_level}.xml', parser)
@@ -754,19 +733,19 @@ def do_build_tree(dbm: DBManager, task_id, version):
     ET.SubElement(graph, "name").text = "Presense"
     legend = ET.SubElement(graph, "legend", show="1")
 
-    for col_idx in phylo.dendrogram_col.reordered_ind :
+    for col_idx in reordered_ind:
         field = ET.SubElement(legend, "field")
-        ET.SubElement(field, "name").text = phylo.data.columns[col_idx]
+        ET.SubElement(field, "name").text = df4.columns[col_idx]
 
     gradient = ET.SubElement(legend, "gradient")
     ET.SubElement(gradient, "name").text = "Custom"
     ET.SubElement(gradient, "classes").text = "2"
 
     data = ET.SubElement(graph, "data")
-    for index, row in phylo.data.iterrows():
+    for index, row in df4.iterrows():
         values = ET.SubElement(data, "values", {"for":str(index)})
-        for col_idx in phylo.dendrogram_col.reordered_ind:
-            ET.SubElement(values, "value").text = f"{row[phylo.data.columns[col_idx]] * 100:.0f}"
+        for col_idx in reordered_ind:
+            ET.SubElement(values, "value").text = f"{row[df4.columns[col_idx]] * 100:.0f}"
 
     @dbm.tx
     def _(pipe: Pipeline):

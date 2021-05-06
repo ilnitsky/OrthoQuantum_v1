@@ -17,7 +17,6 @@ services:
     volumes:
       - "redis_data:/data"
 
-
   worker:
     build: ./worker
     environment:

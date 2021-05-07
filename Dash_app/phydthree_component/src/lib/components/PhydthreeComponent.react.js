@@ -13,12 +13,33 @@ export default class PhydthreeComponent extends Component {
         super(props);
         this.url = this.props.url;
         this.ref = React.createRef();
+        this.callback = null;
     }
     componentDidUpdate() {
         this.redraw()
     }
     componentDidMount() {
+        // listen for resize events
+        window.addEventListener('resize', this.handleResize.bind(this))
         this.redraw()
+    }
+    handleResize() {
+        // debounce resize events (redraw at most once per second)
+        if (this.callback != null){
+            clearTimeout(this.callback)
+        }
+        this.callback = setTimeout(this.resizeComponent.bind(this), 1000);
+    }
+    resizeComponent() {
+        // do actual resizing
+        this.forceUpdate();
+        this.callback = null;
+    }
+    componentWillUnmount() {
+        window.removeEventListener('resize', this.handleResize.bind(this));
+        if (this.callback != null){
+            clearTimeout(this.callback)
+        }
     }
     redraw() {
         var ref = this.ref;
@@ -49,7 +70,6 @@ export default class PhydthreeComponent extends Component {
         };
         // vv url from props
         d3.xml(this.props.url, function (err, xml) {
-            console.log("err", err, xml);
             if (err != null){
                 d3.select(ref.current).text("Error");
             }else{
@@ -61,7 +81,7 @@ export default class PhydthreeComponent extends Component {
 
     render() {
         return (
-            <div><div ref={this.ref} id="phyd3"></div></div>
+            <div ref={this.ref} id="phyd3"></div>
         );
     }
 

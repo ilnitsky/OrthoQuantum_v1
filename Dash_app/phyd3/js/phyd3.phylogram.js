@@ -641,8 +641,13 @@ window.requestAnimFrame = (function(){
 
         repaint();
 
-        // group labels action handling functions
+        d3.select(".svg-tree-btn").on("click", function() {
+            tree_img_contents = d3.select("#svg-tree");
+            tree_img_contents.text("Generating...");
+            tree_img_contents.html(getSVGData());
+        })
 
+        // group labels action handling functions
         function applyLabelGroupTransform() {
             vis.selectAll('text.groupLabel').remove();
             vis.selectAll('rect.groupLabel').remove();
@@ -916,9 +921,7 @@ window.requestAnimFrame = (function(){
         // action handlers for SVG
 
         function getSVGData() {
-            var container = selector.replace("#","");
-            var wrapper = document.getElementById(container);
-            var svg = wrapper.querySelector("svg");
+            var svg = selector.querySelector("svg");
             var g = svg.getElementById("main"),
                 bbox = g.getBBox(),
                 transform = g.getAttributeNode("transform"),

@@ -8,7 +8,7 @@ workers_per_core = 4.0
 loglevel = "info"
 workers = int(workers_per_core * cores)
 bind = "0.0.0.0:8050"
-
+keepalive = 5
 errorlog = "-"
 capture_output = True
 preload_app = True

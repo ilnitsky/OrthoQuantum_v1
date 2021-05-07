@@ -257,7 +257,7 @@ def display_progress(status, total, current, msg):
                     children=html.Span(
                         msg,
                         className="justify-content-center d-flex position-absolute w-100",
-                        style={"color": "black", "will-change": "contents"},
+                        style={"color": "black"},
                     ),
                     **pbar,
                 ),
@@ -454,6 +454,16 @@ def launch_task(stage:str, task_id:str, version:int):
                 continue
 
 
+@dash_app.callback(
+    Output('progress-updater-2', 'disabled'),
+    Input('sparql-working', 'data'),
+    Input('heatmap-working', 'data'),
+    Input('tree-working', 'data'),
+)
+def updater_controller(*is_working):
+    # While there are tasks - keep updater running
+    return not any(is_working)
+
 @DashProxy.callback(
     Output('graphics-version', 'data'), # trigger to launch rendering
     Output('sparql-output-container', 'children'),
@@ -461,7 +471,6 @@ def launch_task(stage:str, task_id:str, version:int):
     Output('dropdown2', 'value'),
     Output('input2-version', 'data'),
 
-    Input('sparql-working', 'data'),
     Input('submit-button2', 'n_clicks'),
     Input('submit-button2', 'disabled'),
     Input('progress-updater-2', 'n_intervals'),
@@ -469,7 +478,6 @@ def launch_task(stage:str, task_id:str, version:int):
     State('task_id', 'data'),
     State('dropdown2', 'value'),
     State('input2-version', 'data')
-
 )
 def start_heatmap_and_tree(dp:DashProxy):
     # if dp.first_load:
@@ -482,6 +490,8 @@ def start_heatmap_and_tree(dp:DashProxy):
         if dp['submit-button2', 'disabled']:
             # First stage data was changed, clear the current data
             dp['sparql-output-container', 'children'] = None
+            # hide the data
+            dp['graphics-version', 'data'] = 0
             # Stop running tasks
             user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
             return
@@ -542,16 +552,6 @@ def start_heatmap_and_tree(dp:DashProxy):
                 except redis.WatchError:
                     continue
 
-        dp[f'{stage}-working', 'data'] = True
-
-    should_update = (
-        dp[f'{stage}-working', 'data'] or # actively updating right now
-        dp.first_load
-    )
-    if not should_update:
-        # don't need to update our output
-        return
-
     # fill the output row
     # here because of "go" click, first launch or interval refresh
     version, status, msg, current, total, input_version = user.db.mget(
@@ -582,144 +582,124 @@ def start_heatmap_and_tree(dp:DashProxy):
         dp[f'{stage}-output-container', 'children'] = None
         dp['graphics-version', 'data'] = version
 
+def process_heatmap_or_tree(stage, dp:DashProxy):
+    """Display progress bar, returns task_id and version if we need to render tree/heatmap"""
+    if ('progress-updater-2', 'n_intervals') in dp.triggered and len (dp.triggered) == 1:
+        # timer-only trigger
+        if not dp[f'{stage}-working', 'data']:
+            # no need for progress bar, ignore update
+            return
+
+    task_id = dp['task_id', 'data']
+
+    if dp['graphics-version', 'data'] == 0:
+        if ('graphics-version', 'data') in dp.triggered:
+            dp[f'{stage}-output-container', 'children'] = None
+            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+        return
+
+    # fill the output row
+    # here because of sparql finish, first launch or interval refresh
+    status, msg, current, total, version = user.db.mget(
+        f"/tasks/{task_id}/stage/{stage}/status",
+        f"/tasks/{task_id}/stage/{stage}/message",
+        f"/tasks/{task_id}/stage/{stage}/current",
+        f"/tasks/{task_id}/stage/{stage}/total",
+        f"/tasks/{task_id}/stage/{stage}/version"
+    ) # TODO: version first == bug
+    status, msg = decode_str(status, msg)
+    version, current, total = decode_int(version, current, total)
+
+    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
+    if status in ('Enqueued', 'Executing', 'Error'):
+        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
+    elif status == 'Done':
+        return task_id, version
 
 @DashProxy.callback(
     Output('heatmap-output-container', 'children'),
     Output('heatmap-working', 'data'),
 
     Input('progress-updater-2', 'n_intervals'),
-    Input('graphics-version', 'data'), # trigger to launch rendering
-    Input('submit-button2', 'disabled'),
+    Input('graphics-version', 'data'),
 
     State('heatmap-working', 'data'),
     State('task_id', 'data'),
 )
 def heatmap(dp:DashProxy):
-    stage = 'heatmap'
-    task_id = dp['task_id', 'data']
-    if ('submit-button2', 'disabled') in dp.triggered:
-        if dp['submit-button2', 'disabled']:
-            # First stage data was changed, clear the current data
-            dp['heatmap-output-container', 'children'] = None
-            # Stop running tasks
-            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
-            return
-
-    if ('graphics-version', 'data') in dp.triggered:
-        dp[f'{stage}-output-container', 'children'] = None
-        if not dp['graphics-version', 'data']:
-            return
-
-    should_update = (
-        ('graphics-version', 'data') in dp.triggered or # must start work
-        dp[f'{stage}-working', 'data'] or # actively updating right now
-        dp.first_load
-    )
-    if not should_update:
-        # don't need to update our output
+    res = process_heatmap_or_tree('heatmap', dp)
+    if not res:
         return
 
-
-    # fill the output row
-    # here because of sparql finish, first launch or interval refresh
-    status, msg, current, total, version = user.db.mget(
-        f"/tasks/{task_id}/stage/{stage}/status",
-        f"/tasks/{task_id}/stage/{stage}/message",
-        f"/tasks/{task_id}/stage/{stage}/current",
-        f"/tasks/{task_id}/stage/{stage}/total",
-        f"/tasks/{task_id}/stage/{stage}/version"
-    )# TODO: version first == bug
-    status, msg = decode_str(status, msg)
-    version, current, total = decode_int(version, current, total)
-
-    if status in ('Enqueued', 'Executing', 'Error'):
-        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
-
-    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
-
-    if status == 'Done':
-        dp[f'{stage}-output-container', 'children'] = dbc.Row(
-            dbc.Col(
+    task_id, version = res
+    dp[f'heatmap-output-container', 'children'] = dbc.Row(
+        dbc.Col(
+            html.A(
                 html.Img(
                     src=f'/files/{task_id}/Correlation.png?version={version}',
-                    id="corr",
-                )
+                    style={
+                        'width': '100%',
+                        'max-width': '1100px',
+                    },
+                    className="mx-auto",
+                ),
+                href=f'/files/{task_id}/Correlation.png?version={version}',
+                target="_blank",
+                className="mx-auto",
             ),
-        )
-
-@dash_app.callback(
-    Output('progress-updater-2', 'disabled'),
-    Input('sparql-working', 'data'),
-    Input('heatmap-working', 'data'),
-    Input('tree-working', 'data'),
-)
-def updater_controller(*is_working):
-    # While there are tasks - keep updater running
-    return not any(is_working)
+            className="text-center",
+        ),
+        className="mx-4",
+    )
 
 @DashProxy.callback(
     Output('tree-output-container', 'children'),
     Output('tree-working', 'data'),
 
     Input('progress-updater-2', 'n_intervals'),
-    Input('graphics-version', 'data'), # trigger to launch rendering
-
-    Input('submit-button2', 'disabled'),
+    Input('graphics-version', 'data'),
 
     State('tree-working', 'data'),
     State('task_id', 'data'),
 )
 def tree(dp:DashProxy):
-    stage = 'tree'
-    task_id = dp['task_id', 'data']
-    if ('submit-button2', 'disabled') in dp.triggered:
-        if dp['submit-button2', 'disabled']:
-            # First stage data was changed, clear the current data
-            dp[f'{stage}-output-container', 'children'] = None
-            # Stop running tasks
-            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
-            return
-
-    if ('graphics-version', 'data') in dp.triggered:
-        dp[f'{stage}-output-container', 'children'] = None
-        if not dp['graphics-version', 'data']:
-            return
-
-    should_update = (
-        ('graphics-version', 'data') in dp.triggered or # must start work
-        dp[f'{stage}-working', 'data'] or # actively updating right now
-        dp.first_load
-    )
-    if not should_update:
-        # don't need to update our output
+    res = process_heatmap_or_tree('tree', dp)
+    if not res:
         return
 
-    # fill the output row
-    # here because of sparql finish, first launch or interval refresh
-
-    status, msg, current, total, version = user.db.mget(
-        f"/tasks/{task_id}/stage/{stage}/status",
-        f"/tasks/{task_id}/stage/{stage}/message",
-        f"/tasks/{task_id}/stage/{stage}/current",
-        f"/tasks/{task_id}/stage/{stage}/total",
-        f"/tasks/{task_id}/stage/{stage}/version"
-    )
-    status, msg = decode_str(status, msg)
-    version, current, total = decode_int(version, current, total)
-
-    if status in ('Enqueued', 'Executing', 'Error'):
-        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
-
-    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
-
-    if status == 'Done':
-        dp[f'{stage}-output-container', 'children'] = dbc.Row(
-            dbc.Col(
-                PhydthreeComponent(
-                    url=f'/files/{task_id}/cluser.xml?nocache={version}'
-                )
+    task_id, version = res
+    dp[f'tree-output-container', 'children'] = dbc.Row(
+        dbc.Col(
+            dbc.Tabs(
+                [
+                    dbc.Tab(
+                        html.Div(
+                            PhydthreeComponent(
+                                url=f'/files/{task_id}/cluser.xml?nocache={version}',
+                            ),
+                        ),
+                        label="Interactive graph",
+                        tab_id="tab-1",
+                    ),
+                    dbc.Tab(
+                        html.Div(
+                            id="svg-tree",
+                            style={
+                                'overflow': 'scroll',
+                                'max-height': 2000,
+                            },
+                        ),
+                        label="Static image",
+                        tabClassName="svg-tree-btn",
+                        tab_id="tab-2",
+                    ),
+                ],
+                className="my-4",
+                active_tab="tab-1",
             ),
-        )
+        ),
+        className="mx-4"
+    )
 
 
 @dash_app.server.route('/files/<task_id>/<name>')

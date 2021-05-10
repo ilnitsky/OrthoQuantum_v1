@@ -438,6 +438,25 @@ def do_fetch_proteins(dbm:DBManager, task_id, prot_ids, level):
             pipe.setnx(f"/cache/uniprot/{level}/{prot_id}/created", cur_time)
         pipe.execute()
 
+
+
+def get_orgs(level):
+    parser = ET.XMLParser(remove_blank_text=True)
+    tree = ET.parse(f'phyloxml/{level}.xml', parser)
+    root = tree.getroot()
+
+    orgs_xml = root.xpath("//pxml:id/..", namespaces={'pxml':"http://www.phyloxml.org"})
+    # Assuming only children have IDs
+    return [
+        name
+        for _, name in sorted(
+            (int(org_xml.find("id", NS).text), org_xml.find("name", NS).text)
+            for org_xml in orgs_xml
+        )
+    ]
+
+
+
 @app.task()
 def _get_orthogroups(task_id, version, prot_ids, level):
     dbm = DBManager("table", task_id, version)
@@ -590,32 +609,34 @@ def do_get_orthogroups(dbm, task_id, prot_ids, level):
         })
 
 
-def get_orgs(level):
-    parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(f'app/phyloxml/{level}.xml', parser)
-    root = tree.getroot()
 
-    orgs_xml = root.xpath("//pxml:id/..", namespaces={'pxml':"http://www.phyloxml.org"})
-    # Assuming only children have IDs
-    return [
-        name
-        for _, name in sorted(
-            int(org_xml.find("id", NS).text), org_xml.find("name", NS).text
-            for org_xml in orgs_xml
+@app.task(name='tasks.SPARQLWrapper')
+def SPARQLWrapper_Task(task_id, version):
+    dbm = DBManager("sparql", task_id, version)
+    dbm.run_code(do_SPARQLWrapper_Task, dbm, task_id)
+
+def do_SPARQLWrapper_Task(dbm: DBManager, task_id):
+    stage='sparql'
+    fake_delay()
+    @dbm.tx
+    def res(pipe: Pipeline):
+        queueinfo_upd(task_id, stage, client=pipe)
+        pipe.multi()
+        pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
+        dbm.set_progress(
+            current=0,
+            total=-1,
+            message="started sparql request",
+            pipe=pipe,
         )
-    ]
+        pipe.get(f"/tasks/{task_id}/request/dropdown2")
 
     fake_delay()
     taxonomy_level = decode_str(res[-1])
     taxonomy = taxonomy_level.split('-')[0]
 
     # TODO: injection possible
-    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
-        organisms = organisms_list.readlines()
-
-    # TODO: pre-strip everything in files to remove this
-    # and similar lines in the codebase
-    organisms = [x.strip() for x in organisms]
+    organisms = get_orgs(taxonomy_level)
 
     task_dir = DATA_PATH / task_id
 
@@ -700,6 +721,7 @@ def get_orgs(level):
         })
 
 
+
 @app.task()
 def build_tree(task_id, version):
     dbm = DBManager("tree", task_id, version)
@@ -745,7 +767,7 @@ def do_build_tree(dbm: DBManager, task_id, version):
     reordered_ind = dendro['leaves']
 
     parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(f'app/phyloxml/{taxonomy_level}.xml', parser)
+    tree = ET.parse(f'phyloxml/{taxonomy_level}.xml', parser)
     root = tree.getroot()
     graphs = ET.SubElement(root, "graphs")
     graph = ET.SubElement(graphs, "graph", type="heatmap")

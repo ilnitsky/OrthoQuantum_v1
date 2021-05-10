@@ -1,7 +1,7 @@
 var compressor = require('node-minify');
 
 compressor.minify({
-  compressor: 'gcc',
+  compressor: process.env.DEBUG ? 'no-compress' : 'gcc',
   input: 'js/phyd3.*.js',
   output: '/tmp/phyd3.min.js'
 }).then(function(min) {
@@ -18,7 +18,7 @@ compressor.minify({
   output: 'dist/css/phyd3.css'
 }).then(function(min) {
     compressor.minify({
-      compressor: 'csso',
+      compressor: process.env.DEBUG ? 'no-compress' : 'csso',
       input: 'dist/css/phyd3.css',
       output: 'dist/css/phyd3.min.css'
     });

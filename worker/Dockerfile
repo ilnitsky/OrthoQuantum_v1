@@ -3,6 +3,8 @@ COPY ./su-exec /su-exec
 RUN cd /su-exec && make
 
 FROM python:3.9-slim
+ARG DEBUG=""
+ENV DEBUG=${DEBUG}
 
 RUN useradd -ms /bin/bash -u 1234 www           &&\
     apt-get update                              &&\
@@ -24,7 +26,7 @@ WORKDIR /app/
 
 # Installing dependencies separately in order to take advantage of docker caching mechanism
 COPY --chown=www:www ./app/Pipfile* /app/
-RUN su-exec www pipenv install --deploy --system --clear
+RUN su www -c "pipenv install --deploy --system --clear"
 
 COPY --chown=www:www ./app/ /app/
 

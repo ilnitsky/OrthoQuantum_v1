@@ -4,6 +4,8 @@ RUN cd /su-exec && make
 
 # build phyd3 library
 FROM node:15.14-slim AS phyd3-builder
+ARG DEBUG=""
+ENV DEBUG=${DEBUG}
 USER node:node
 
 COPY --chown=node:node phyd3/package*.json /node-app/
@@ -21,6 +23,8 @@ RUN node dist.js &&\
 
 # build phyd3 component for dash
 FROM python:3.9-buster AS phyd3-comp-builder
+ARG DEBUG=""
+ENV DEBUG=${DEBUG}
 # Copied from node:15.14-slim dockerfile
 RUN groupadd --gid 1000 node \
   && useradd --uid 1000 --gid node --shell /bin/bash --create-home node
@@ -108,6 +112,8 @@ RUN npm run build  &&\
 
 
 FROM tiangolo/meinheld-gunicorn:python3.8
+ARG DEBUG=""
+ENV DEBUG=${DEBUG}
 
 RUN useradd -ms /bin/bash -u 1234 www           &&\
     chown -R www:www /app /app/                 &&\
@@ -129,7 +135,7 @@ COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
 # Installing dependencies separately in order to take advantage of docker caching mechanism
 COPY --chown=www:www ./app/Pipfile* /app/
 
-RUN su-exec www pipenv install --deploy --system --clear
+RUN su www -c "pipenv install --deploy --system --clear"
 
 COPY --chown=www:www --from=phyd3-comp-builder \
      /phydthree_component/dist/phydthree_component-0.0.1.tar.gz /app/

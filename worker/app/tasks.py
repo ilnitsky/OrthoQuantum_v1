@@ -1,4 +1,3 @@
-import contextlib
 from functools import partialmethod
 import itertools
 import time
@@ -61,19 +60,41 @@ def fake_delay():
     pass
 
 
-def chunker(items:list, min_chunk_len, max_chunks, max_length=None):
-    chunk_count = min(
-        1 + len(items) // min_chunk_len,
-        max_chunks,
-    )
-    items_per_chunk = math.ceil(len(items)/chunk_count)
-
-    it = iter(items)
+def split_into_groups(iterable, group_len):
+    it = iter(iterable)
+    accum = 0
     while True:
-        res = tuple(itertools.islice(it, items_per_chunk))
+        accum += group_len
+        this_len = round(accum)
+        accum -= this_len
+        res = tuple(itertools.islice(it, this_len))
         if not res:
             break
         yield res
+
+
+
+def chunker(items:list, min_items_per_worker, max_workers, max_items_per_request=None, dedupe=True):
+    if dedupe:
+        items = list(dict.fromkeys(items))
+    chunk_count = min(
+        max(1,math.ceil(len(items) / min_items_per_worker)),
+        max_workers,
+    )
+    items_per_chunk = math.ceil(len(items)/chunk_count)
+    if max_items_per_request is not None:
+        subchunks_per_chunk = math.ceil(items_per_chunk/max_items_per_request)
+    else:
+        subchunks_per_chunk = 1
+
+    total_slots = chunk_count * subchunks_per_chunk
+
+    items_per_subchunk = len(items)/total_slots
+
+    yield from split_into_groups(
+        split_into_groups(items, items_per_subchunk),
+        subchunks_per_chunk,
+    )
 #endregion
 
 
@@ -318,7 +339,6 @@ def do_build_table(dbm: DBManager, task_id, version):
     level = decode_str(res[-1]).split('-')[0]
     prot_ids : list
 
-
     # Filter out already cached proteins
     cur_time = int(time.time())
     with db.pipeline(transaction=False) as pipe:
@@ -342,7 +362,10 @@ def do_build_table(dbm: DBManager, task_id, version):
             prot_chunk,
             level,
         )
-        for prot_chunk in chunker(prots_to_fetch, min_chunk_len=2, max_chunks=5)
+        for prot_chunk in chunker(
+            prots_to_fetch, min_items_per_worker=20,
+            max_workers=5, max_items_per_request=200, # 200
+        )
     )
 
     pipeline = (
@@ -367,7 +390,9 @@ def do_fetch_proteins(dbm:DBManager, task_id, prot_ids, level):
     stage = "table"
     fake_delay()
     prots = defaultdict(list)
-    req_ids = set(prot_ids)
+    req_ids = set()
+    for prot_id_group in prot_ids:
+        req_ids.update(prot_id_group)
     prots.update(orthodb_get(level, req_ids))
     fake_delay()
 
@@ -565,27 +590,20 @@ def do_get_orthogroups(dbm, task_id, prot_ids, level):
         })
 
 
+def get_orgs(level):
+    parser = ET.XMLParser(remove_blank_text=True)
+    tree = ET.parse(f'app/phyloxml/{level}.xml', parser)
+    root = tree.getroot()
 
-@app.task(name='tasks.SPARQLWrapper')
-def SPARQLWrapper_Task(task_id, version):
-    dbm = DBManager("sparql", task_id, version)
-    dbm.run_code(do_SPARQLWrapper_Task, dbm, task_id)
-
-def do_SPARQLWrapper_Task(dbm: DBManager, task_id):
-    stage='sparql'
-    fake_delay()
-    @dbm.tx
-    def res(pipe: Pipeline):
-        queueinfo_upd(task_id, stage, client=pipe)
-        pipe.multi()
-        pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
-        dbm.set_progress(
-            current=50,
-            total=100,
-            message="started sparql request",
-            pipe=pipe,
+    orgs_xml = root.xpath("//pxml:id/..", namespaces={'pxml':"http://www.phyloxml.org"})
+    # Assuming only children have IDs
+    return [
+        name
+        for _, name in sorted(
+            int(org_xml.find("id", NS).text), org_xml.find("name", NS).text
+            for org_xml in orgs_xml
         )
-        pipe.get(f"/tasks/{task_id}/request/dropdown2")
+    ]
 
     fake_delay()
     taxonomy_level = decode_str(res[-1])
@@ -719,6 +737,7 @@ def do_build_tree(dbm: DBManager, task_id, version):
         df4 = pd.read_csv(task_dir/"Presence-Vectors.csv")
     df4 = df4.clip(upper=1)
 
+    # Slower, but without fastcluster lib
     # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
     link = fastcluster.linkage(df4.T.values, method='average', metric='euclidean')
     dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
@@ -726,7 +745,7 @@ def do_build_tree(dbm: DBManager, task_id, version):
     reordered_ind = dendro['leaves']
 
     parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(f'app/assets/data/{taxonomy_level}.xml', parser)
+    tree = ET.parse(f'app/phyloxml/{taxonomy_level}.xml', parser)
     root = tree.getroot()
     graphs = ET.SubElement(root, "graphs")
     graph = ET.SubElement(graphs, "graph", type="heatmap")
@@ -784,11 +803,7 @@ def do_build_heatmap(dbm: DBManager, task_id, version):
     taxonomy_level = decode_str(res[-1])
     task_dir = DATA_PATH / task_id
 
-
-    # taxonomy = str(taxonomy_level.split('-')[0])
-    with open(f'app/assets/data/{taxonomy_level}.txt') as organisms_list:
-        organisms = organisms_list.readlines()
-    organisms = [x.strip() for x in organisms]
+    organisms = get_orgs(taxonomy_level)
 
     csv_data = pd.read_csv(task_dir / 'OG.csv', sep=';')
     OG_names = csv_data['Name']

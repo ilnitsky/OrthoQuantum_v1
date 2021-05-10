@@ -542,8 +542,7 @@ window.requestAnimFrame = (function(){
             saveAs(new Blob([unescape(encodeURIComponent(svg))], {type:"application/svg+xml"}), "phylogram.svg");
         })
 
-        d3.select("#linkPNG").on("click", function() {
-            // download PNG file
+        phyd3.phylogram.renderPNG = function () {
             var svg = getSVGData();
             var canvas = document.createElement("canvas");
             var box = d3.select("g#main").node().getBBox();
@@ -551,7 +550,7 @@ window.requestAnimFrame = (function(){
             canvas.toBlob(function(blob) {
                 saveAs(blob, "phylogram.png");
             });
-        });
+        };
 
         d3.select("#searchQuery").on("change", function() {
             // search in tree
@@ -640,12 +639,18 @@ window.requestAnimFrame = (function(){
         }
 
         repaint();
-
-        d3.select(".svg-tree-btn").on("click", function() {
-            tree_img_contents = d3.select("#svg-tree");
-            tree_img_contents.text("Generating...");
-            tree_img_contents.html(getSVGData());
-        })
+        phyd3.phylogram.renderSVG = function (svg_item) {
+            d3.select(svg_item).text("Generating...");
+            var svg_data_static = getSVGData();
+            d3.select(svg_item).html(null);
+            d3.select(svg_item).html(svg_data_static);
+            d3.select(svg_item).selectAll("*[id]").attr(
+                'id',
+                function(){
+                    return 'baked_' + this.id;
+                }
+            );
+        }
 
         // group labels action handling functions
         function applyLabelGroupTransform() {
@@ -784,6 +789,7 @@ window.requestAnimFrame = (function(){
             d3.select(selector)
               .select("svg")
               .remove();
+            d3.select(selector).html(null);
 
             svg = d3.select(selector)
                 .insert("svg");

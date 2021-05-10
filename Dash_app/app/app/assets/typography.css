@@ -8,3 +8,7 @@ hr {
     border-color: hotpink;
     border-width: 2px;
 }
+
+.nav-link {
+    cursor: pointer
+}

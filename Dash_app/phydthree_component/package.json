@@ -16,7 +16,8 @@
   "author": "Ivan Ilnitsky <nope@example.com>",
   "license": "MIT",
   "dependencies": {
-    "ramda": "^0.26.1"
+    "ramda": "^0.26.1",
+    "reactstrap": "^8.9.0"
   },
   "devDependencies": {
     "@babel/core": "^7.5.4",

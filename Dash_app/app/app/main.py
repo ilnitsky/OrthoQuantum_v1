@@ -670,35 +670,12 @@ def tree(dp:DashProxy):
     task_id, version = res
     dp[f'tree-output-container', 'children'] = dbc.Row(
         dbc.Col(
-            dbc.Tabs(
-                [
-                    dbc.Tab(
-                        html.Div(
-                            PhydthreeComponent(
-                                url=f'/files/{task_id}/cluser.xml?nocache={version}',
-                            ),
-                        ),
-                        label="Interactive graph",
-                        tab_id="tab-1",
-                    ),
-                    dbc.Tab(
-                        html.Div(
-                            id="svg-tree",
-                            style={
-                                'overflow': 'scroll',
-                                'max-height': 2000,
-                            },
-                        ),
-                        label="Static image",
-                        tabClassName="svg-tree-btn",
-                        tab_id="tab-2",
-                    ),
-                ],
-                className="my-4",
-                active_tab="tab-1",
+            PhydthreeComponent(
+                url=f'/files/{task_id}/cluser.xml?nocache={version}',
+                height=2000,
             ),
-        ),
-        className="mx-4"
+            className="mx-5 mt-3",
+        )
     )
 
 
@@ -710,6 +687,5 @@ def serve_user_file(task_id, name):
     response = flask.make_response(flask.send_from_directory(f"/app/user_data/{task_id}", name))
     if name.lower().endswith(".xml"):
         response.mimetype = "text/xml"
-    response.headers["Cache-Control"] = 'no-store, no-cache, must-revalidate, max-age=0'
 
     return response

@@ -1,13 +1,15 @@
 version: "3"
 services:
   web:
-    build: ./dash_app
+    build:
+      context: ./dash_app
+      args:
+        DEBUG: "1"
     ports:
       - "8050:8050"
     environment:
       # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
       SECRET_KEY: "SECRET_KEY_CHANGE_ME"
-      DEBUG: "1"
       PYTHONUNBUFFERED: "1"
     volumes:
       - "user_data:/app/user_data"
@@ -18,9 +20,10 @@ services:
       - "redis_data:/data"
 
   worker:
-    build: ./worker
-    environment:
-      DEBUG: "1"
+    build:
+      context: ./worker
+      args:
+        DEBUG: "1"
     volumes:
       - "user_data:/app/user_data"
 

@@ -13,5 +13,9 @@ seaborn = "*"
 matplotlib = "*"
 lxml = "*"
 fastcluster = "*"
+aioredis = ">=2.0.0a1"
 
 [dev-packages]
+
+[pipenv]
+allow_prereleases = true

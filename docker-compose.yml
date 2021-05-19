@@ -1,18 +1,13 @@
 version: "3"
 services:
   web:
-    build:
-      context: ./dash_app
-      args:
-        DEBUG: "1"
+    build: ./dash_app
     ports:
-      - "8050:8050"
-    environment:
-      # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
-      SECRET_KEY: "SECRET_KEY_CHANGE_ME"
-      PYTHONUNBUFFERED: "1"
+      - "127.0.0.1:8050:8050"
     volumes:
       - "user_data:/app/user_data"
+    environment:
+      SECRET_KEY: "${SECRET_KEY:?missing_secret_key}"
 
   redis:
     build: ./redis
@@ -20,31 +15,13 @@ services:
       - "redis_data:/data"
 
   worker:
-    build:
-      context: ./worker
-      args:
-        DEBUG: "1"
+    build: ./worker
     volumes:
       - "user_data:/app/user_data"
 
 volumes:
   user_data:
-#     driver: local
-#     driver_opts:
-#         type: none
-#         o: bind
-#         device: ./user_storage
   redis_data:
-#     driver: local
-#     driver_opts:
-#         type: none
-#         o: bind
-#         device: ./redis_data
-
-# networks:
-#   default:
-#     external:
-#       name: kenga_net
 
 
 # export SYSTEM_VERSION_COMPAT=1

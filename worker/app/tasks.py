@@ -53,12 +53,12 @@ if not DATA_PATH.exists():
 INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
 
-def fake_delay(): pass
 #region utils
 def fake_delay():
-    import random
-    time.sleep(random.randint(100, 500)/1000)
+    # import random
+    # time.sleep(random.randint(1000, 2000)/1000)
     pass
+
 
 def split_into_groups(iterable, group_len):
     it = iter(iterable)
@@ -335,10 +335,6 @@ def do_build_table(dbm: DBManager, task_id, version):
             pipe=pipe,
         )
         pipe.get(f"/tasks/{task_id}/request/dropdown1")
-
-    task_dir = DATA_PATH / task_id
-    task_dir.mkdir(exist_ok=True)
-
     fake_delay()
     level = decode_str(res[-1]).split('-')[0]
     prot_ids : list
@@ -359,7 +355,7 @@ def do_build_table(dbm: DBManager, task_id, version):
     dbm.set_progress(current=len(prot_ids) - len(prots_to_fetch))
     fake_delay()
 
-    protein_fetch = celery.group(
+    group = celery.group(
         _fetch_proteins.s(
             task_id,
             version,
@@ -373,8 +369,8 @@ def do_build_table(dbm: DBManager, task_id, version):
     )
 
     pipeline = (
-        protein_fetch |
-        _get_orthogroups.s(
+        group |
+        _get_orthogroups.si(
             task_id,
             version,
             prot_ids,
@@ -387,25 +383,22 @@ def do_build_table(dbm: DBManager, task_id, version):
 @app.task()
 def _fetch_proteins(task_id, version, prot_ids, level):
     dbm = DBManager("table", task_id, version)
-    return dbm.run_code(do_fetch_proteins, dbm, task_id, prot_ids, level, cancel_on_error=False)
+    dbm.run_code(do_fetch_proteins, dbm, task_id, prot_ids, level, cancel_on_error=False)
 
 def do_fetch_proteins(dbm:DBManager, task_id, prot_ids, level):
-    """Task fetches protein info and puts it into the cache, returns og"""
+    """Task fetches protein info and puts it into the cache"""
     stage = "table"
     fake_delay()
     prots = defaultdict(list)
     req_ids = set()
-    with dbm:
-        for prot_id_group in prot_ids:
-            req_ids.update(prot_id_group)
-            data = orthodb_get(level, prot_id_group)
-            dbm.progress(incr_curr=len(data))
-            prots.update(data)
-
+    for prot_id_group in prot_ids:
+        req_ids.update(prot_id_group)
+    prots.update(orthodb_get(level, req_ids))
     fake_delay()
 
-
+    dbm.progress(incr_curr=len(prots))
     sparql_misses = req_ids - prots.keys()
+
     missing_prots = []
 
     def write_missing(pipe: Pipeline):
@@ -445,8 +438,6 @@ def do_fetch_proteins(dbm:DBManager, task_id, prot_ids, level):
             pipe.setnx(f"/cache/uniprot/{level}/{prot_id}/created", cur_time)
         pipe.execute()
 
-    # returning orthogroup id
-    return [v[0] for v in prots.values()]
 
 
 def get_orgs(level):
@@ -465,23 +456,13 @@ def get_orgs(level):
     ]
 
 
-ORTHO_INFO_COL = [
-    "label",
-    "description",
-    "clade",
-    "evolRate",
-    "totalGenesCount",
-    "multiCopyGenesCount",
-    "singleCopyGenesCount",
-    "inSpeciesCount",
-    # "medianExonsCount", "stddevExonsCount",
-    "medianProteinLength",
-    "stddevProteinLength",
-    "og"
-]
 
+@app.task()
+def _get_orthogroups(task_id, version, prot_ids, level):
+    dbm = DBManager("table", task_id, version)
+    dbm.run_code(do_get_orthogroups, dbm, task_id, prot_ids, level)
 
-def new_2():
+def do_get_orthogroups(dbm, task_id, prot_ids, level):
     stage = "table"
     dbm.set_progress(current=0, total=-1, message="Getting orthogroup info")
 
@@ -493,8 +474,6 @@ def new_2():
         ]))
     ))
     fake_delay()
-
-
 
     uniprot_df = pd.DataFrame(
         columns=['label', 'Name', 'PID'],
@@ -522,145 +501,11 @@ def new_2():
     uniprot_df = pd.DataFrame(columns=['label', 'Name', 'UniProt_AC'], data=zip(og_list, names, uniprot_ACs))
     fake_delay()
     task_dir = DATA_PATH / task_id
+    task_dir.mkdir(exist_ok=True)
 
     uniprot_df.to_csv(task_dir/'OG.csv', sep=';', index=False)
 
-
-@app.task()
-def _get_orthogroups(og_list, task_id, version, prot_ids, level, did_fetch=False):
-    dbm = DBManager("table", task_id, version)
-    dbm.run_code(do_get_orthogroups, dbm, task_id, version, og_list, prot_ids, level, did_fetch)
-
-def do_get_orthogroups(dbm, task_id, version, og_list, prot_ids, level, did_fetch):
-    # filter already cached data:
-    print(f"do_get_orthogroups: {og_list=}")
-    cache_misses = []
-
-    cur_time = int(time.time())
-    with db.pipeline(transaction=False) as pipe:
-        for og in og_list:
-            pipe.hmget(f"/cache/ortho/{og}/data", ORTHO_INFO_COL)
-            pipe.set(f"/cache/ortho/{og}/accessed", cur_time, xx=True)
-        cache_data = pipe.execute()[::2]
-
-    # If some (or all) data is missing - reload the orthogroup
-    for og, data in zip(og_list, cache_data):
-        if any(d is None for d in data):
-            cache_misses.append(og)
-
-    dbm.progress(incr_curr=len(og)-len(cache_misses))
-
-    if cache_misses:
-        # Some orthogroups are missing from cache
-        # Schedule a fetch operation for all cache_misses
-        # and run this function again
-        dbm.set_progress(message="Requesting orthogroup info")
-        group = celery.group(
-            _fetch_orthogroups.s(
-                task_id,
-                version,
-                ortho_chunk,
-                level,
-            )
-            for ortho_chunk in chunker(
-                cache_misses, min_items_per_worker=20,
-                max_workers=5, max_items_per_request=200, # 200
-            )
-        )
-
-        pipeline = (
-            group |
-            _process_orthogroups.si(
-                task_id,
-                version,
-                prot_ids,
-                level,
-            )
-        )
-        pipeline.apply_async()
-        return
-
-
-@app.task()
-def _fetch_orthogroups(task_id, version, ortho_chunk, level):
-    dbm = DBManager("table", task_id, version)
-    dbm.run_code(do_fetch_orthogroups, dbm, task_id, ortho_chunk, level)
-
-def do_fetch_orthogroups(dbm, task_id, ortho_chunk, level):
-    for ogs in ortho_chunk:
-        og_info = ortho_data_get(ogs, ORTHO_INFO_COL)
-
-        cur_time = int(time.time())
-
-        with dbm, db.pipeline(transaction=False) as pipe:
-            for og in ogs:
-                info = og_info[og]
-                fake_delay()
-                if info:
-                    dbm.progress(incr_curr=1)
-                else:
-                    dbm.progress(incr_total=-1)
-                pipe.hmset(f"/cache/ortho/{og}/data", info)
-                pipe.set(f"/cache/ortho/{og}/accessed", cur_time)
-                pipe.setnx(f"/cache/ortho/{og}/created", cur_time)
-            pipe.execute()
-
-@app.task()
-def _process_orthogroups(task_id, version, ortho_chunk, level):
-    dbm = DBManager("table", task_id, version)
-    dbm.run_code(do_process_orthogroups, dbm, task_id, ortho_chunk, level)
-
-def do_process_orthogroups(dbm, task_id, ortho_chunk, level):
-    og_info_df = pd.DataFrame(
-        (
-            vals.values()
-            for vals in og_info.values()
-        ),
-        columns=ORTHO_INFO_COL,
-    )
-    og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
-
-    display_columns = [
-        "label",
-        "Name",
-        "description",
-        "clade",
-        "evolRate",
-        "totalGenesCount",
-        "multiCopyGenesCount",
-        "singleCopyGenesCount",
-        "inSpeciesCount",
-        # "medianExonsCount", "stddevExonsCount",
-        "medianProteinLength",
-        "stddevProteinLength"
-    ]
-    og_info_df = og_info_df[display_columns]
-
-    #prepare datatable update
-    table_data = {
-        "data": og_info_df.to_dict('records'),
-        "columns": [
-            {
-                "name": i,
-                "id": i,
-            }
-            for i in og_info_df.columns
-        ]
-    }
-    table = json.dumps(table_data, ensure_ascii=False, separators=(',', ':'))
-
-    @dbm.tx
-    def _(pipe: Pipeline):
-        pipe.multi()
-        pipe.mset({
-            f"/tasks/{task_id}/stage/{stage}/status": "Done",
-            f"/tasks/{task_id}/stage/{stage}/dash-table": table,
-        })
-
-
-def next_func():
-
-    ORTHO_INFO_COL = [
+    dash_columns = [
         "label",
         "description",
         "clade",
@@ -682,13 +527,13 @@ def next_func():
     cur_time = int(time.time())
     with db.pipeline(transaction=False) as pipe:
         for og in og_list:
-            pipe.hmget(f"/cache/ortho/{og}/data", ORTHO_INFO_COL)
+            pipe.hmget(f"/cache/ortho/{og}/data", dash_columns)
             pipe.set(f"/cache/ortho/{og}/accessed", cur_time, xx=True)
         cache_data = pipe.execute()[::2]
 
     with dbm:
         for og, data in zip(og_list, cache_data):
-            for col_name, val in zip(ORTHO_INFO_COL, data):
+            for col_name, val in zip(dash_columns, data):
                 if val is None:
                     cache_misses.append(og)
                     break
@@ -700,7 +545,7 @@ def next_func():
 
     if cache_misses:
         dbm.set_progress(message="Requesting orthogroup info")
-        og_info = ortho_data_get(cache_misses, ORTHO_INFO_COL)
+        og_info = ortho_data_get(cache_misses, dash_columns)
 
     cur_time = int(time.time())
 
@@ -722,7 +567,7 @@ def next_func():
             vals.values()
             for vals in og_info.values()
         ),
-        columns=ORTHO_INFO_COL,
+        columns=dash_columns,
     )
     og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
 
@@ -762,7 +607,6 @@ def next_func():
             f"/tasks/{task_id}/stage/{stage}/status": "Done",
             f"/tasks/{task_id}/stage/{stage}/dash-table": table,
         })
-
 
 
 
@@ -802,26 +646,6 @@ def do_SPARQLWrapper_Task(dbm: DBManager, task_id):
 
     df = pd.DataFrame(data={"Organisms": organisms}, dtype=object)
     df.set_index('Organisms', inplace=True)
-    ###
-
-
-    # # Filter out already cached proteins
-    # cur_time = int(time.time())
-    # with db.pipeline(transaction=False) as pipe:
-    #     for og in OG_labels:
-    #         pipe.set(f"/cache/presence/{taxonomy}/{og}/accessed", cur_time, xx=True)
-
-    #     # If the protein doesn't exist - the set command returns None.
-    #     # We get those proteins and return their IDs so they could be fetched
-    #     presence_to_fetch = [
-    #         prot_ids[i]
-    #         for i, was_set in enumerate(pipe.execute())
-    #         if not was_set
-    #     ]
-    # dbm.set_progress(current=len(prot_ids) - len(prots_to_fetch))
-    # fake_delay()
-
-    ###
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
     for i, (og_label, og_name) in enumerate(zip(OG_labels, OG_names)):

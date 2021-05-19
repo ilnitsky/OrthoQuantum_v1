@@ -3,7 +3,7 @@ services:
   web:
     build: ./dash_app
     ports:
-      - "127.0.0.1:23480:8050"
+      - "127.0.0.1:8050:8050"
     volumes:
       - "user_data:/app/user_data"
     environment:

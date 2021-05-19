@@ -1,22 +1,5 @@
-import time
+import asyncio
 
-from .async_executor import AsyncExecutor
-
-@AsyncExecutor.in_thread(max_running=2)
-def example_func(*args, **kwargs):
-    print("START_T",args, kwargs)
-    time.sleep(3)
-    print("DONE_T", args, kwargs)
-
-def _example_func2(*args, **kwargs):
-    print("START_P",args, kwargs)
-    time.sleep(5)
-    print("DONE_P", args, kwargs)
-
-example_func2 = AsyncExecutor.in_process(_example_func2, max_running=1)
-
-
-"""
 import contextvars
 
 task_info = contextvars.ContextVar('task_info')

@@ -1,0 +1,1 @@
+Matplotlib wants to have a writable dir for caching, this is it.

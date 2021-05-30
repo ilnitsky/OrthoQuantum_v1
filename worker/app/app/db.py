@@ -1,6 +1,9 @@
 import redis
 db = redis.Redis("redis")
 
+
+
+
 _cas_script = db.register_script("""
     -- CAS: check if the KEYS[1] is equal to ARGV[1], if true
     -- do CAS: set KEYS[2] = KEYS[3] if KEYS[3] is bigger

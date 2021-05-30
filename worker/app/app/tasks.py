@@ -25,7 +25,7 @@ from scipy.cluster import hierarchy
 from protein_fetcher import orthodb_get, uniprot_get, ortho_data_get
 from db import db, cond_cas
 
-DEBUG = 'DEBUG' in os.environ
+DEBUG = bool(os.environ.get('DEBUG', '').strip())
 
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 NS = {
@@ -319,7 +319,7 @@ def do_build_table(dbm: DBManager, task_id, version):
     @dbm.tx
     def res(pipe: Pipeline):
         nonlocal prot_ids
-        queueinfo_upd(task_id, stage, client=pipe)
+        # queueinfo_upd(task_id, stage, client=pipe)
         prot_req = pipe.get(f"/tasks/{task_id}/request/proteins")
 
         prot_ids = list(dict.fromkeys( # removing duplicates
@@ -620,7 +620,7 @@ def do_SPARQLWrapper_Task(dbm: DBManager, task_id):
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
-        queueinfo_upd(task_id, stage, client=pipe)
+        # queueinfo_upd(task_id, stage, client=pipe)
         pipe.multi()
         pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(
@@ -732,7 +732,7 @@ def do_build_tree(dbm: DBManager, task_id, version):
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
-        queueinfo_upd(task_id, stage, client=pipe)
+        # queueinfo_upd(task_id, stage, client=pipe)
         pipe.multi()
         pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(
@@ -810,7 +810,7 @@ def do_build_heatmap(dbm: DBManager, task_id, version):
     fake_delay()
     @dbm.tx
     def res(pipe: Pipeline):
-        queueinfo_upd(task_id, stage, client=pipe)
+        # queueinfo_upd(task_id, stage, client=pipe)
         pipe.multi()
         pipe.set(f"/tasks/{task_id}/stage/{stage}/status", "Executing")
         dbm.set_progress(

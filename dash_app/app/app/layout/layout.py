@@ -234,10 +234,6 @@ def dashboard(task_id):
         html.Br(),
         html.Br(),
         og_from_input,
-        dcc.Store(id='sparql-working', data=False),
-        dcc.Store(id='heatmap-working', data=False),
-        dcc.Store(id='tree-working', data=False),
-        dcc.Store(id='graphics-version', data=0),
         dcc.Store(id='input2-version', data=0),
 
         dcc.Interval(
@@ -246,8 +242,6 @@ def dashboard(task_id):
             disabled=True,
         ),
         html.Div(id='sparql-output-container'),
-        html.Div(id='heatmap-output-container'),
-        html.Div(id='tree-output-container'),
         dcc.Link('Navigate to "Images"', href='/reports'),
         # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
     ])

@@ -111,16 +111,17 @@ RUN npm run build  &&\
     python3 setup.py sdist bdist_wheel
 
 
-FROM tiangolo/meinheld-gunicorn:python3.8
+FROM python:3.9-slim
 ARG DEBUG=""
 ENV DEBUG=${DEBUG}
 
 RUN useradd -ms /bin/bash -u 1234 www           &&\
+    mkdir /app                                  &&\
     chown -R www:www /app /app/                 &&\
     apt-get update                              &&\
     apt-get upgrade -y                          &&\
     apt-get install -y --no-install-recommends    \
-            ca-certificates                     &&\
+            ca-certificates build-essential     &&\
     python3 -m pip --no-cache-dir                 \
             install --upgrade pip pipenv        &&\
     rm -rf /var/lib/apt/lists/*                 &&\
@@ -129,6 +130,7 @@ RUN useradd -ms /bin/bash -u 1234 www           &&\
     apt-get clean
 
 ENV PATH=/home/www/.local/bin:$PATH
+WORKDIR /app/
 
 COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
 
@@ -147,8 +149,6 @@ COPY --chown=www:www ./app/ /app/
 COPY --chown=www:www --from=phyd3-builder /node-app/dist/assets/* /app/app/assets/
 
 EXPOSE 8050
-
-WORKDIR /app/
 
 ENV MPLCONFIGDIR=/app/matplotlib-conf
 

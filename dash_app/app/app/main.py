@@ -379,7 +379,7 @@ def start_vis(dp:DashProxy):
 
     # fill the output row
     # here because of "go" click, first launch or interval refresh
-    version, status, msg, current, total, input_version, heatmap_msg, tree_msg = user.db.mget(
+    version, status, msg, current, total, input_version, heatmap_msg, tree_msg, tree_leaf_count = user.db.mget(
         f"/tasks/{task_id}/stage/sparql/version",
         f"/tasks/{task_id}/stage/sparql/status",
         f"/tasks/{task_id}/stage/sparql/message",
@@ -388,8 +388,9 @@ def start_vis(dp:DashProxy):
         f"/tasks/{task_id}/stage/sparql/input2-version",
         f"/tasks/{task_id}/stage/sparql/heatmap-message",
         f"/tasks/{task_id}/stage/sparql/tree-message",
+        f"/tasks/{task_id}/stage/sparql/tree-res",
     )
-    version, total, input_version = decode_int(version, total, input_version)
+    version, total, input_version, tree_leaf_count = decode_int(version, total, input_version, tree_leaf_count)
 
     if input_version > dp['input2-version', 'data']:
         # Server has newer data than we have, update dropdown value
@@ -436,6 +437,7 @@ def start_vis(dp:DashProxy):
                     PhydthreeComponent(
                         url=f'/files/{task_id}/cluser.xml?nocache={version}',
                         height=2000,
+                        leafCount=tree_leaf_count,
                     ),
                     className="mx-5 mt-3",
                 )

@@ -169,7 +169,9 @@ window.requestAnimFrame = (function(){
         // options
         options = options || {};
         options.scaleY = options.scaleY || 1;
+        options.origScaleY = options.origScaleY || 1;
         options.scaleX = options.scaleX || 1;
+        options.origScaleX = options.origScaleX || 1;
         options.translateX = options.translateX || 0;
         options.translateY = options.translateY || 0;
         options.height = options.height || 800;
@@ -397,7 +399,20 @@ window.requestAnimFrame = (function(){
         d3.select("#resetZoom").on("click", function(){
             // reset phylogram
             onodes = jQuery.extend(true, {}, allNodes);
-            resetZoom();
+            options.scaleX = options.origScaleX;
+            options.scaleY = options.origScaleY;
+            options.translateX = 0;
+            options.translateY = 0;
+            zoom.translate([0, 0]);
+            repaint();
+        })
+
+        d3.select("#resetPos").on("click", function(){
+            // reset phylogram
+            onodes = jQuery.extend(true, {}, allNodes);
+            options.translateX = 0;
+            options.translateY = 0;
+            zoom.translate([0, 0]);
             repaint();
         })
 
@@ -650,6 +665,9 @@ window.requestAnimFrame = (function(){
                     return 'baked_' + this.id;
                 }
             );
+        }
+        phyd3.phylogram.delSVG = function (svg_item) {
+            d3.select(svg_item).html(null);
         }
 
         // group labels action handling functions

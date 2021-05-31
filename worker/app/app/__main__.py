@@ -91,11 +91,7 @@ async def queue_manager():
                         sparql,
                         db=db,
                     ))
-                # elif data["stage"] == "delay":
-                #     cur_running.add(cm.run_task(
-                #         delay_task,
-                #         db=db,
-                #     ))
+
 
 async def flush_cache(q_id):
     async with redis.pipeline(transaction=False) as pipe:
@@ -612,11 +608,13 @@ async def run_substage(db: DbClient, substage_name:str, file_name:str, callable,
                 output_file=tmp_file,
             )
             task.set_progress_callback(progress)
-            await task
-        await redis.set(
-            f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-message",
-            "Done",
-        )
+            task_res = await task
+        to_set = {
+            f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-message": "Done",
+        }
+        if task_res is not None:
+            to_set[f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-res"] = task_res
+        await redis.mset(to_set)
     except Exception as e:
         msg = f"Error while building {substage_name}"
         if DEBUG:

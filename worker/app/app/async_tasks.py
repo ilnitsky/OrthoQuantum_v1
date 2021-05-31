@@ -158,60 +158,6 @@ def ortho_data_get(requested_ids:list, fields:list) -> dict[str, dict[str, str]]
     return og_info
 
 
-@async_pool.in_process()
-def tree(taxonomy_level:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str):
-    df['Organisms'] = df['Organisms'].astype("category")
-    df['Organisms'].cat.set_categories(organisms, inplace=True)
-    df.sort_values(["Organisms"], inplace=True)
-
-    df.columns = ['Organisms', *OG_names]
-    df = df[df['Organisms'].isin(organisms)]  #Select Main Species
-    df = df.iloc[:, 1:]
-    df = df[OG_names]
-
-    for column in df:
-        df[column].astype(float, copy=False)
-
-    #Create organisms list
-
-    # organisms = [x.strip() for x in organisms]
-
-    # df = pd.read_csv(task_dir/"Presence-Vectors.csv")
-    df = df.clip(upper=1)
-
-    # Slower, but without fastcluster lib
-    # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
-    link = fastcluster.linkage(df.T.values, method='average', metric='euclidean')
-    dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
-
-    reordered_ind = dendro['leaves']
-
-    parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(f'phyloxml/{taxonomy_level}.xml', parser)
-    root = tree.getroot()
-    graphs = ET.SubElement(root, "graphs")
-    graph = ET.SubElement(graphs, "graph", type="heatmap")
-    ET.SubElement(graph, "name").text = "Presense"
-    legend = ET.SubElement(graph, "legend", show="1")
-
-    for col_idx in reordered_ind:
-        field = ET.SubElement(legend, "field")
-        ET.SubElement(field, "name").text = df.columns[col_idx]
-
-    gradient = ET.SubElement(legend, "gradient")
-    ET.SubElement(gradient, "name").text = "Custom"
-    ET.SubElement(gradient, "classes").text = "2"
-
-    data = ET.SubElement(graph, "data")
-    for index, row in df.iterrows():
-        values = ET.SubElement(data, "values", {"for":str(index)})
-        for col_idx in reordered_ind:
-            ET.SubElement(values, "value").text = f"{row[df.columns[col_idx]] * 100:.0f}"
-
-    with open_existing(output_file, 'wb') as f:
-        tree.write(f, xml_declaration=True)
-
-
 @async_pool.in_thread()
 def read_org_info(level:str, og_csv_path:str):
     parser = ET.XMLParser(remove_blank_text=True)
@@ -272,9 +218,57 @@ def get_corr_data(label:str, name:str, taxonomy:str) -> tuple[str, dict]:
 
 
 @async_pool.in_process()
-def heatmap(organism_count:int, df: pd.DataFrame, output_file:str):
-    # df = df.iloc[:, 1:] # passing directly, probably don't need this
+def tree(taxonomy_level:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str):
+    df['Organisms'] = df['Organisms'].astype("category")
+    df['Organisms'].cat.set_categories(organisms, inplace=True)
+    df.sort_values(["Organisms"], inplace=True)
 
+    df.columns = ['Organisms', *OG_names]
+    df = df[df['Organisms'].isin(organisms)]  #Select Main Species
+    df = df.iloc[:, 1:]
+    df = df[OG_names]
+
+    df.astype(float, copy=False)
+    df.clip(upper=1, inplace=True)
+
+    # Slower, but without fastcluster lib
+    # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
+    link = fastcluster.linkage(df.T.values, method='average', metric='euclidean')
+    dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
+
+    reordered_ind = dendro['leaves']
+
+    parser = ET.XMLParser(remove_blank_text=True)
+    tree = ET.parse(f'phyloxml/{taxonomy_level}.xml', parser)
+    root = tree.getroot()
+    graphs = ET.SubElement(root, "graphs")
+    graph = ET.SubElement(graphs, "graph", type="heatmap")
+    ET.SubElement(graph, "name").text = "Presense"
+    legend = ET.SubElement(graph, "legend", show="1")
+
+    for col_idx in reordered_ind:
+        field = ET.SubElement(legend, "field")
+        ET.SubElement(field, "name").text = df.columns[col_idx]
+
+    gradient = ET.SubElement(legend, "gradient")
+    ET.SubElement(gradient, "name").text = "Custom"
+    ET.SubElement(gradient, "classes").text = "2"
+
+    data = ET.SubElement(graph, "data")
+    for index, row in df.iterrows():
+        values = ET.SubElement(data, "values", {"for":str(index)})
+        for col_idx in reordered_ind:
+            ET.SubElement(values, "value").text = f"{row[df.columns[col_idx]] * 100:.0f}"
+
+    with open_existing(output_file, 'wb') as f:
+        tree.write(f, xml_declaration=True)
+
+    return len(organisms)
+
+
+
+@async_pool.in_process()
+def heatmap(organism_count:int, df: pd.DataFrame, output_file:str):
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
     pres_list = [(1 - item / organism_count) for item in pres_df_zero_values]
@@ -282,7 +276,6 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str):
     rgbs = [(1 - i, 0, 0) for i in pres_list]
     sns.set(font_scale=1.2)
     df = df.fillna(0).astype(float)
-    # df = df.clip(upper=1)
     df = df.loc[:, (df != 0).any(axis=0)]
 
     customPalette = sns.color_palette([

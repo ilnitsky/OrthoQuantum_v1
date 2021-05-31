@@ -32,17 +32,17 @@ services:
 
 volumes:
   user_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./user_data
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: ./user_data
   redis_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./redis_data
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: ./redis_data
 
 
 

@@ -96,7 +96,7 @@ def router_page(href):
     if url.query:
         search = f'?{url.query}'
 
-    if pathname == '/dashboard':
+    if pathname == '':
         if not user.is_logged_in():
             return login(pathname), search
 

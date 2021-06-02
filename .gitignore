@@ -275,3 +275,4 @@ blast
 workspace.code-workspace
 redis_data
 .sub_git
+user_data

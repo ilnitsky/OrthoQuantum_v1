@@ -75,7 +75,6 @@ def convert(newick_file, phyloxml_file, taxa_colors={}):
         else:
             name = m.replace("_", " ").strip()
 
-    # print(ET.tostring(my_doc, pretty_print=True, xml_declaration=True, encoding="UTF-8").decode())
     ET.ElementTree(
         my_doc,
         parser=ET.XMLParser(remove_blank_text=True),

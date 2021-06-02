@@ -11,17 +11,14 @@ import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-import redis
 import flask
-
-import celery
 
 from phydthree_component import PhydthreeComponent
 
 from . import layout
 from . import user
+from .utils import DashProxy, QUEUE, GROUP, decode_int
 
-from functools import wraps
 
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
@@ -44,14 +41,16 @@ external_stylesheets = [
     dbc.themes.UNITED,
 ]
 
-
 dash_app = Dash(__name__, server=app, suppress_callback_exceptions=True, external_scripts=external_scripts, external_stylesheets=external_stylesheets)
 dash_app.layout = layout.index
+
+dash_proxy = DashProxy(dash_app)
 
 def login(dst):
     # TODO: dsiplay login layout, login, redirect to the original destintation
     user.register()
     return dcc.Location(pathname=dst, id="some_id", hash="1", refresh=True)
+
 
 def new_task():
     user_id = flask.session["USER_ID"]
@@ -77,14 +76,13 @@ def new_task():
 
     return task_id
 
+
 def get_task(task_id):
     """Checks that task_id is valid and active, sets /accessed date to current"""
     if '/' in task_id:
         return False
     res = user.db.set(f"/tasks/{task_id}/accessed", int(time.time()), xx=True)
     return res
-
-
 
 @dash_app.callback(
     Output('page-content', 'children'),
@@ -94,7 +92,9 @@ def get_task(task_id):
 def router_page(href):
     url = urlparse.urlparse(href)
     pathname = url.path.rstrip('/')
-    search = f'?{url.query}'
+    search = ''
+    if url.query:
+        search = f'?{url.query}'
 
     if pathname == '/dashboard':
         if not user.is_logged_in():
@@ -110,13 +110,25 @@ def router_page(href):
 
         if create_task:
             args['task_id'] = new_task()
-            search = f"?{urlparse.urlencode(args)}"
+            new_args = urlparse.urlencode(args)
+            if new_args:
+                search = f"?{urlparse.urlencode(args)}"
 
         return layout.dashboard(args['task_id']), search
     if pathname == '/reports':
         return layout.reports, search
     if pathname == '/blast':
         return layout.blast, search
+    if pathname == '/flush_cache':
+        user.enqueue(
+            version_key=f"/cache/version",
+            queue_key=QUEUE,
+            queue_id_dest=f"/cache/q_id",
+            # redis_client=pipe,
+
+            stage="flush_cache",
+        )
+        return 'flushing', search
 
     return '404', search
 
@@ -126,96 +138,6 @@ def router_page(href):
 def select_level(value):
     return f'Selected "{value}" orthology level'
 
-
-celery_app = celery.Celery('main', broker='redis://redis/1', backend='redis://redis/1')
-
-
-class DashProxy():
-    def __init__(self, args):
-        self._data = {}
-        self._input_order = []
-        self._output_order = []
-        self._outputs = {}
-        self.triggered = None
-        self.first_load = False
-        self.triggered : set
-
-        for arg in args:
-            if not isinstance(arg, DashDependency):
-                continue
-            k = (arg.component_id, arg.component_property)
-
-            if isinstance(arg, (Input, State)):
-                self._input_order.append(k)
-            elif isinstance(arg, Output):
-                self._output_order.append(k)
-            else:
-                raise RuntimeError("Unknown DashDependency")
-
-    def __getitem__(self, key):
-        if key in self._outputs:
-            return self._outputs[key]
-        return self._data[key]
-
-    def __setitem__(self, key, value):
-        self._outputs[key] = value
-
-    def _enter(self, args):
-        for k, val in zip(self._input_order, args):
-            self._data[k] = val
-        triggers = callback_context.triggered
-
-        if len(triggers) == 1 and triggers[0]['prop_id'] == ".":
-            self.first_load = True
-            self.triggered = set()
-        else:
-            self.triggered = set(
-                tuple(item['prop_id'].rsplit('.', maxsplit=1))
-                for item in callback_context.triggered
-            )
-
-    def _exit(self):
-        res = tuple(
-            self._outputs.get(k, no_update)
-            for k in self._output_order
-        )
-
-        self._outputs.clear()
-        self._data.clear()
-        self.triggered.clear()
-
-        return res
-
-    @wraps(dash_app.callback)
-    @classmethod
-    def callback(cls, *args, **kwargs):
-        def deco(func):
-            dp = cls(args)
-            def wrapper(*args2):
-                dp._enter(args2)
-                func(dp)
-                return dp._exit()
-            return dash_app.callback(*args, **kwargs)(wrapper)
-        return deco
-
-def decode_int(*items:bytes, default=0) -> int:
-    if len(items)==1:
-        return int(items[0]) if items[0] else default
-
-    return map(
-        lambda x: int(x) if x else default,
-        items,
-    )
-
-
-def decode_str(*items, default=''):
-    if len(items)==1:
-        return items[0].decode() if items[0] else default
-
-    return map(
-        lambda x: x.decode() if x else default,
-        items,
-    )
 
 def display_progress(status, total, current, msg):
     pbar = {
@@ -233,11 +155,18 @@ def display_progress(status, total, current, msg):
         pbar['striped'] = animate
 
         if total == -3:
-            llid = decode_int(user.db.get("/queueinfo/last_launched_id")) + 1
-            if current > llid:
-                msg = f"~{current - llid} tasks before yours"
+            gueue_len = user.get_queue_length(
+                queue_key=QUEUE,
+                worker_group_name=GROUP,
+                current=current
+            )
+
+            if gueue_len > 0:
+                msg = f"{gueue_len} task{'s' if gueue_len>1 else ''} before yours"
             else:
-                msg = "almost running"
+                msg = "running"
+
+
     else:
         # normal progressbar
         pbar['animated'] = False
@@ -266,7 +195,7 @@ def display_progress(status, total, current, msg):
         justify='center')
 
 
-@DashProxy.callback(
+@dash_proxy.callback(
     Output('table-progress-updater', 'disabled'), # refresh_disabled
 
     Output('uniprotAC', 'value'),
@@ -289,103 +218,71 @@ def display_progress(status, total, current, msg):
 def table(dp:DashProxy):
     """Perform action (cancel/start building the table)"""
     task_id = dp['task_id', 'data']
-    # if dp.first_load:
-    #     # update accessed timestamp on the first page load
-    #     pipe.set(f"/tasks/{task_id}/accessed", int(time.time()))
-
 
     if ('submit-button', 'n_clicks') in dp.triggered:
         # Sending data
         with user.db.pipeline(transaction=True) as pipe:
-            pipe.incr(f"/tasks/{task_id}/stage/table/version")
-            pipe.execute_command("COPY", f"/tasks/{task_id}/stage/table/version", f"/tasks/{task_id}/stage/table/input_version", "REPLACE")
+            user.enqueue(
+                version_key=f"/tasks/{task_id}/stage/table/version",
+                queue_key=QUEUE,
+                queue_id_dest=f"/tasks/{task_id}/stage/table/current",
+                redis_client=pipe,
+
+                task_id=task_id,
+                stage="table",
+            )
             pipe.mset({
                 f"/tasks/{task_id}/request/proteins": dp['uniprotAC', 'value'],
                 f"/tasks/{task_id}/request/dropdown1": dp['dropdown', 'value'],
+
+                f"/tasks/{task_id}/stage/table/status": 'Enqueued',
+                f"/tasks/{task_id}/stage/table/total": -3,
             })
+            pipe.execute_command(
+                "COPY",
+                f"/tasks/{task_id}/stage/table/version",
+                f"/tasks/{task_id}/stage/table/input_version",
+                "REPLACE",
+            )
+
             # Remove the data
             pipe.unlink(
                 f"/tasks/{task_id}/stage/table/dash-table",
                 f"/tasks/{task_id}/stage/table/message",
                 f"/tasks/{task_id}/stage/table/missing_msg",
-                f"/tasks/{task_id}/stage/table/status",
+                f"/tasks/{task_id}/stage/sparql/status",
             )
-            new_version = pipe.execute()[0]
-            dp['input_version', 'data'] = new_version
+            new_version = pipe.execute()[0][0]
+        dp['input_version', 'data'] = new_version
         dp['submit-button2', 'disabled'] = True
-        # enqueuing the task
-        celery_app.signature(
-            'tasks.build_table',
-            args=(task_id, new_version)
-        ).apply_async()
-
-        # Trying to set status to enqueued if the task isn't already running
-        with user.db.pipeline(transaction=True) as pipe:
-            while True:
-                try:
-                    pipe.watch(f"/tasks/{task_id}/stage/table/status")
-                    status = pipe.get(f"/tasks/{task_id}/stage/table/status")
-                    if status is not None:
-                        # Task has already modified it to something else, so we are not enqueued
-                        break
-                    # Task is still in the queue
-                    pipe.multi()
-                    pipe.mset({
-                        f"/tasks/{task_id}/stage/table/status": 'Enqueued',
-                        f"/tasks/{task_id}/stage/table/total": -3,
-                    })
-                    pipe.incr("/queueinfo/cur_id")
-                    pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/table/current", "REPLACE")
-                    pipe.execute()
-                    break
-                except redis.WatchError:
-                    continue
 
     # fill the output row
     # here because of go click, first launch or interval
-    with user.db.pipeline(transaction=True) as pipe:
-        while True:
-            try:
-                pipe.watch(f"/tasks/{task_id}/stage/table/input_version")
-                input_version = pipe.get(f"/tasks/{task_id}/stage/table/input_version")
-                input_version = decode_int(input_version)
 
-                keys = [
-                    f"/tasks/{task_id}/stage/table/status",
-                    f"/tasks/{task_id}/stage/table/message",
-                    f"/tasks/{task_id}/stage/table/current",
-                    f"/tasks/{task_id}/stage/table/total",
-                    f"/tasks/{task_id}/stage/table/missing_msg",
-                    f"/tasks/{task_id}/stage/table/dash-table",
-                ]
-                if input_version > dp['input_version', 'data']:
-                    # db has newer data, fetch it also
-                    keys.extend((
-                        f"/tasks/{task_id}/request/proteins",
-                        f"/tasks/{task_id}/request/dropdown1",
-                        f"/tasks/{task_id}/request/dropdown2",
-                    ))
-                pipe.multi()
-                pipe.set(f"/tasks/{task_id}/accessed", int(time.time()))
-                pipe.mget(*keys)
-                exec_res = pipe.execute()[-1]
-                status, msg, current, total, missing_msg, table_data, *extra = exec_res
-                status, msg, missing_msg = decode_str(status, msg, missing_msg)
-                current, total = decode_int(current, total)
+    status, msg, current, total, missing_msg, table_data, input_version = user.db.mget(
+        f"/tasks/{task_id}/stage/table/status",
+        f"/tasks/{task_id}/stage/table/message",
+        f"/tasks/{task_id}/stage/table/current",
+        f"/tasks/{task_id}/stage/table/total",
+        f"/tasks/{task_id}/stage/table/missing_msg",
+        f"/tasks/{task_id}/stage/table/dash-table",
+        f"/tasks/{task_id}/stage/table/input_version",
+    )
 
-                if extra:
-                    proteins, dropdown, dropdown2 = decode_str(*extra)
-                    if input_version:
-                        dp['input_version', 'data'] = input_version
-                    if proteins:
-                        dp['uniprotAC', 'value'] = proteins
-                    if dropdown:
-                        dp['dropdown', 'value'] = dropdown
-                    if dropdown2:
-                        dp['dropdown2', 'value'] = dropdown2
-                break
-            except redis.WatchError:
-                continue
+    total, input_version = decode_int(total, input_version)
+
+    if input_version > dp['input_version', 'data']:
+        # db has newer data, fetch it
+        proteins, dropdown, input_version = user.db.mget(
+            f"/tasks/{task_id}/request/proteins",
+            f"/tasks/{task_id}/request/dropdown1",
+            f"/tasks/{task_id}/stage/table/input_version"
+        )
+        input_version = decode_int(input_version)
+
+        dp['input_version', 'data'] = input_version
+        dp['uniprotAC', 'value'] = proteins
+        dp['dropdown', 'value'] = dropdown
 
     output = []
     if missing_msg:
@@ -401,6 +298,7 @@ def table(dp:DashProxy):
                 justify='center',
             ),
         )
+
     if status in ('Enqueued', 'Executing', 'Error'):
         output.append(display_progress(status, total, current, msg))
     elif status == 'Done':
@@ -408,8 +306,7 @@ def table(dp:DashProxy):
         output.append(
             dbc.Row(dbc.Col(
                 html.Div(
-                    dash_table.DataTable(**data, filter_action="native"),
-                    style={"overflow-x": "scroll"},
+                    dash_table.DataTable(**data, filter_action="native", page_size=40),
                     className="pb-3",
                 ),
                 md=12,
@@ -422,54 +319,11 @@ def table(dp:DashProxy):
     dp['output_row', 'children'] = html.Div(children=output)
 
 
-def launch_task(stage:str, task_id:str, version:int):
-    should_launch_task = True
-    # Trying to set status to enqueued if the task isn't already running
-    with user.db.pipeline(transaction=True) as pipe:
-        while True:
-            try:
-                pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
-                if should_launch_task:
-                    celery_app.signature(
-                        f'tasks.build_{stage}',
-                        args=(task_id, version)
-                    ).apply_async()
-                    should_launch_task = False
-
-                status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
-                if status is not None:
-                    # Task has already modified it to something else, so we are not enqueued
-                    break
-                # Task is still in the queue
-                pipe.multi()
-                pipe.mset({
-                    f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
-                    f"/tasks/{task_id}/stage/{stage}/total": -3,
-                })
-                pipe.incr("/queueinfo/cur_id")
-                pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
-                pipe.execute()
-                break
-            except redis.WatchError:
-                continue
-
-
-@dash_app.callback(
-    Output('progress-updater-2', 'disabled'),
-    Input('sparql-working', 'data'),
-    Input('heatmap-working', 'data'),
-    Input('tree-working', 'data'),
-)
-def updater_controller(*is_working):
-    # While there are tasks - keep updater running
-    return not any(is_working)
-
-@DashProxy.callback(
-    Output('graphics-version', 'data'), # trigger to launch rendering
+@dash_proxy.callback(
     Output('sparql-output-container', 'children'),
-    Output('sparql-working', 'data'),
     Output('dropdown2', 'value'),
     Output('input2-version', 'data'),
+    Output('progress-updater-2', 'disabled'),
 
     Input('submit-button2', 'n_clicks'),
     Input('submit-button2', 'disabled'),
@@ -479,21 +333,15 @@ def updater_controller(*is_working):
     State('dropdown2', 'value'),
     State('input2-version', 'data')
 )
-def start_heatmap_and_tree(dp:DashProxy):
-    # if dp.first_load:
-    #     return
-
-    stage = 'sparql'
+def start_vis(dp:DashProxy):
     task_id = dp['task_id', 'data']
 
     if ('submit-button2', 'disabled') in dp.triggered:
         if dp['submit-button2', 'disabled']:
             # First stage data was changed, clear the current data
             dp['sparql-output-container', 'children'] = None
-            # hide the data
-            dp['graphics-version', 'data'] = 0
             # Stop running tasks
-            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
+            user.db.incr(f"/tasks/{task_id}/stage/sparql/version")
             return
 
     if ('submit-button2', 'n_clicks') in dp.triggered:
@@ -502,186 +350,111 @@ def start_heatmap_and_tree(dp:DashProxy):
             return
         # button press triggered
 
-        # hide the data
-        dp['graphics-version', 'data'] = 0
-
         with user.db.pipeline(transaction=True) as pipe:
-            # Stops running tasks
-            pipe.incr(f"/tasks/{task_id}/stage/{stage}/version")
-            pipe.incr(f"/tasks/{task_id}/stage/heatmap/version")
-            pipe.incr(f"/tasks/{task_id}/stage/tree/version")
-            pipe.mset({
-                f"/tasks/{task_id}/stage/heatmap/status": "Waiting",
-                f"/tasks/{task_id}/stage/tree/status": "Waiting",
-                f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
-            })
-            # Remove the data
-            pipe.unlink(
-                f"/tasks/{task_id}/stage/{stage}/message",
-                f"/tasks/{task_id}/stage/{stage}/status",
-                f"/tasks/{task_id}/stage/heatmap/message",
-                f"/tasks/{task_id}/stage/tree/message",
+            user.enqueue(
+                version_key=f"/tasks/{task_id}/stage/sparql/version",
+                queue_key=QUEUE,
+                queue_id_dest=f"/tasks/{task_id}/stage/sparql/current",
+                redis_client=pipe,
+
+                task_id=task_id,
+                stage="sparql",
             )
-            sparql_ver = pipe.execute()[0]
-        dp['input2-version', 'data'] = sparql_ver
-        # when sparql is done it will trigger the heatmap and tree tasks
-        celery_app.signature(
-            'tasks.SPARQLWrapper',
-            args=(task_id, sparql_ver)
-        ).apply_async()
 
-        # Trying to set status to enqueued if the task isn't already running
-        with user.db.pipeline(transaction=True) as pipe:
-            while True:
-                try:
-                    pipe.watch(f"/tasks/{task_id}/stage/{stage}/status")
-                    status = pipe.get(f"/tasks/{task_id}/stage/{stage}/status")
-                    if status is not None:
-                        # Task has already modified it to something else, so we are not enqueued
-                        break
-                    # Task is still in the queue
-                    pipe.multi()
-                    pipe.mset({
-                        f"/tasks/{task_id}/stage/{stage}/status": 'Enqueued',
-                        f"/tasks/{task_id}/stage/{stage}/total": -3,
-                    })
-                    pipe.incr("/queueinfo/cur_id")
-                    pipe.execute_command("COPY", "/queueinfo/cur_id", f"/tasks/{task_id}/stage/{stage}/current", "REPLACE")
-                    pipe.execute()
-                    break
-                except redis.WatchError:
-                    continue
+            pipe.mset({
+                f"/tasks/{task_id}/stage/sparql/status": "Enqueued",
+                f"/tasks/{task_id}/stage/sparql/total": -3,
+                f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
+                f"/tasks/{task_id}/stage/sparql/heatmap-message": "",
+                f"/tasks/{task_id}/stage/sparql/tree-message": "",
+            })
+            pipe.execute_command(
+                "COPY",
+                f"/tasks/{task_id}/stage/sparql/version",
+                f"/tasks/{task_id}/stage/sparql/input2-version",
+                "REPLACE",
+            )
+            sparql_ver = pipe.execute()[0][0]
+        dp['input2-version', 'data'] = sparql_ver
 
     # fill the output row
     # here because of "go" click, first launch or interval refresh
-    version, status, msg, current, total, input_version = user.db.mget(
-        f"/tasks/{task_id}/stage/{stage}/version",
-        f"/tasks/{task_id}/stage/{stage}/status",
-        f"/tasks/{task_id}/stage/{stage}/message",
-        f"/tasks/{task_id}/stage/{stage}/current",
-        f"/tasks/{task_id}/stage/{stage}/total",
-        f"/tasks/{task_id}/stage/{stage}/input2-version"
+    version, status, msg, current, total, input_version, heatmap_msg, tree_msg, tree_leaf_count = user.db.mget(
+        f"/tasks/{task_id}/stage/sparql/version",
+        f"/tasks/{task_id}/stage/sparql/status",
+        f"/tasks/{task_id}/stage/sparql/message",
+        f"/tasks/{task_id}/stage/sparql/current",
+        f"/tasks/{task_id}/stage/sparql/total",
+        f"/tasks/{task_id}/stage/sparql/input2-version",
+        f"/tasks/{task_id}/stage/sparql/heatmap-message",
+        f"/tasks/{task_id}/stage/sparql/tree-message",
+        f"/tasks/{task_id}/stage/sparql/tree-res",
     )
-
-    status, msg = decode_str(status, msg)
-    version, current, total, input_version = decode_int(version, current, total, input_version)
+    version, total, input_version, tree_leaf_count = decode_int(version, total, input_version, tree_leaf_count)
 
     if input_version > dp['input2-version', 'data']:
+        # Server has newer data than we have, update dropdown value
         input_val, input_version = user.db.mget(
             f"/tasks/{task_id}/request/dropdown2",
-            f"/tasks/{task_id}/stage/{stage}/input2-version"
+            f"/tasks/{task_id}/stage/sparql/input2-version"
         )
         dp['input2-version', 'data'] = decode_int(input_version)
-        dp['dropdown2', 'value'] = decode_str(input_val)
+        dp['dropdown2', 'value'] = input_val
 
-    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
+    dp['progress-updater-2', 'disabled'] = status not in ('Enqueued', 'Executing', 'Waiting')
 
     if status in ('Enqueued', 'Executing', 'Error'):
-        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
-    elif status == 'Done':
-        dp[f'{stage}-output-container', 'children'] = None
-        dp['graphics-version', 'data'] = version
-
-def process_heatmap_or_tree(stage, dp:DashProxy):
-    """Display progress bar, returns task_id and version if we need to render tree/heatmap"""
-    if ('progress-updater-2', 'n_intervals') in dp.triggered and len (dp.triggered) == 1:
-        # timer-only trigger
-        if not dp[f'{stage}-working', 'data']:
-            # no need for progress bar, ignore update
-            return
-
-    task_id = dp['task_id', 'data']
-
-    if dp['graphics-version', 'data'] == 0:
-        if ('graphics-version', 'data') in dp.triggered:
-            dp[f'{stage}-output-container', 'children'] = None
-            user.db.incr(f"/tasks/{task_id}/stage/{stage}/version")
-        return
-
-    # fill the output row
-    # here because of sparql finish, first launch or interval refresh
-    status, msg, current, total, version = user.db.mget(
-        f"/tasks/{task_id}/stage/{stage}/status",
-        f"/tasks/{task_id}/stage/{stage}/message",
-        f"/tasks/{task_id}/stage/{stage}/current",
-        f"/tasks/{task_id}/stage/{stage}/total",
-        f"/tasks/{task_id}/stage/{stage}/version"
-    ) # TODO: version first == bug
-    status, msg = decode_str(status, msg)
-    version, current, total = decode_int(version, current, total)
-
-    dp[f'{stage}-working', 'data'] = status in ('Enqueued', 'Executing')
-    if status in ('Enqueued', 'Executing', 'Error'):
-        dp[f'{stage}-output-container', 'children'] = display_progress(status, total, current, msg)
-    elif status == 'Done':
-        return task_id, version
-
-@DashProxy.callback(
-    Output('heatmap-output-container', 'children'),
-    Output('heatmap-working', 'data'),
-
-    Input('progress-updater-2', 'n_intervals'),
-    Input('graphics-version', 'data'),
-
-    State('heatmap-working', 'data'),
-    State('task_id', 'data'),
-)
-def heatmap(dp:DashProxy):
-    res = process_heatmap_or_tree('heatmap', dp)
-    if not res:
-        return
-
-    task_id, version = res
-    dp[f'heatmap-output-container', 'children'] = dbc.Row(
-        dbc.Col(
-            html.A(
-                html.Img(
-                    src=f'/files/{task_id}/Correlation.png?version={version}',
-                    style={
-                        'width': '100%',
-                        'max-width': '1100px',
-                    },
-                    className="mx-auto",
+        dp[f'sparql-output-container', 'children'] = display_progress(status, total, current, msg)
+    elif status in ('Waiting', 'Done'):
+        if heatmap_msg == "Done":
+            heatmap = dbc.Row(
+                dbc.Col(
+                    html.A(
+                        html.Img(
+                            src=f'/files/{task_id}/Correlation.png?version={version}',
+                            style={
+                                'width': '100%',
+                                'max-width': '1100px',
+                            },
+                            className="mx-auto",
+                        ),
+                        href=f'/files/{task_id}/Correlation.png?version={version}',
+                        target="_blank",
+                        className="mx-auto",
+                    ),
+                    className="text-center",
                 ),
-                href=f'/files/{task_id}/Correlation.png?version={version}',
-                target="_blank",
-                className="mx-auto",
-            ),
-            className="text-center",
-        ),
-        className="mx-4",
-    )
+                className="mx-4",
+            )
+        elif heatmap_msg.startswith("Error"):
+            heatmap = display_progress("Error", -2, 0, heatmap_msg)
+        else:
+            heatmap = display_progress("Executing", -1, 0, heatmap_msg)
 
-@DashProxy.callback(
-    Output('tree-output-container', 'children'),
-    Output('tree-working', 'data'),
-
-    Input('progress-updater-2', 'n_intervals'),
-    Input('graphics-version', 'data'),
-
-    State('tree-working', 'data'),
-    State('task_id', 'data'),
-)
-def tree(dp:DashProxy):
-    res = process_heatmap_or_tree('tree', dp)
-    if not res:
-        return
-
-    task_id, version = res
-    dp[f'tree-output-container', 'children'] = dbc.Row(
-        dbc.Col(
-            PhydthreeComponent(
-                url=f'/files/{task_id}/cluser.xml?nocache={version}',
-                height=2000,
-            ),
-            className="mx-5 mt-3",
-        )
-    )
+        if tree_msg == "Done":
+            tree = dbc.Row(
+                dbc.Col(
+                    PhydthreeComponent(
+                        url=f'/files/{task_id}/cluser.xml?nocache={version}',
+                        height=2000,
+                        leafCount=tree_leaf_count,
+                    ),
+                    className="mx-5 mt-3",
+                )
+            )
+        elif tree_msg.startswith("Error"):
+            tree = display_progress("Error", -2, 0, tree_msg)
+        else:
+            tree = display_progress("Executing", -1, 0, tree_msg)
+        dp[f'sparql-output-container', 'children'] = [
+            heatmap,
+            tree
+        ]
 
 
 @dash_app.server.route('/files/<task_id>/<name>')
 def serve_user_file(task_id, name):
-    # uid = decode_str(user.db.get(f"/tasks/{task_id}/user_id"))
+    # uid = user.db.get(f"/tasks/{task_id}/user_id")
     # if flask.session.get("USER_ID", '') != uid:
     #     flask.abort(403)
     response = flask.make_response(flask.send_from_directory(f"/app/user_data/{task_id}", name))

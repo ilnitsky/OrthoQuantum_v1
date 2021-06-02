@@ -1,8 +1,11 @@
 {
 	"folders": [
 		{
+			"name": "kenga",
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.pythonPath": "/Users/andrew/.pyenv/versions/kenga/bin/python"
+	}
 }

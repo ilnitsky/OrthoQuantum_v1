@@ -8,7 +8,8 @@ flask = "*"
 dash = "*"
 redis = "*"
 dash-bootstrap-components = "*"
-celery = "*"
+meinheld = "*"
+gunicorn = "*"
 
 [dev-packages]
 pylint = "*"

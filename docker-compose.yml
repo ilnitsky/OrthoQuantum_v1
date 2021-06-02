@@ -18,10 +18,10 @@ services:
     build: ./worker
     volumes:
       - "user_data:/app/user_data"
+    environment:
+      REDIS_HOST: "redis"
+
 
 volumes:
   user_data:
   redis_data:
-
-
-# export SYSTEM_VERSION_COMPAT=1

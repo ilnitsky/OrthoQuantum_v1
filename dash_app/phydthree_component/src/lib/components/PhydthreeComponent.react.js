@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { TabContent, TabPane, Nav, NavItem, NavLink, Card, Button, CardTitle, CardText, Row, Col } from 'reactstrap';
+import { Nav, NavItem, NavLink, Input, Button, Label } from 'reactstrap';
 
 
 /**
@@ -20,15 +20,19 @@ export default class PhydthreeComponent extends Component {
     this.state = {
       activeTab: "tree",
       nextTab: "",
+      firstRender: true,
       shouldRedraw: false, // on mount redraws anyway
-      nextTab: null,
-
+      nextTab: props.leafCount < 1000 ? null : "svg",
+      zoomValue: 100,
+      zoomLevel: 1.0,
+      displayNames: true,
     };
   }
   componentDidUpdate() {
     var activeTab = this.state.activeTab;
     switch (this.state.nextTab) {
       case "tree":
+        phyd3.phylogram.delSVG(this.svg_ref.current);
         if (this.state.shouldRedraw){
           this.redraw();
         }
@@ -46,7 +50,7 @@ export default class PhydthreeComponent extends Component {
         return;
     }
     this.setState((state) => {
-      return { ...state, shouldRedraw: false, activeTab: activeTab, nextTab: null }
+      return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null }
     });
 
   }
@@ -76,8 +80,10 @@ export default class PhydthreeComponent extends Component {
     }
   }
   redraw() {
+    const scaleX = 0.4;
+    const scaleY = 0.01183*this.props.leafCount;
     var opts = {
-      dynamicHide: false,
+      dynamicHide: this.state.dynamicHide,
       height: this.props.height,
       invertColors: false,
       lineupNodes: true,
@@ -90,7 +96,12 @@ export default class PhydthreeComponent extends Component {
       showNodeNames: true,
       showNodesType: "only leaf",
       nodeHeight: 10,
-      scaleY: 3,
+      origScaleX: scaleX,
+      scaleX: scaleX,
+      origScaleY: scaleY,
+      scaleY: scaleY,
+      scaleStep: 0.2,
+      margin: 100,
       showPhylogram: true,
       showTaxonomy: false,
       showFullTaxonomy: false,
@@ -109,6 +120,9 @@ export default class PhydthreeComponent extends Component {
         var tree = phyd3.phyloxml.parse(xml);
         d3.select(this.ref.current).html("Loading");
         phyd3.phylogram.build(this.ref.current, tree, opts);
+        if (this.state.firstRender && this.props.leafCount > 1000){
+          this.toggle("svg");
+        }
       }
     });
   }
@@ -124,8 +138,16 @@ export default class PhydthreeComponent extends Component {
     });
   }
 
+  transformZoom(zoomVal){
+    if (zoomVal>100){
+      zoomVal = zoomVal*2 - 100;
+    }
+    return (zoomVal/100).toFixed(2);
+  }
+
 
   render() {
+    const myScale = `scale(${this.state.zoomLevel})`;
     return <>
       <Nav tabs>
         <NavItem>
@@ -155,6 +177,23 @@ export default class PhydthreeComponent extends Component {
 
 
     <div className="tab-content">
+      <div style={{height: "50px"}} className="mt-2">
+        <div style={{display: this.state.activeTab !== "tree" ? "none" : "inherit"}}>
+          <Label check className="ml-4">
+            <Input type="checkbox" id="dynamicHide" defaultChecked={this.state.dynamicHide} onClick={e => {this.setState({...this.state, dynamicHide: !this.state.dynamicHide})}}/> Dynamic hide
+          </Label>
+          <Button id="resetZoom" className="ml-2">Reset Zoom</Button>
+          <Button id="resetPos" className="ml-2">Reset Position</Button>
+        </div>
+
+        <div style={{display: this.state.activeTab !== "svg" ? "none" : "inherit"}}>
+          <Input type="range" name="range" id="exampleRange"
+                  min="1" max="200" step="1" value={this.state.zoomValue}
+                  onChange={e => this.setState({...this.state, zoomValue: parseInt(e.target.value)})}
+                  onMouseUp={e => this.setState({...this.state, zoomLevel: this.transformZoom(this.state.zoomValue)})}/>
+          <span>{this.transformZoom(this.state.zoomValue)}x</span>
+        </div>
+      </div>
       <div
         ref={this.ref}
         id="phyd3"
@@ -174,6 +213,8 @@ export default class PhydthreeComponent extends Component {
             position: "absolute",
             top: 0,
             left: 0,
+            transformOrigin: "0 0",
+            transform: myScale,
           }}
         ></div>
       </div>
@@ -191,4 +232,5 @@ PhydthreeComponent.propTypes = {
    */
   url: PropTypes.string.isRequired,
   height: PropTypes.number.isRequired,
+  leafCount: PropTypes.number.isRequired,
 };

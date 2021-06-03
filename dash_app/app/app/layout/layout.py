@@ -1,6 +1,19 @@
+import json
+
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+
+from ..user import db
+
+DROPDOWN_OPTIONS = [
+    {
+        'label': name,
+        'value': id,
+    }
+    for name, id in json.loads(db.get("/availible_levels")).items()
+]
+
 
 navbar = dbc.NavbarSimple(
     children=[
@@ -63,58 +76,9 @@ og_from_input = html.Div(children=[
                 html.Div([
                     dcc.Dropdown(
                         placeholder="Select a taxon (level of orthology)",
-                        value='Vertebrata',
+                        value='4',
                         id='dropdown',
-                        options=[
-                            {
-                                'label': 'Eukaryota (compact)',
-                                'value': 'Eukaryota'
-                            },
-                            {
-                                'label': 'Eukaryota (all species)',
-                                'value': 'Eukaryota-full'
-                            },
-                            {
-                                'label': 'Metazoa',
-                                'value': 'Metazoa'
-                            },
-                            {
-                                'label': 'Vertebrata',
-                                'value': 'Vertebrata'
-                            },
-                            {
-                                'label': 'Tetrapoda',
-                                'value': 'Tetrapoda'
-                            },
-                            {
-                                'label': 'Actinopterygii',
-                                'value': 'Actinopterygii'
-                            },
-                            {
-                                'label': 'Bacteria (all 5500 species)',
-                                'value': 'Bacteria'
-                            },
-                            {
-                                'label': 'Protista',
-                                'value': 'Protista'
-                            },
-                            {
-                                'label': 'Archaea',
-                                'value': 'Archaea'
-                            },
-                            {
-                                'label': 'Fungi',
-                                'value': 'Fungi'
-                            },
-                            {
-                                'label': 'Viridiplantae',
-                                'value': 'Viridiplantae'
-                            },
-                            {
-                                'label': 'Aves',
-                                'value': 'Aves'
-                            },
-                        ],
+                        options=DROPDOWN_OPTIONS,
                     ),
                     html.Div(id='dd-output-container')
                 ]),
@@ -144,62 +108,9 @@ og_from_input = html.Div(children=[
     dbc.Row([
         dbc.Col(
             html.Div([
-                dcc.Dropdown(options=[
-                        {
-                            'label': 'Eukaryota (compact)',
-                            'value': 'Eukaryota'
-                        },
-                        {
-                            'label': 'Eukaryota (all species)',
-                            'value': 'Eukaryota-full'
-                        },
-                        {
-                            'label': 'Metazoa',
-                            'value': 'Metazoa'
-                        },
-                        {
-                            'label': 'Vertebrata',
-                            'value': 'Vertebrata'
-                        },
-                        {
-                            'label': 'Tetrapoda',
-                            'value': 'Tetrapoda'
-                        },
-                        {
-                            'label': 'Actinopterygii',
-                            'value': 'Actinopterygii'
-                        },
-                        {
-                            'label': 'Bacteria (all 5500 species)',
-                            'value': 'Bacteria-full'
-                        },
-                        {
-                            'label': 'Protista',
-                            'value': 'Protista'
-                        },
-                        {
-                            'label': 'Archaea',
-                            'value': 'Archaea'
-                        },
-                        {
-                            'label': 'Fungi',
-                            'value': 'Fungi'
-                        },
-                        {
-                            'label': 'Viridiplantae',
-                            'value': 'Viridiplantae'
-                        },
-                        {
-                            'label': 'Aves',
-                            'value': 'Aves'
-                        },
-                        {
-                            'label': 'Nicotiana',
-                            'value': 'Nicotiana'
-                        },
-                    ],
+                dcc.Dropdown(options=DROPDOWN_OPTIONS,
                     placeholder="Select a taxon (level of orthology)",
-                    value='Vertebrata',
+                    value='4',
                     id='dropdown2',
                 ),
                 html.Div(id='dd2-output-container')
@@ -242,7 +153,7 @@ def dashboard(task_id):
             disabled=True,
         ),
         html.Div(id='sparql-output-container'),
-        dcc.Link('Navigate to "Images"', href='/reports'),
+        # dcc.Link('Navigate to "Images"', href='/reports'),
     ])
 
 reports = html.Div([

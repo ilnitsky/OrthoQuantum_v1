@@ -160,9 +160,9 @@ def ortho_data_get(requested_ids:list, fields:list) -> dict[str, dict[str, str]]
 
 
 @async_pool.in_thread()
-def read_org_info(level:str, og_csv_path:str):
+def read_org_info(phyloxml_file:str, og_csv_path:str):
     parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(f'phyloxml/{level}.xml', parser)
+    tree = ET.parse(phyloxml_file, parser)
     root = tree.getroot()
 
     orgs_xml = root.xpath("//pxml:id/..", namespaces={'pxml':"http://www.phyloxml.org"})
@@ -178,7 +178,7 @@ def read_org_info(level:str, og_csv_path:str):
     return orgs, csv_data
 
 @async_pool.in_thread(max_pool_share=0.5)
-def get_corr_data(label:str, name:str, taxonomy:str) -> tuple[str, dict]:
+def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
     try:
@@ -193,7 +193,7 @@ def get_corr_data(label:str, name:str, taxonomy:str) -> tuple[str, dict]:
         ?taxon up:scientificName ?org_name.
         ?gene :memberOf odbgroup:{label}.
         ?gene :memberOf ?og.
-        ?og :ogBuiltAt [up:scientificName "{taxonomy}"].
+        ?og :ogBuiltAt [up:scientificName "{level}"].
         }}
         GROUP BY ?org_name
         ORDER BY ?org_name
@@ -219,7 +219,7 @@ def get_corr_data(label:str, name:str, taxonomy:str) -> tuple[str, dict]:
 
 
 @async_pool.in_process()
-def tree(taxonomy_level:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str):
+def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str):
     df['Organisms'] = df['Organisms'].astype("category")
     df['Organisms'].cat.set_categories(organisms, inplace=True)
     df.sort_values(["Organisms"], inplace=True)
@@ -240,7 +240,7 @@ def tree(taxonomy_level:str, OG_names: pd.Series, df: pd.DataFrame, organisms: l
     reordered_ind = dendro['leaves']
 
     parser = ET.XMLParser(remove_blank_text=True)
-    tree = ET.parse(f'phyloxml/{taxonomy_level}.xml', parser)
+    tree = ET.parse(phyloxml_file, parser)
     root = tree.getroot()
     graphs = ET.SubElement(root, "graphs")
     graph = ET.SubElement(graphs, "graph", type="heatmap")

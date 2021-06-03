@@ -4,6 +4,7 @@ import json
 import math
 import traceback
 from typing import Optional
+from pathlib import Path
 
 from aioredis.client import Pipeline
 from . import async_tasks
@@ -21,14 +22,44 @@ import re
 import time
 import itertools
 import pandas as pd
-# import contextvars
-# task_info = contextvars.ContextVar('task_info')
 
 MAX_RUNNING_JOBS = 10
 
+LEVELS = {}
+
+async def init_availible_levels():
+    global LEVELS
+    phyloxml_dir = Path.cwd() / "phyloxml"
+    l = []
+    for file in phyloxml_dir.glob("*.xml"):
+        items = file.stem.split("_", maxsplit=2)
+        if len(items) == 3:
+            id, level, name = items
+        elif len(items) == 2:
+            id, level = items
+            name = level
+        else:
+            raise RuntimeError(f"incorrect file name {file}")
+
+        l.append(
+            (
+                int(id),
+                level,
+                name,
+                str(file.resolve()),
+            )
+        )
+    l.sort()
+
+    availible_levels = {}
+    for id, level, name, path in l:
+        LEVELS[id] = (level, path)
+        availible_levels[name] = id
+
+    await redis.set("/availible_levels", json.dumps(availible_levels))
+
 async def queue_manager():
     """Grabs work from the db and schedules it"""
-    # XADD /queue/task_queue * stage table task_id 123 version 2
     try:
         res = await redis.xgroup_create(QUEUE, GROUP, id="0", mkstream=True)
     except aioredis.ResponseError as e:
@@ -263,8 +294,9 @@ async def table(db: DbClient):
         pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/status", "Executing")
         pipe.get(f"/tasks/{db.task_id}/request/dropdown1")
 
-    level = (await res)[-1].split('-')[0]
-    await delay()
+    level_id = int((await res)[-1])
+    level, _ = LEVELS[level_id]
+
     # Filter out already cached proteins
     cache_data = await redis.mget([
         f"/cache/uniprot/{level}/{prot_id}/data"
@@ -403,13 +435,14 @@ async def table(db: DbClient):
     await tx
 
 async def main():
+    for i in range(10):
+        try:
+            await redis.ping()
+            break
+        except Exception:
+            await asyncio.sleep(1)
+    await init_availible_levels()
     async with async_pool:
-        for i in range(10):
-            try:
-                await redis.ping()
-                break
-            except Exception:
-                await asyncio.sleep(1)
         await queue_manager()
 
 
@@ -428,11 +461,11 @@ async def sparql(db: DbClient):
         )
         pipe.get(f"/tasks/{db.task_id}/request/dropdown2")
 
-    taxonomy_level = (await res)[-1]
-    taxonomy = taxonomy_level.split('-')[0]
+    level_id = int((await res)[-1])
+    level, phyloxml_file = LEVELS[level_id]
 
     organisms, csv_data = await async_tasks.read_org_info(
-        level=taxonomy_level,
+        phyloxml_file=phyloxml_file,
         og_csv_path=str(db.task_dir/'OG.csv')
     )
     organisms:list[str]
@@ -451,8 +484,8 @@ async def sparql(db: DbClient):
     async with redis.pipeline(transaction=False) as pipe:
         for _, data in csv_data.iterrows():
             label=data['label']
-            pipe.hgetall(f"/cache/corr/{taxonomy}/{label}/data")
-            pipe.set(f"/cache/corr/{taxonomy}/{label}/accessed", cur_time, xx=True)
+            pipe.hgetall(f"/cache/corr/{level}/{label}/data")
+            pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time, xx=True)
 
         res = (await pipe.execute())[::2]
         for (_, data), cache in zip(csv_data.iterrows(), res):
@@ -485,7 +518,7 @@ async def sparql(db: DbClient):
             async_tasks.get_corr_data(
                 name=name,
                 label=label,
-                taxonomy=taxonomy,
+                level=level,
             )
             for name, label in corr_info_to_fetch.items()
         ]
@@ -500,9 +533,9 @@ async def sparql(db: DbClient):
 
                     cur_time = int(time.time())
                     label = corr_info_to_fetch[og_name]
-                    pipe.hset(f"/cache/corr/{taxonomy}/{label}/data", mapping=data)
-                    pipe.set(f"/cache/corr/{taxonomy}/{label}/accessed", cur_time)
-                    pipe.setnx(f"/cache/corr/{taxonomy}/{label}/created", cur_time)
+                    pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=data)
+                    pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
+                    pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
 
                     df[og_name] = pd.Series(data, name=og_name, dtype=int)
                     db.report_progress(current_delta=1)
@@ -550,7 +583,7 @@ async def sparql(db: DbClient):
             tree(
                 db=db,
 
-                taxonomy_level=taxonomy_level,
+                phyloxml_file=phyloxml_file,
                 OG_names=csv_data['Name'],
                 df=df,
                 organisms=organisms,

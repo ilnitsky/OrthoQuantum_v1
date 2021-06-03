@@ -411,7 +411,7 @@ def start_vis(dp:DashProxy):
                 dbc.Col(
                     html.A(
                         html.Img(
-                            src=f'/files/{task_id}/Correlation.png?version={version}',
+                            src=f'/files/{task_id}/Correlation_preview.png?version={version}',
                             style={
                                 'width': '100%',
                                 'max-width': '1100px',

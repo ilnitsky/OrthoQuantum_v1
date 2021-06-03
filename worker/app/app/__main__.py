@@ -536,12 +536,8 @@ async def sparql(db: DbClient):
     tasks = []
     tasks.append(
         asyncio.create_task(
-            run_substage(
+            heatmap(
                 db=db,
-                substage_name="heatmap",
-                file_name="Correlation.png",
-
-                callable=async_tasks.heatmap,
                 organism_count=len(organisms),
                 df=df_for_heatmap,
             )
@@ -551,12 +547,9 @@ async def sparql(db: DbClient):
 
     tasks.append(
         asyncio.create_task(
-            run_substage(
+            tree(
                 db=db,
-                substage_name="tree",
-                file_name="cluser.xml",
 
-                callable=async_tasks.tree,
                 taxonomy_level=taxonomy_level,
                 OG_names=csv_data['Name'],
                 df=df,
@@ -583,12 +576,14 @@ async def sparql(db: DbClient):
         raise
 
 
-async def run_substage(db: DbClient, substage_name:str, file_name:str, callable, **kwargs):
+# heatmap and tree are very-very similar, but differ just enough to
+# duplicate code...
+async def heatmap(db: DbClient, **kwargs):
     async def progress(items_in_front):
         if items_in_front > 0:
-            msg = f"In queue to build {substage_name} ({items_in_front} tasks in front)"
+            msg = f"In queue to build heatmap ({items_in_front} tasks in front)"
         elif items_in_front == 0:
-            msg = f"Building {substage_name}"
+            msg = f"Building heatmap"
         else:
             return
 
@@ -596,27 +591,30 @@ async def run_substage(db: DbClient, substage_name:str, file_name:str, callable,
         async def tx(pipe: Pipeline):
             pipe.multi()
             pipe.set(
-                f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-message",
+                f"/tasks/{db.task_id}/stage/{db.stage}/heatmap-message",
                 msg,
             )
         await tx
 
     try:
-        with atomic_file(db.task_dir / file_name) as tmp_file:
-            task = callable(
+        with (
+            atomic_file(db.task_dir / "Correlation.png") as tmp_file,
+            atomic_file(db.task_dir / "Correlation_preview.png") as tmp_file2 ):
+            task = async_tasks.heatmap(
                 **kwargs,
                 output_file=tmp_file,
+                preview_file=tmp_file2,
             )
             task.set_progress_callback(progress)
             task_res = await task
         to_set = {
-            f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-message": "Done",
+            f"/tasks/{db.task_id}/stage/{db.stage}/heatmap-message": "Done",
         }
         if task_res is not None:
-            to_set[f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-res"] = task_res
+            to_set[f"/tasks/{db.task_id}/stage/{db.stage}/heatmap-res"] = task_res
         await redis.mset(to_set)
     except Exception as e:
-        msg = f"Error while building {substage_name}"
+        msg = f"Error while building heatmap"
         if DEBUG:
             msg += f": {repr(e)}"
 
@@ -624,7 +622,7 @@ async def run_substage(db: DbClient, substage_name:str, file_name:str, callable,
         async def tx(pipe: Pipeline):
             pipe.multi()
             pipe.set(
-                f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-message",
+                f"/tasks/{db.task_id}/stage/{db.stage}/heatmap-message",
                 msg,
             )
         await tx
@@ -634,7 +632,65 @@ async def run_substage(db: DbClient, substage_name:str, file_name:str, callable,
     async def tx(pipe: Pipeline):
         pipe.multi()
         pipe.set(
-            f"/tasks/{db.task_id}/stage/{db.stage}/{substage_name}-message",
+            f"/tasks/{db.task_id}/stage/{db.stage}/heatmap-message",
+            "Done",
+        )
+    await tx
+
+
+
+async def tree(db: DbClient, **kwargs):
+    async def progress(items_in_front):
+        if items_in_front > 0:
+            msg = f"In queue to build tree ({items_in_front} tasks in front)"
+        elif items_in_front == 0:
+            msg = f"Building tree"
+        else:
+            return
+
+        @db.transaction
+        async def tx(pipe: Pipeline):
+            pipe.multi()
+            pipe.set(
+                f"/tasks/{db.task_id}/stage/{db.stage}/tree-message",
+                msg,
+            )
+        await tx
+
+    try:
+        with atomic_file(db.task_dir / "cluser.xml") as tmp_file:
+            task = async_tasks.tree(
+                **kwargs,
+                output_file=tmp_file,
+            )
+            task.set_progress_callback(progress)
+            task_res = await task
+        to_set = {
+            f"/tasks/{db.task_id}/stage/{db.stage}/tree-message": "Done",
+        }
+        if task_res is not None:
+            to_set[f"/tasks/{db.task_id}/stage/{db.stage}/tree-res"] = task_res
+        await redis.mset(to_set)
+    except Exception as e:
+        msg = f"Error while building tree"
+        if DEBUG:
+            msg += f": {repr(e)}"
+
+        @db.transaction
+        async def tx(pipe: Pipeline):
+            pipe.multi()
+            pipe.set(
+                f"/tasks/{db.task_id}/stage/{db.stage}/tree-message",
+                msg,
+            )
+        await tx
+        raise
+
+    @db.transaction
+    async def tx(pipe: Pipeline):
+        pipe.multi()
+        pipe.set(
+            f"/tasks/{db.task_id}/stage/{db.stage}/tree-message",
             "Done",
         )
     await tx

@@ -1,4 +1,5 @@
 from collections import defaultdict
+import shutil
 
 import SPARQLWrapper
 import requests
@@ -268,13 +269,12 @@ def tree(taxonomy_level:str, OG_names: pd.Series, df: pd.DataFrame, organisms: l
 
 
 @async_pool.in_process()
-def heatmap(organism_count:int, df: pd.DataFrame, output_file:str):
+def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str):
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
     pres_list = [(1 - item / organism_count) for item in pres_df_zero_values]
 
     rgbs = [(1 - i, 0, 0) for i in pres_list]
-    sns.set(font_scale=1.2)
     df = df.fillna(0).astype(float)
     df = df.loc[:, (df != 0).any(axis=0)]
 
@@ -282,16 +282,55 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str):
         "#f72585","#b5179e","#7209b7","#560bad","#480ca8",
         "#3a0ca3","#3f37c9","#4361ee","#4895ef","#4cc9f0",
     ],as_cmap=True)
+    # print(df.describe(), df.shape)
+    items_count = df.shape[1]
+    corr = df.corr()
+    # 566 - 85/85
+    DEFAULT_FIG_SIZE = 10
 
-    sns.clustermap(
-        df.corr(),
-        cmap=customPalette,
-        metric="correlation",
-        figsize=(15, 15),
-        col_colors=[rgbs],
-        row_colors=[rgbs],
-    )
+    if items_count >= 66:
+        # generate hi-rez version for the click and low-res preview
+        size = min(items_count * 0.17, 250) # size when items are readable (+ png size limit)
+        sns.clustermap(
+            corr,
+            cmap=customPalette,
+            metric="correlation",
+            figsize=(size, size),
+            col_colors=[rgbs],
+            row_colors=[rgbs],
+            yticklabels=True,
+            xticklabels=True,
+        )
+        with open_existing(output_file, 'wb') as f:
+            plt.savefig(f, format="png")
+        plt.close()
 
-    with open_existing(output_file, 'wb') as f:
-        plt.savefig(f, format="png")
+        sns.clustermap(
+            corr,
+            cmap=customPalette,
+            metric="correlation",
+            figsize=(DEFAULT_FIG_SIZE, DEFAULT_FIG_SIZE),
+            col_colors=[rgbs],
+            row_colors=[rgbs],
+        )
+        with open_existing(preview_file, 'wb') as f:
+            plt.savefig(f, format="png")
+
+    else:
+        # hi-rez and low-rez are the same
+        sns.clustermap(
+            corr,
+            cmap=customPalette,
+            metric="correlation",
+            figsize=(DEFAULT_FIG_SIZE, DEFAULT_FIG_SIZE),
+            col_colors=[rgbs],
+            row_colors=[rgbs],
+            yticklabels=True,
+            xticklabels=True,
+        )
+        with open_existing(output_file, 'wb') as f:
+            plt.savefig(f, format="png")
+        with open_existing(preview_file, 'wb') as fdst, open(output_file, "rb") as fsrc:
+            shutil.copyfileobj(fsrc, fdst)
+
 

@@ -243,7 +243,6 @@ def dashboard(task_id):
         ),
         html.Div(id='sparql-output-container'),
         dcc.Link('Navigate to "Images"', href='/reports'),
-        # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
     ])
 
 reports = html.Div([

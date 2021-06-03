@@ -20,5 +20,5 @@ log_data = {
     # Additional, non-gunicorn variables
     "workers_per_core": workers_per_core,
 }
-timeout = 600
-graceful_timeout = 600
+timeout = 60
+graceful_timeout = 0 if environ.get("DEBUG") else 120

@@ -1455,6 +1455,7 @@ window.requestAnimFrame = (function(){
         function changeLeafText() {
             var max = 0;
             longestNode = 0;
+            var legendRef = onodes.graphs[0].legend;
             leaves.selectAll('text.name')
                .text(function(d) {
                     var t = getNodeText(d);
@@ -1462,6 +1463,11 @@ window.requestAnimFrame = (function(){
                         max = t.length;
                         longestNode = d.id;
                     }
+                    // set tooltip text
+                    d3.select(this.parentNode).selectAll("rect.heatmap>title").text(
+                        function(d, i){
+                            return t + ": " + legendRef.fields[i].name;
+                    });
                     return t;
                });
             vis.selectAll("g.node.inner")
@@ -1976,9 +1982,7 @@ window.requestAnimFrame = (function(){
                                         }
                                     })
                                     .attr("stroke-width", options.outline + "px")
-                                    .append("title").text(function(d, i) {
-                                        return (graph.legend.fields[i] ? graph.legend.fields[i].name + ": " : "" )+d.value;
-                                    });
+                                    .append("title");
 
 
                             }

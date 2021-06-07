@@ -17,7 +17,7 @@ from phydthree_component import PhydthreeComponent
 
 from . import layout
 from . import user
-from .utils import DashProxy, QUEUE, GROUP, decode_int
+from .utils import DashProxy, _DashProxy, GROUP, decode_int
 
 
 app = flask.Flask(__name__)
@@ -120,17 +120,65 @@ def router_page(href):
     if pathname == '/blast':
         return layout.blast, search
     if pathname == '/flush_cache':
-        user.enqueue(
-            version_key=f"/cache/version",
-            queue_key=QUEUE,
-            queue_id_dest=f"/cache/q_id",
-            # redis_client=pipe,
-
-            stage="flush_cache",
-        )
+        user.db.xadd("/queues/flush_cache", {"t":"t"})
         return 'flushing', search
 
     return '404', search
+
+@dash_proxy.callback(
+    Output("blast-button", "children"),
+    Output("blast-options", "is_open"),
+    Output("blast-button", "outline"),
+
+    Input("blast-button", "n_clicks"),
+    Input("blast-button-input-value", "data"),
+    State("blast-options", "is_open"),
+)
+def toggle_collapse(dp:_DashProxy):
+    if ("blast-button", "n_clicks") in dp.triggered:
+        dp["blast-options", "is_open"] = not dp["blast-options", "is_open"]
+    elif ("blast-button-input-value", "data") in dp.triggered:
+        dp["blast-options", "is_open"] = dp["blast-button-input-value", "data"]>0
+
+    if dp["blast-options", "is_open"]:
+        dp["blast-button", "children"] = "Disable BLAST"
+        dp["blast-button", "outline"] = False
+    else:
+        dp["blast-button", "children"] = "Enable BLAST"
+        dp["blast-button", "outline"] = True
+
+@dash_proxy.callback(
+    Output("pident-input", "invalid"),
+    Output("pident-input", "value"),
+    Output("pident-slider", "value"),
+    Output("pident-output-val", "data"),
+
+    Input("pident-input", "value"),
+    Input("pident-slider", "value"),
+    Input("pident-input-val", "data"),
+)
+def pident_val(dp:_DashProxy):
+    if dp.first_load or ("pident-input-val", "data") in dp.triggered:
+        val = dp["pident-input-val", "data"]
+        dp["pident-input", "invalid"] = False
+        dp["pident-input", "value"] = val
+        dp["pident-slider", "value"] = val
+    elif ("pident-input", "value") in dp.triggered:
+        try:
+            val = float(dp["pident-input", "value"].replace(' ', '').replace(',', '.'))
+            dp["pident-slider", "value"] = val
+        except Exception:
+            val = 0
+    elif ("pident-slider", "value") in dp.triggered:
+        val = dp["pident-slider", "value"]
+        dp["pident-input", "value"] = val
+
+
+    dp["pident-input", "invalid"] = not(0 < val <= 100)
+    dp["pident-output-val", "data"] = 0 if dp["pident-input", "invalid"] else val
+
+
+
 
 
 # TODO: need this?
@@ -139,7 +187,8 @@ def select_level(value):
     return f'Selected "{value}" orthology level'
 
 
-def display_progress(status, total, current, msg):
+def display_progress(queue, status, total, current, msg):
+    print(queue, status, total, current, msg)
     pbar = {
         "style": {"height": "30px"}
     }
@@ -156,7 +205,7 @@ def display_progress(status, total, current, msg):
 
         if total == -3:
             gueue_len = user.get_queue_length(
-                queue_key=QUEUE,
+                queue_key=queue,
                 worker_group_name=GROUP,
                 current=current
             )
@@ -218,13 +267,14 @@ def display_progress(status, total, current, msg):
 def table(dp:DashProxy):
     """Perform action (cancel/start building the table)"""
     task_id = dp['task_id', 'data']
+    queue = "/queues/table"
 
     if ('submit-button', 'n_clicks') in dp.triggered:
         # Sending data
         with user.db.pipeline(transaction=True) as pipe:
             user.enqueue(
                 version_key=f"/tasks/{task_id}/stage/table/version",
-                queue_key=QUEUE,
+                queue_key=queue,
                 queue_id_dest=f"/tasks/{task_id}/stage/table/current",
                 redis_client=pipe,
 
@@ -250,7 +300,7 @@ def table(dp:DashProxy):
                 f"/tasks/{task_id}/stage/table/dash-table",
                 f"/tasks/{task_id}/stage/table/message",
                 f"/tasks/{task_id}/stage/table/missing_msg",
-                f"/tasks/{task_id}/stage/sparql/status",
+                f"/tasks/{task_id}/stage/vis/status",
             )
             new_version = pipe.execute()[0][0]
         dp['input_version', 'data'] = new_version
@@ -300,7 +350,7 @@ def table(dp:DashProxy):
         )
 
     if status in ('Enqueued', 'Executing', 'Error'):
-        output.append(display_progress(status, total, current, msg))
+        output.append(display_progress(queue, status, total, current, msg))
     elif status == 'Done':
         data = json.loads(table_data)
         output.append(
@@ -320,10 +370,14 @@ def table(dp:DashProxy):
 
 
 @dash_proxy.callback(
-    Output('sparql-output-container', 'children'),
+    Output('vis-output-container', 'children'),
     Output('dropdown2', 'value'),
     Output('input2-version', 'data'),
     Output('progress-updater-2', 'disabled'),
+    Output("wrong-input-2", "is_open"),
+    Output("blast-button-input-value", "data"),
+    Output("pident-input-val", "data"),
+    Output("evalue", "value"),
 
     Input('submit-button2', 'n_clicks'),
     Input('submit-button2', 'disabled'),
@@ -331,17 +385,23 @@ def table(dp:DashProxy):
 
     State('task_id', 'data'),
     State('dropdown2', 'value'),
-    State('input2-version', 'data')
+    State('input2-version', 'data'),
+    State("pident-input", "invalid"),
+    State("blast-options", "is_open"),
+    State("evalue", "value"),
+    State("pident-output-val", "data"),
+    State("blast-button-input-value", "data"),
 )
 def start_vis(dp:DashProxy):
     task_id = dp['task_id', 'data']
+    queue = "/queues/vis"
 
     if ('submit-button2', 'disabled') in dp.triggered:
         if dp['submit-button2', 'disabled']:
             # First stage data was changed, clear the current data
-            dp['sparql-output-container', 'children'] = None
+            dp['vis-output-container', 'children'] = None
             # Stop running tasks
-            user.db.incr(f"/tasks/{task_id}/stage/sparql/version")
+            user.db.incr(f"/tasks/{task_id}/stage/vis/version")
             return
 
     if ('submit-button2', 'n_clicks') in dp.triggered:
@@ -349,62 +409,78 @@ def start_vis(dp:DashProxy):
             # button was pressed in disabled state??
             return
         # button press triggered
+        if dp["blast-options", "is_open"] and dp["pident-input", "invalid"]:
+            dp["wrong-input-2", "is_open"] = True
+            return
+        dp["wrong-input-2", "is_open"] = False
 
         with user.db.pipeline(transaction=True) as pipe:
             user.enqueue(
-                version_key=f"/tasks/{task_id}/stage/sparql/version",
-                queue_key=QUEUE,
-                queue_id_dest=f"/tasks/{task_id}/stage/sparql/current",
+                version_key=f"/tasks/{task_id}/stage/vis/version",
+                queue_key=queue,
+                queue_id_dest=f"/tasks/{task_id}/stage/vis/current",
                 redis_client=pipe,
 
                 task_id=task_id,
-                stage="sparql",
+                stage="vis",
             )
 
             pipe.mset({
-                f"/tasks/{task_id}/stage/sparql/status": "Enqueued",
-                f"/tasks/{task_id}/stage/sparql/total": -3,
+                f"/tasks/{task_id}/stage/vis/status": "Enqueued",
+                f"/tasks/{task_id}/stage/vis/total": -3,
                 f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
-                f"/tasks/{task_id}/stage/sparql/heatmap-message": "",
-                f"/tasks/{task_id}/stage/sparql/tree-message": "",
+                f"/tasks/{task_id}/request/blast_enable": "1" if dp["blast-options", "is_open"] else "",
+                f"/tasks/{task_id}/request/blast_evalue": dp["evalue", "value"],
+                f"/tasks/{task_id}/request/blast_pident": dp["pident-output-val", "data"],
+                f"/tasks/{task_id}/stage/vis/heatmap-message": "",
+                f"/tasks/{task_id}/stage/vis/tree-message": "",
             })
             pipe.execute_command(
                 "COPY",
-                f"/tasks/{task_id}/stage/sparql/version",
-                f"/tasks/{task_id}/stage/sparql/input2-version",
+                f"/tasks/{task_id}/stage/vis/version",
+                f"/tasks/{task_id}/stage/vis/input2-version",
                 "REPLACE",
             )
-            sparql_ver = pipe.execute()[0][0]
-        dp['input2-version', 'data'] = sparql_ver
+            vis_ver = pipe.execute()[0][0]
+        dp['input2-version', 'data'] = vis_ver
 
     # fill the output row
     # here because of "go" click, first launch or interval refresh
     version, status, msg, current, total, input_version, heatmap_msg, tree_msg, tree_leaf_count = user.db.mget(
-        f"/tasks/{task_id}/stage/sparql/version",
-        f"/tasks/{task_id}/stage/sparql/status",
-        f"/tasks/{task_id}/stage/sparql/message",
-        f"/tasks/{task_id}/stage/sparql/current",
-        f"/tasks/{task_id}/stage/sparql/total",
-        f"/tasks/{task_id}/stage/sparql/input2-version",
-        f"/tasks/{task_id}/stage/sparql/heatmap-message",
-        f"/tasks/{task_id}/stage/sparql/tree-message",
-        f"/tasks/{task_id}/stage/sparql/tree-res",
+        f"/tasks/{task_id}/stage/vis/version",
+        f"/tasks/{task_id}/stage/vis/status",
+        f"/tasks/{task_id}/stage/vis/message",
+        f"/tasks/{task_id}/stage/vis/current",
+        f"/tasks/{task_id}/stage/vis/total",
+        f"/tasks/{task_id}/stage/vis/input2-version",
+        f"/tasks/{task_id}/stage/vis/heatmap-message",
+        f"/tasks/{task_id}/stage/vis/tree-message",
+        f"/tasks/{task_id}/stage/vis/tree-res",
     )
     version, total, input_version, tree_leaf_count = decode_int(version, total, input_version, tree_leaf_count)
 
     if input_version > dp['input2-version', 'data']:
         # Server has newer data than we have, update dropdown value
-        input_val, input_version = user.db.mget(
+        input_val, input_version, blast_enable, blast_evalue, blast_pident = user.db.mget(
             f"/tasks/{task_id}/request/dropdown2",
-            f"/tasks/{task_id}/stage/sparql/input2-version"
+            f"/tasks/{task_id}/stage/vis/input2-version",
+            f"/tasks/{task_id}/request/blast_enable",
+            f"/tasks/{task_id}/request/blast_evalue",
+            f"/tasks/{task_id}/request/blast_pident",
         )
+        dp["blast-button-input-value", "data"] = abs(dp["blast-button-input-value", "data"]) + 1
+        if not blast_enable:
+            dp["blast-button-input-value", "data"] *= -1
+        dp["evalue", "value"] = blast_evalue
+        dp["pident-input-val", "data"] = blast_pident
+
         dp['input2-version', 'data'] = decode_int(input_version)
         dp['dropdown2', 'value'] = input_val
 
     dp['progress-updater-2', 'disabled'] = status not in ('Enqueued', 'Executing', 'Waiting')
 
     if status in ('Enqueued', 'Executing', 'Error'):
-        dp[f'sparql-output-container', 'children'] = display_progress(status, total, current, msg)
+        dp[f'vis-output-container', 'children'] = display_progress(queue, status, total, current, msg)
     elif status in ('Waiting', 'Done'):
         if heatmap_msg == "Done":
             heatmap = dbc.Row(
@@ -427,9 +503,9 @@ def start_vis(dp:DashProxy):
                 className="mx-4",
             )
         elif heatmap_msg.startswith("Error"):
-            heatmap = display_progress("Error", -2, 0, heatmap_msg)
+            heatmap = display_progress(queue, "Error", -2, 0, heatmap_msg)
         else:
-            heatmap = display_progress("Executing", -1, 0, heatmap_msg)
+            heatmap = display_progress(queue, "Executing", -1, 0, heatmap_msg)
 
         if tree_msg == "Done":
             tree = dbc.Row(
@@ -443,10 +519,10 @@ def start_vis(dp:DashProxy):
                 )
             )
         elif tree_msg.startswith("Error"):
-            tree = display_progress("Error", -2, 0, tree_msg)
+            tree = display_progress(queue, "Error", -2, 0, tree_msg)
         else:
-            tree = display_progress("Executing", -1, 0, tree_msg)
-        dp[f'sparql-output-container', 'children'] = [
+            tree = display_progress(queue, "Executing", -1, 0, tree_msg)
+        dp[f'vis-output-container', 'children'] = [
             heatmap,
             tree
         ]

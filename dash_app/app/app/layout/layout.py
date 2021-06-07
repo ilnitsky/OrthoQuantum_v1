@@ -120,15 +120,68 @@ og_from_input = html.Div(children=[
 
         ),
     ], justify='center'),
-    html.Br(),
+
     dbc.Row([
+        dbc.Col(
+            html.Div([
+                dcc.Store(id='blast-button-input-value', data=0),
+                dbc.Button(
+                    id="blast-button",
+                    className="my-3",
+                    color="success",
+                ),
+                dbc.Collapse(
+                    dbc.Card(dbc.CardBody([
+                        dbc.FormGroup([
+                            dbc.Label("EValue", html_for="evalue"),
+                            dbc.Select(
+                                id="evalue",
+                                options=[
+                                    {"label": "10⁻⁵", "value": "-5"},
+                                    {"label": "10⁻⁶", "value": "-6"},
+                                    {"label": "10⁻⁷", "value": "-7"},
+                                    {"label": "10⁻⁸", "value": "-8"},
+                                ],
+                                value="-5",
+                            ),
+                        ]),
+                        dbc.FormGroup([
+                            dbc.Label("Pident", html_for="pident-input-group"),
+                            dbc.InputGroup(
+                                [
+                                    dbc.Input(id="pident-input"),
+                                    dbc.InputGroupAddon("%", addon_type="append"),
+                                ],
+                                id="pident-input-group"
+                            ),
+                            dcc.Slider(id="pident-slider", min=0, max=100, step=0.5),
+                        ]),
+                        dcc.Store(id='pident-input-val', data=70),
+                        dcc.Store(id='pident-output-val'),
+                        dbc.Alert(
+                            "Incorrect value!",
+                            id="wrong-input-2",
+                            is_open=False,
+                            color="danger",
+                        ),
+                    ])),
+                    id="blast-options",
+                ),
+            ]),
+            md=8,
+            lg=6,
+
+        ),
+    ], justify='center'),
+    html.Br(),
+    dbc.Row(
         dbc.Col(
             html.Button(id='submit-button2', type='submit', disabled=True, children='Go'),
             md=8,
             lg=6,
 
         ),
-    ], justify='center'),
+    justify='center'),
 ])
 
 
@@ -152,7 +205,9 @@ def dashboard(task_id):
             interval=500, # in milliseconds
             disabled=True,
         ),
-        html.Div(id='sparql-output-container'),
+        html.Div(id='vis-output-container'),
+        html.Br(),
+        html.Br(),
         # dcc.Link('Navigate to "Images"', href='/reports'),
     ])
 

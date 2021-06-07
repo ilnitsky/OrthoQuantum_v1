@@ -1,5 +1,4 @@
-from .db import redis
+from .db import redis, init_db, LEVELS
 
-QUEUE = "/queue/task_queue"
 GROUP = "worker_group"
 CONSUMER = "worker_group_consumer"

@@ -21,9 +21,8 @@ class _DashProxy():
         self._input_order = []
         self._output_order = []
         self._outputs = {}
-        self.triggered = None
-        self.first_load = False
-        self.triggered : set
+        self.triggered = set()
+
 
         for arg in args:
             if not isinstance(arg, DashDependency):
@@ -36,6 +35,10 @@ class _DashProxy():
                 self._output_order.append(k)
             else:
                 raise RuntimeError("Unknown DashDependency")
+
+    @property
+    def first_load(self):
+        return not bool(self.triggered)
 
     def __getitem__(self, key):
         if key in self._outputs:
@@ -50,11 +53,9 @@ class _DashProxy():
             self._data[k] = val
         triggers = callback_context.triggered
 
-        if len(triggers) == 1 and triggers[0]['prop_id'] == ".":
-            self.first_load = True
-            self.triggered = set()
-        else:
-            self.triggered = set(
+        self.triggered.clear()
+        if not(len(triggers) == 1 and triggers[0]['prop_id'] == "."):
+            self.triggered.update(
                 tuple(item['prop_id'].rsplit('.', maxsplit=1))
                 for item in callback_context.triggered
             )

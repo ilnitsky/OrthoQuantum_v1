@@ -1,2 +1,3 @@
 from .db_client import DbClient
-from .cancellation_manager import CancellationManager
+from .queue_manager import queue_manager
+from .cancellation_manager import cancellation_manager

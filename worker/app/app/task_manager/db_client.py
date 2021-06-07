@@ -8,7 +8,7 @@ from aioredis import WatchError
 from aioredis.client import Pipeline
 
 from .exceptions import VersionChangedException
-from ..redis import redis, QUEUE, GROUP
+from ..redis import redis, GROUP
 from ..utils import decode_int, DATA_PATH
 
 @dataclass
@@ -88,8 +88,8 @@ class ProgressUpdate:
 
 class DbClient():
     FLUSH_DELAY = 0.3
-    def __init__(self, q_id: str, task_id: str, stage: str, version: int):
-        self.q_id: str = q_id
+
+    def __init__(self, task_id: str, stage: str, version: int):
         self.task_id: str = task_id
         self.stage: str = stage
         self.version: int = version
@@ -100,9 +100,6 @@ class DbClient():
         self._report_send_lock = asyncio.Lock()
         self._progress = ProgressUpdate()
         self._verison_key = f"/tasks/{self.task_id}/stage/{self.stage}/version"
-
-    async def ack(self):
-        await redis.xack(QUEUE, GROUP, self.q_id)
 
     def transaction(self, func: Callable[[Pipeline], Coroutine[Any, Any, None]]) -> Coroutine[Any, Any, list]:
         @wraps(func)
@@ -203,7 +200,7 @@ class DbClient():
         self._report_flush.cancel()
         await self._progress_task
 
-    async def report_error(self, message, cancel_rest=True):
+    async def report_error(self, message):
         @self.transaction
         async def tx(pipe: Pipeline):
             await pipe.watch(f"/tasks/{self.task_id}/stage/{self.stage}/status")
@@ -217,6 +214,5 @@ class DbClient():
                     f"/tasks/{self.task_id}/stage/{self.stage}/status": "Error",
                     f"/tasks/{self.task_id}/stage/{self.stage}/total": -2,
                 })
-            if cancel_rest:
                 pipe.incr(f"/tasks/{self.task_id}/stage/{self.stage}/version")
         await tx

@@ -87,7 +87,7 @@ def main():
 
     convert(
         str(newick/"phyloT_vertebrata_newick.txt"),
-        str(data/"Vertebrata.xml"),
+        str(data/"4_Vertebrata.xml"),
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -97,7 +97,7 @@ def main():
     )
     convert(
         str(newick/"phyloT_Eukaryota-full_newick.txt"),
-        str(data/"Eukaryota-full.xml"),
+        str(data/"2_Eukaryota_Eukaryota (all species).xml"),
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -132,7 +132,7 @@ def main():
     )
     convert(
         str(newick/"phyloT_Eukaryota_newick.txt"),
-        str(data/"Eukaryota.xml"),
+        str(data/"1_Eukaryota_Eukaryota (compact).xml"),
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -142,7 +142,7 @@ def main():
     )
     convert(
         str(newick/"phyloT_Protista_newick.txt"),
-        str(data/"Protista.xml"),
+        str(data/"8_Protista.xml"),
         taxa_colors={
 
             }
@@ -150,7 +150,7 @@ def main():
     )
     convert(
         str(newick/"phyloT_Viridiplantae_newick.txt"),
-        str(data/"Viridiplantae.xml"),
+        str(data/"11_Viridiplantae.xml"),
         taxa_colors={
 
             }

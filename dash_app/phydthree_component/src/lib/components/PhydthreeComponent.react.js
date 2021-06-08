@@ -47,6 +47,12 @@ export default class PhydthreeComponent extends Component {
       case "png":
         phyd3.phylogram.renderPNG();
       default:
+        if (this.state.shouldRedraw && activeTab == "tree"){
+          this.redraw();
+          this.setState((state) => {
+            return { ...state, shouldRedraw: false }
+          });
+        }
         return;
     }
     this.setState((state) => {
@@ -60,6 +66,7 @@ export default class PhydthreeComponent extends Component {
     this.redraw()
   }
   handleResize() {
+
     // debounce resize events (redraw at most once per second)
     if (this.callback != null) {
       clearTimeout(this.callback)
@@ -80,6 +87,7 @@ export default class PhydthreeComponent extends Component {
     }
   }
   redraw() {
+
     const scaleX = 0.4;
     const scaleY = 0.01183*this.props.leafCount;
     var opts = {

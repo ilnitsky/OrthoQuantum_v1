@@ -1,6 +1,19 @@
+import json
+
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+
+from ..user import db
+
+DROPDOWN_OPTIONS = [
+    {
+        'label': name,
+        'value': id,
+    }
+    for name, id in json.loads(db.get("/availible_levels")).items()
+]
+
 
 navbar = dbc.NavbarSimple(
     children=[
@@ -63,60 +76,10 @@ og_from_input = html.Div(children=[
                 html.Div([
                     dcc.Dropdown(
                         placeholder="Select a taxon (level of orthology)",
-                        value='Vertebrata',
+                        value='4',
                         id='dropdown',
-                        options=[
-                            {
-                                'label': 'Eukaryota (compact)',
-                                'value': 'Eukaryota'
-                            },
-                            {
-                                'label': 'Eukaryota (all species)',
-                                'value': 'Eukaryota-full'
-                            },
-                            {
-                                'label': 'Metazoa',
-                                'value': 'Metazoa'
-                            },
-                            {
-                                'label': 'Vertebrata',
-                                'value': 'Vertebrata'
-                            },
-                            {
-                                'label': 'Tetrapoda',
-                                'value': 'Tetrapoda'
-                            },
-                            {
-                                'label': 'Actinopterygii',
-                                'value': 'Actinopterygii'
-                            },
-                            {
-                                'label': 'Bacteria (all 5500 species)',
-                                'value': 'Bacteria'
-                            },
-                            {
-                                'label': 'Protista',
-                                'value': 'Protista'
-                            },
-                            {
-                                'label': 'Archaea',
-                                'value': 'Archaea'
-                            },
-                            {
-                                'label': 'Fungi',
-                                'value': 'Fungi'
-                            },
-                            {
-                                'label': 'Viridiplantae',
-                                'value': 'Viridiplantae'
-                            },
-                            {
-                                'label': 'Aves',
-                                'value': 'Aves'
-                            },
-                        ],
-                    ),
-                    html.Div(id='dd-output-container')
+                        options=DROPDOWN_OPTIONS,
+                    )
                 ]),
                 md=8,
                 lg=6,
@@ -144,62 +107,9 @@ og_from_input = html.Div(children=[
     dbc.Row([
         dbc.Col(
             html.Div([
-                dcc.Dropdown(options=[
-                        {
-                            'label': 'Eukaryota (compact)',
-                            'value': 'Eukaryota'
-                        },
-                        {
-                            'label': 'Eukaryota (all species)',
-                            'value': 'Eukaryota-full'
-                        },
-                        {
-                            'label': 'Metazoa',
-                            'value': 'Metazoa'
-                        },
-                        {
-                            'label': 'Vertebrata',
-                            'value': 'Vertebrata'
-                        },
-                        {
-                            'label': 'Tetrapoda',
-                            'value': 'Tetrapoda'
-                        },
-                        {
-                            'label': 'Actinopterygii',
-                            'value': 'Actinopterygii'
-                        },
-                        {
-                            'label': 'Bacteria (all 5500 species)',
-                            'value': 'Bacteria-full'
-                        },
-                        {
-                            'label': 'Protista',
-                            'value': 'Protista'
-                        },
-                        {
-                            'label': 'Archaea',
-                            'value': 'Archaea'
-                        },
-                        {
-                            'label': 'Fungi',
-                            'value': 'Fungi'
-                        },
-                        {
-                            'label': 'Viridiplantae',
-                            'value': 'Viridiplantae'
-                        },
-                        {
-                            'label': 'Aves',
-                            'value': 'Aves'
-                        },
-                        {
-                            'label': 'Nicotiana',
-                            'value': 'Nicotiana'
-                        },
-                    ],
+                dcc.Dropdown(options=DROPDOWN_OPTIONS,
                     placeholder="Select a taxon (level of orthology)",
-                    value='Vertebrata',
+                    value='4',
                     id='dropdown2',
                 ),
                 html.Div(id='dd2-output-container')
@@ -209,15 +119,68 @@ og_from_input = html.Div(children=[
 
         ),
     ], justify='center'),
-    html.Br(),
+
     dbc.Row([
+        dbc.Col(
+            html.Div([
+                dcc.Store(id='blast-button-input-value', data=0),
+                dbc.Button(
+                    id="blast-button",
+                    className="my-3",
+                    color="success",
+                ),
+                dbc.Collapse(
+                    dbc.Card(dbc.CardBody([
+                        dbc.FormGroup([
+                            dbc.Label("EValue", html_for="evalue"),
+                            dbc.Select(
+                                id="evalue",
+                                options=[
+                                    {"label": "10⁻⁵", "value": "-5"},
+                                    {"label": "10⁻⁶", "value": "-6"},
+                                    {"label": "10⁻⁷", "value": "-7"},
+                                    {"label": "10⁻⁸", "value": "-8"},
+                                ],
+                                value="-5",
+                            ),
+                        ]),
+                        dbc.FormGroup([
+                            dbc.Label("Pident", html_for="pident-input-group"),
+                            dbc.InputGroup(
+                                [
+                                    dbc.Input(id="pident-input"),
+                                    dbc.InputGroupAddon("%", addon_type="append"),
+                                ],
+                                id="pident-input-group"
+                            ),
+                            dcc.Slider(id="pident-slider", min=0, max=100, step=0.5),
+                        ]),
+                        dcc.Store(id='pident-input-val', data=70),
+                        dcc.Store(id='pident-output-val'),
+                        dbc.Alert(
+                            "Incorrect value!",
+                            id="wrong-input-2",
+                            is_open=False,
+                            color="danger",
+                        ),
+                    ])),
+                    id="blast-options",
+                ),
+            ]),
+            md=8,
+            lg=6,
+
+        ),
+    ], justify='center', style={"display": "none"}),
+    html.Br(),
+    dbc.Row(
         dbc.Col(
             html.Button(id='submit-button2', type='submit', disabled=True, children='Go'),
             md=8,
             lg=6,
 
         ),
-    ], justify='center'),
+    justify='center'),
 ])
 
 
@@ -241,9 +204,10 @@ def dashboard(task_id):
             interval=500, # in milliseconds
             disabled=True,
         ),
-        html.Div(id='sparql-output-container'),
-        dcc.Link('Navigate to "Images"', href='/reports'),
-        # html.Img(src=r'C:\Users\nfsus\OneDrive\best_repository_ever\Dash_app\assets\images\Correlation.png')
+        html.Div(id='vis-output-container'),
+        html.Br(),
+        html.Br(),
+        # dcc.Link('Navigate to "Images"', href='/reports'),
     ])
 
 reports = html.Div([

@@ -4,6 +4,7 @@ services:
     build: ./dash_app
     ports:
       - "127.0.0.1:8050:8050"
+    restart: unless-stopped
     volumes:
       - "user_data:/app/user_data"
     environment:
@@ -11,11 +12,13 @@ services:
 
   redis:
     build: ./redis
+    restart: unless-stopped
     volumes:
       - "redis_data:/data"
 
   worker:
     build: ./worker
+    restart: unless-stopped
     volumes:
       - "user_data:/app/user_data"
     environment:

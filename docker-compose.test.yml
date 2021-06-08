@@ -5,6 +5,7 @@ services:
       context: ./dash_app
       args:
         DEBUG: "1"
+    restart: unless-stopped
     ports:
       - "8050:8050"
     environment:
@@ -16,6 +17,7 @@ services:
 
   redis:
     build: ./redis
+    restart: unless-stopped
     volumes:
       - "redis_data:/data"
 
@@ -24,6 +26,7 @@ services:
       context: ./worker
       args:
         DEBUG: "1"
+    restart: unless-stopped
     volumes:
       - "user_data:/app/user_data"
     environment:

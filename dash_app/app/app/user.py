@@ -5,9 +5,13 @@ import secrets
 import flask
 
 import redis
+
+import time
+
 for attempt in range(10):
     try:
         db = redis.Redis("redis", encoding="utf-8", decode_responses=True)
+        db.ping()
         break
     except Exception:
         if attempt == 9:

@@ -2,7 +2,6 @@ from functools import wraps
 from dash import callback_context, no_update
 from dash.dependencies import Input, Output, State, DashDependency
 
-QUEUE = "/queue/task_queue"
 GROUP = "worker_group"
 
 def decode_int(*items:bytes, default=0) -> int:
@@ -15,15 +14,14 @@ def decode_int(*items:bytes, default=0) -> int:
     )
 
 
-class _DashProxy():
+class DashProxy():
     def __init__(self, args):
         self._data = {}
         self._input_order = []
         self._output_order = []
         self._outputs = {}
-        self.triggered = None
-        self.first_load = False
-        self.triggered : set
+        self.triggered = set()
+
 
         for arg in args:
             if not isinstance(arg, DashDependency):
@@ -37,6 +35,10 @@ class _DashProxy():
             else:
                 raise RuntimeError("Unknown DashDependency")
 
+    @property
+    def first_load(self):
+        return not self.triggered
+
     def __getitem__(self, key):
         if key in self._outputs:
             return self._outputs[key]
@@ -45,21 +47,19 @@ class _DashProxy():
     def __setitem__(self, key, value):
         self._outputs[key] = value
 
-    def enter(self, args):
+    def _enter(self, args):
         for k, val in zip(self._input_order, args):
             self._data[k] = val
         triggers = callback_context.triggered
 
-        if len(triggers) == 1 and triggers[0]['prop_id'] == ".":
-            self.first_load = True
-            self.triggered = set()
-        else:
-            self.triggered = set(
+        self.triggered.clear()
+        if not(len(triggers) == 1 and triggers[0]['prop_id'] == "."):
+            self.triggered.update(
                 tuple(item['prop_id'].rsplit('.', maxsplit=1))
                 for item in callback_context.triggered
             )
 
-    def exit(self):
+    def _exit(self):
         res = tuple(
             self._outputs.get(k, no_update)
             for k in self._output_order
@@ -72,17 +72,17 @@ class _DashProxy():
         return res
 
 
-class DashProxy():
+class DashProxyCreator():
     def __init__(self, dash_app):
         self.dash_app = dash_app
         # self.callback = wraps(dash_app.callback)(self.callback)
 
     def callback(self, *args, **kwargs):
         def deco(func):
-            dp = _DashProxy(args)
+            dp = DashProxy(args)
             def wrapper(*args2):
-                dp.enter(args2)
+                dp._enter(args2)
                 func(dp)
-                return dp.exit()
+                return dp._exit()
             return self.dash_app.callback(*args, **kwargs)(wrapper)
         return deco

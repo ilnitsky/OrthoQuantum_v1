@@ -7,7 +7,7 @@ RUN cd /su-exec && make
 FROM ncbi/blast:2.11.0
 
 RUN curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-
+WORKDIR /
 #### Following is copy of python:3.9.5-slim dockerfile
 
 # ensure local python is preferred over distribution python

@@ -79,8 +79,7 @@ og_from_input = html.Div(children=[
                         value='4',
                         id='dropdown',
                         options=DROPDOWN_OPTIONS,
-                    ),
-                    html.Div(id='dd-output-container')
+                    )
                 ]),
                 md=8,
                 lg=6,
@@ -172,7 +171,7 @@ og_from_input = html.Div(children=[
             lg=6,
 
         ),
-    ], justify='center'),
+    ], justify='center', style={"display": "none"}),
     html.Br(),
     dbc.Row(
         dbc.Col(

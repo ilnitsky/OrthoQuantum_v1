@@ -17,7 +17,7 @@ from phydthree_component import PhydthreeComponent
 
 from . import layout
 from . import user
-from .utils import DashProxy, _DashProxy, GROUP, decode_int
+from .utils import DashProxy, DashProxyCreator, GROUP, decode_int
 
 
 app = flask.Flask(__name__)
@@ -44,7 +44,7 @@ external_stylesheets = [
 dash_app = Dash(__name__, server=app, suppress_callback_exceptions=True, external_scripts=external_scripts, external_stylesheets=external_stylesheets)
 dash_app.layout = layout.index
 
-dash_proxy = DashProxy(dash_app)
+dash_proxy = DashProxyCreator(dash_app)
 
 def login(dst):
     # TODO: dsiplay login layout, login, redirect to the original destintation
@@ -134,7 +134,7 @@ def router_page(href):
     Input("blast-button-input-value", "data"),
     State("blast-options", "is_open"),
 )
-def toggle_collapse(dp:_DashProxy):
+def toggle_collapse(dp:DashProxy):
     if ("blast-button", "n_clicks") in dp.triggered:
         dp["blast-options", "is_open"] = not dp["blast-options", "is_open"]
     elif ("blast-button-input-value", "data") in dp.triggered:
@@ -157,9 +157,9 @@ def toggle_collapse(dp:_DashProxy):
     Input("pident-slider", "value"),
     Input("pident-input-val", "data"),
 )
-def pident_val(dp:_DashProxy):
+def pident_val(dp:DashProxy):
     if dp.first_load or ("pident-input-val", "data") in dp.triggered:
-        val = dp["pident-input-val", "data"]
+        val = float(dp["pident-input-val", "data"])
         dp["pident-input", "invalid"] = False
         dp["pident-input", "value"] = val
         dp["pident-slider", "value"] = val
@@ -170,7 +170,7 @@ def pident_val(dp:_DashProxy):
         except Exception:
             val = 0
     elif ("pident-slider", "value") in dp.triggered:
-        val = dp["pident-slider", "value"]
+        val = float(dp["pident-slider", "value"])
         dp["pident-input", "value"] = val
 
 
@@ -178,13 +178,6 @@ def pident_val(dp:_DashProxy):
     dp["pident-output-val", "data"] = 0 if dp["pident-input", "invalid"] else val
 
 
-
-
-
-# TODO: need this?
-@dash_app.callback(Output('dd-output-container', 'children'), [Input('dropdown', 'value')])
-def select_level(value):
-    return f'Selected "{value}" orthology level'
 
 
 def display_progress(queue, status, total, current, msg):

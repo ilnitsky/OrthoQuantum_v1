@@ -110,17 +110,11 @@ class CancellationManager():
                 traceback.print_exc()
                 raise
             finally:
-                try:
-                    await db.flush_progress()
-                except Exception:
-                    pass
                 self._tasks.pop(key, None)
-                if should_ack:
-                    try:
-                        await redis.xack(q_name, GROUP, q_id)
-                    except Exception:
-                        pass
                 await self._psub.unsubscribe(version_sub)
+                if should_ack:
+                    await redis.xack(q_name, GROUP, q_id)
+                await db.flush_progress()
 
         return wrapper
 

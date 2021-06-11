@@ -3,8 +3,10 @@ import json
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
+from dash_html_components.Div import Div
 
 from ..user import db
+from ..utils import DEBUG
 
 DROPDOWN_OPTIONS = [
     {
@@ -13,25 +15,27 @@ DROPDOWN_OPTIONS = [
     }
     for name, id in json.loads(db.get("/availible_levels")).items()
 ]
-
+nav_children = [
+    dbc.NavItem(dbc.NavLink("Login", href="/blast")),
+    dbc.DropdownMenu(
+        nav=True,
+        in_navbar=True,
+        label="Menu",
+        children=[
+            dbc.DropdownMenuItem(dbc.NavLink("Heatmap Correlation", href="/correlation")),
+            dbc.DropdownMenuItem("Presence", href="/reports"),
+            dbc.DropdownMenuItem(divider=True),
+            dbc.DropdownMenuItem("Entry 3"),
+        ],
+    ),
+]
+if DEBUG:
+    nav_children.insert(0, dbc.NavItem(dbc.NavLink("Flush Cache", id="flush-button")),)
 
 navbar = dbc.NavbarSimple(
-    children=[
-        dbc.NavItem(dbc.NavLink("Login", href="/blast")),
-        dbc.DropdownMenu(
-            nav=True,
-            in_navbar=True,
-            label="Menu",
-            children=[
-                dbc.DropdownMenuItem(dbc.NavLink("Heatmap Correlation", href="/correlation")),
-                dbc.DropdownMenuItem("Presence", href="/reports"),
-                dbc.DropdownMenuItem(divider=True),
-                dbc.DropdownMenuItem("Entry 3"),
-            ],
-        ),
-    ],
+    children=nav_children,
     brand="Home",
-    brand_href="/dashboard",
+    brand_href="/",
     sticky="top",
 )
 
@@ -101,6 +105,34 @@ og_from_input = html.Div(children=[
     ], justify='center'),
     html.Br(),
     html.Br(),
+    dbc.Row(
+        dbc.Col(
+            dbc.Alert(
+                id="missing_prot_alert",
+                is_open=False,
+                className="alert-warning",
+            ),
+            md=8, lg=6,
+        ),
+        justify='center',
+    ),
+    dbc.Row(
+        dbc.Col(
+            id='table_progress_container',
+            md=8, lg=6,
+        ),
+        justify='center'),
+    dcc.Store(id='table_version', data=0),
+    dbc.Row(
+        dbc.Col(
+            html.Div(
+                id="table_container",
+                className="pb-3",
+            ),
+            md=12,
+        ),
+        justify='center',
+    ),
     html.Div(id='output_row'),
     html.Br(),
     html.Br(),
@@ -116,7 +148,6 @@ og_from_input = html.Div(children=[
             ]),
             md=8,
             lg=6,
-
         ),
     ], justify='center'),
 
@@ -171,7 +202,7 @@ og_from_input = html.Div(children=[
             lg=6,
 
         ),
-    ], justify='center', style={"display": "none"}),
+    ], justify='center'),
     html.Br(),
     dbc.Row(
         dbc.Col(
@@ -187,9 +218,10 @@ og_from_input = html.Div(children=[
 def dashboard(task_id):
     return html.Div([
         dcc.Store(id='task_id', data=task_id),
-        dcc.Store(id='input_version', data=0),
+        dcc.Store(id='input1_version', data=0),
+        dcc.Store(id='input1_refresh', data=0),
         dcc.Interval(
-            id='table-progress-updater',
+            id='progress_updater',
             interval=500, # in milliseconds
             disabled=True,
         ),
@@ -197,14 +229,50 @@ def dashboard(task_id):
         html.Br(),
         html.Br(),
         og_from_input,
-        dcc.Store(id='input2-version', data=0),
+        dcc.Store(id='input2_refresh', data=0),
+        dcc.Store(id='input2_version', data=0),
 
-        dcc.Interval(
-            id='progress-updater-2',
-            interval=500, # in milliseconds
-            disabled=True,
+        dcc.Store(id='vis_version', data=0),
+        dbc.Row(
+            dbc.Col(
+                id='vis_progress_container',
+                md=8, lg=6,
+            ),
+            justify='center'
         ),
-        html.Div(id='vis-output-container'),
+
+        dcc.Store(id='heatmap_version', data=0),
+        dbc.Row(
+            dbc.Col(
+                id='heatmap_progress_container',
+                md=8, lg=6,
+            ),
+            justify='center'
+        ),
+        dbc.Row(
+            dbc.Col(
+                id='heatmap_container',
+                className="text-center",
+            ),
+            className="mx-4",
+        ),
+
+        dcc.Store(id='tree_version', data=0),
+        dcc.Store(id='blast_version', data=0),
+        dbc.Row(
+            dbc.Col(
+                id='tree_progress_container',
+                md=8, lg=6,
+            ),
+            justify='center'
+        ),
+        dbc.Row(
+            dbc.Col(
+                id='tree_container',
+                className="mx-5 mt-3",
+            )
+        ),
+
         html.Br(),
         html.Br(),
         # dcc.Link('Navigate to "Images"', href='/reports'),

@@ -81,6 +81,7 @@ RUN set -ex \
 	&& make -j "$(nproc)" \
 		LDFLAGS="-Wl,--strip-all" \
 	&& make install \
+	&& cd / \
 	&& rm -rf /usr/src/python \
 	\
 	&& find /usr/local -depth \

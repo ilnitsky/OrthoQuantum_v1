@@ -85,9 +85,12 @@ class CancellationManager():
                     # updated before we managed to launch the task
                     raise VersionChangedException()
                 self._tasks[key] = asyncio.current_task()
-                return await func(db, **kwargs)
+                res = await func(db, **kwargs)
+                return res
             except VersionChangedException:
                 # cancelled by Db (version check in transaction) or just above this line
+                if DEBUG:
+                    print("VersionChangedException", task_id)
                 raise
             except asyncio.CancelledError:
                 if key in self._tasks:
@@ -95,19 +98,25 @@ class CancellationManager():
                     # don't ackgnowledge, trigger task re-delivery
                     should_ack = False
                 # else: cancelled by cancellation manager, old version, do ackgnowledge
+                if DEBUG:
+                    print("CancelledError", task_id)
                 raise
             except KeyboardInterrupt:
                 should_ack = False
+                if DEBUG:
+                    print("KeyboardInterrupt", task_id)
                 raise
             except ReportErrorException as e:
                 await db.report_error(e.args[0])
+                if DEBUG:
+                    print("ReportErrorException", e.args)
             except Exception as e:
+                traceback.print_exc()
                 if DEBUG:
                     msg = f"Internal server error: {repr(e)}"
                 else:
                     msg = "Internal server error"
                 await db.report_error(msg)
-                traceback.print_exc()
                 raise
             finally:
                 self._tasks.pop(key, None)

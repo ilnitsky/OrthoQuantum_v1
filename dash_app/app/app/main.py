@@ -47,17 +47,14 @@ dash_app = Dash(
     server=app, suppress_callback_exceptions=True,
     external_scripts=external_scripts, external_stylesheets=external_stylesheets,
     title=title,
-    update_title=("⟳ " + title) if DEBUG else title,
-
+    update_title=("⟳ " + title) if DEBUG else (title + "..."),
 )
-# if DEBUG:
-#     dash_app.enable_dev_tools(
-#         debug=True,
-#         dev_tools_ui=True,
-#         dev_tools_serve_dev_bundles=True,
-#         dev_tools_silence_routes_logging=False,
-#     )
-
+# dash_app.enable_dev_tools(
+#     debug=True,
+#     dev_tools_ui=True,
+#     dev_tools_serve_dev_bundles=True,
+#     dev_tools_silence_routes_logging=False,
+# )
 dash_app.layout = layout.index
 
 dash_proxy = DashProxyCreator(dash_app)

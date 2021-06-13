@@ -1,6 +1,6 @@
-from functools import wraps
 from dash import callback_context, no_update
 from dash.dependencies import Input, Output, State, DashDependency
+import os
 
 GROUP = "worker_group"
 
@@ -68,8 +68,10 @@ class DashProxy():
         self._outputs.clear()
         self._data.clear()
         self.triggered.clear()
-
-        return res
+        if len(res) == 1:
+            return res[0]
+        else:
+            return res
 
 
 class DashProxyCreator():
@@ -86,3 +88,9 @@ class DashProxyCreator():
                 return dp._exit()
             return self.dash_app.callback(*args, **kwargs)(wrapper)
         return deco
+
+class PBState():
+    UNKNOWN_LEN = -1
+    STATIC_MESSAGE = -2
+
+DEBUG = bool(os.environ.get('DEBUG', '').strip())

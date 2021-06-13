@@ -19,17 +19,10 @@ NS = {
 
 @async_pool.in_process()
 def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool):
-    df['Organisms'] = df['Organisms'].astype("category")
-    df['Organisms'].cat.set_categories(organisms, inplace=True)
-    df.sort_values(["Organisms"], inplace=True)
-
-    df.columns = ['Organisms', *OG_names]
-    df = df[df['Organisms'].isin(organisms)]
-    df = df.iloc[:, 1:]
     df = df[OG_names]
 
-    df.astype(float, copy=False)
     df.clip(upper=1, inplace=True)
+    df.astype(float, copy=False)
 
     # Slower, but without fastcluster lib
     # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
@@ -52,7 +45,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
     gradient = ET.SubElement(legend, "gradient")
     ET.SubElement(gradient, "name").text = "Custom"
-    ET.SubElement(gradient, "classes").text = "2"
+    ET.SubElement(gradient, "classes").text = "4" if do_blast else "2"
 
     data = ET.SubElement(graph, "data")
     for index, row in df.iterrows():
@@ -81,6 +74,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
 @async_pool.in_process()
 def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str):
+    df.reset_index(drop=True, inplace=True)
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
     pres_list = [(1 - item / organism_count) for item in pres_df_zero_values]

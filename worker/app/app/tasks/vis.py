@@ -4,7 +4,7 @@ from aioredis.client import Pipeline
 from . import vis_sync
 
 from ..task_manager import DbClient, queue_manager, cancellation_manager
-from ..redis import redis, LEVELS
+from ..redis import redis, LEVELS, enqueue
 
 from .tree_heatmap import tree, heatmap
 
@@ -18,23 +18,24 @@ async def vis(db: DbClient):
     @db.transaction
     async def res(pipe: Pipeline):
         pipe.multi()
-        pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/status", "Executing")
-        pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/heatmap-message", "waiting")
-
         db.report_progress(
             current=0,
             total=-1,
             message="getting correlation data",
+            status="Executing",
             pipe=pipe,
         )
+        pipe.hset(f"/tasks/{db.task_id}/progress/tree", "status", "Waiting")
+        pipe.hset(f"/tasks/{db.task_id}/progress/heatmap", "status", "Waiting")
+
         pipe.mget(
             f"/tasks/{db.task_id}/request/blast_enable",
-            f"/tasks/{db.task_id}/request/blast_evalue",
-            f"/tasks/{db.task_id}/request/blast_pident",
+            # f"/tasks/{db.task_id}/request/blast_evalue",
+            # f"/tasks/{db.task_id}/request/blast_pident",
             f"/tasks/{db.task_id}/request/dropdown2"
         )
 
-    blast_enable, blast_evalue, blast_pident, level_id = (await res)[-1]
+    blast_enable, level_id = (await res)[-1]
     blast_enable = bool(blast_enable)
     level_id = int(level_id)
     level, phyloxml_file = LEVELS[level_id]
@@ -43,7 +44,7 @@ async def vis(db: DbClient):
         phyloxml_file=phyloxml_file,
         og_csv_path=str(db.task_dir/'OG.csv')
     )
-    organisms:list[str]
+    organisms:list[int]
     csv_data: pd.DataFrame
 
     db.report_progress(
@@ -51,7 +52,7 @@ async def vis(db: DbClient):
         total=len(csv_data),
     )
 
-    df = pd.DataFrame(data={"Organisms": organisms}, dtype=object)
+    df = pd.DataFrame(data={"Organisms": organisms}, dtype=int)
     df.set_index('Organisms', inplace=True)
     corr_info_to_fetch = {}
 
@@ -61,14 +62,13 @@ async def vis(db: DbClient):
             label=data['label']
             pipe.hgetall(f"/cache/corr/{level}/{label}/data")
             pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time, xx=True)
-
         res = (await pipe.execute())[::2]
         for (_, data), cache in zip(csv_data.iterrows(), res):
             og_name=data['Name']
             if cache:
                 df[og_name] = pd.Series(
                     map(int, cache.values()),
-                    index=cache.keys(),
+                    index=[int(x) for x in cache.keys()],
                     name=og_name,
                     dtype=int,
                 )
@@ -76,9 +76,8 @@ async def vis(db: DbClient):
             else:
                 corr_info_to_fetch[og_name] = data['label']
 
-        # res["org_name"]["value"]: int(res["count_orthologs"]["value"]
-
     if corr_info_to_fetch:
+        db.report_progress(total=-1)
         async def progress(items_in_front):
             if items_in_front > 0:
                 db.report_progress(
@@ -87,6 +86,7 @@ async def vis(db: DbClient):
             elif items_in_front == 0:
                 await db.flush_progress(
                     message="Requesting correlation data",
+                    total=len(corr_info_to_fetch)
                 )
 
         tasks = [
@@ -122,30 +122,20 @@ async def vis(db: DbClient):
             raise
 
 
-    @db.transaction
-    async def tx(pipe: Pipeline):
-        pipe.multi()
-        pipe.mset({
-            f"/tasks/{db.task_id}/stage/{db.stage}/status": "Waiting",
-            f"/tasks/{db.task_id}/stage/{db.stage}/message": "",
-            f"/tasks/{db.task_id}/stage/{db.stage}/total": 0,
-        })
-    await tx
 
     # interpret the results:
+
     df.fillna(0, inplace=True)
-    df.reset_index(drop=False, inplace=True)
 
 
     df_for_heatmap = df.copy()
-    df_for_heatmap = df_for_heatmap.iloc[:, 1:]
-    df_for_heatmap.columns = csv_data['Name']
 
+    await db.flush_progress(status="Waiting")
     tasks = []
     tasks.append(
         asyncio.create_task(
             heatmap(
-                db=db,
+                db=db.substage("heatmap"),
                 organism_count=len(organisms),
                 df=df_for_heatmap,
             )
@@ -156,7 +146,7 @@ async def vis(db: DbClient):
     tasks.append(
         asyncio.create_task(
             tree(
-                db=db,
+                db=db.substage("tree"),
 
                 phyloxml_file=phyloxml_file,
                 OG_names=csv_data['Name'],
@@ -183,18 +173,38 @@ async def vis(db: DbClient):
             task.cancel()
         raise
 
-    if not blast_enable:
+
+    if blast_enable:
+        # enqueue blast
         @db.transaction
-        async def tx(pipe: Pipeline):
+        async def res(pipe: Pipeline):
             pipe.multi()
-            pipe.set(
-                f"/tasks/{db.task_id}/stage/{db.stage}/status", "Done",
+            await enqueue(
+                version_key=f"/tasks/{db.task_id}/stage/blast/version",
+                queue_key="/queues/blast",
+                queue_id_dest=f"/tasks/{db.task_id}/progress/blast",
+                queue_hash_key="q_id",
+                redis_client=pipe,
+
+                task_id=db.task_id,
+                stage="blast",
+
             )
-        await tx
-        return
+            pipe.hset(f"/tasks/{db.task_id}/progress/blast",
+                mapping={
+                    "status": 'Enqueued',
+                    'total': -1,
+                    "message": "BLASTing",
+                }
+            )
+
+        await res
 
 
-    print("to_blast_viz", to_blast)
+
+    await db.flush_progress(status="Done", version=db.version)
+
+
     # for prot, tax_ids in to_blast.items():
     #     # TODO: schedule per-process
     #     blast.do_blast(prot, tax_ids)

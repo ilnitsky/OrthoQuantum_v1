@@ -21,6 +21,7 @@ services:
     restart: unless-stopped
     volumes:
       - "user_data:/app/user_data"
+      - "./blast_data:/blast/blastdb"
     environment:
       REDIS_HOST: "redis"
 

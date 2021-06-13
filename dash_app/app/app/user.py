@@ -1,5 +1,7 @@
 from pathlib import Path
 from urllib.parse import quote
+from itertools import chain
+
 import secrets
 
 import flask
@@ -116,10 +118,10 @@ _get_length_script = db.register_script("""
 """)
 
 
-def get_queue_length(queue_key, worker_group_name, current, redis_client=None):
+def get_queue_length(queue_key, worker_group_name, task_q_id, redis_client=None):
     return _get_length_script(
         keys=(queue_key,),
-        args=(worker_group_name, current),
+        args=(worker_group_name, task_q_id),
         client=redis_client,
     )
 
@@ -129,23 +131,64 @@ _enqueue_script = db.register_script("""
     -- KEYS[1] - version
     -- KEYS[2] - queue
     -- KEYS[3] - queue_id_dest (empty string to skip)
+
+    -- ARGV - kv pairs to add to the queue (leave empty to only cancel)
+
     local version = redis.call('incr', KEYS[1])
-    local queue_id = redis.call('xadd', KEYS[2], '*', 'version', version, unpack(ARGV))
+    local hkey = table.remove(ARGV)
+    local queue_id = nil
     if (KEYS[3] ~= '') then
-        redis.call('set', KEYS[3], queue_id)
+        if (hkey == '') then
+            queue_id = redis.call('get', KEYS[3])
+        else
+            queue_id = redis.call('hget', KEYS[3], hkey)
+        end
+        redis.call('del', KEYS[3])
+    end
+
+    if (queue_id and queue_id ~= '') then
+        redis.call('xdel', KEYS[2], queue_id)
+    end
+
+    -- enqueue
+    if #ARGV ~= 0 then
+        queue_id = redis.call('xadd', KEYS[2], '*', 'version', version, unpack(ARGV))
+        if (KEYS[3] ~= '') then
+            if (hkey == '') then
+                redis.call('set', KEYS[3], queue_id)
+            else
+                redis.call('hset', KEYS[3], hkey, queue_id)
+            end
+        end
     end
     return {version, queue_id}
+
 """)
-from itertools import chain
-def enqueue(version_key, queue_key, queue_id_dest=None, params: Optional[dict[str, Any]]=None, redis_client=None, **kwargs):
+
+def enqueue(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, params: Optional[dict[str, Any]]=None, redis_client=None, **kwargs):
     if params:
         kwargs.update(params)
+    args = list(chain.from_iterable(kwargs.items()))
+    if not args:
+        raise RuntimeError("empty queue data")
+    args.append(queue_hash_key or '')
     return _enqueue_script(
         keys=(
             version_key,
             queue_key,
             queue_id_dest or '',
         ),
-        args=list(chain.from_iterable(kwargs.items())),
+        args=args,
+        client=redis_client,
+    )
+
+def cancel(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, redis_client=None):
+    return _enqueue_script(
+        keys=(
+            version_key,
+            queue_key,
+            queue_id_dest or '',
+        ),
+        args=(queue_hash_key or '',),
         client=redis_client,
     )

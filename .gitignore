@@ -271,8 +271,13 @@ bh_unicode_properties.cache
 GitHub.sublime-settings
 node_modules
 user_storage
-blast
+
 workspace.code-workspace
 redis_data
 .sub_git
 user_data
+dash_app/ssr
+.gitignore
+*.tar.gz
+.stignore
+blast_data

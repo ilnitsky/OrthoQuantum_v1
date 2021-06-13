@@ -1,8 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from typing import Union, Callable, Coroutine
-
-import aioredis
+import traceback
 
 from .cancellation_manager import cancellation_manager
 from ..redis import redis, GROUP, CONSUMER
@@ -112,12 +111,18 @@ class QueueManager():
                             q.last_id = items[-1][0]
 
                     for q_id, data in items:
-                        print("Enqueueing", q_id, data)
+                        print("Enqueueing", queue_name, q_id, data)
 
+                        try:
+                            task = asyncio.create_task(
+                                q.handler(queue_name, q_id, **data),
+                            )
+                        except Exception as e:
+                            print("Error while enqueueing task, task skipped")
+                            traceback.print_exc()
+                            await redis.xack(queue_name, GROUP, q_id)
+                            continue
                         q.slots_left -= 1
-                        task = asyncio.create_task(
-                            q.handler(queue_name, q_id, **data),
-                        )
                         self.running_tasks.add(task)
                         task.add_done_callback(q._done_callback)
 

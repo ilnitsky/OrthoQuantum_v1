@@ -169,9 +169,9 @@ async def table(db: DbClient):
             current=0,
             total=len(prot_ids),
             message="Getting proteins",
+            status="Executing",
             pipe=pipe,
         )
-        pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/status", "Executing")
         pipe.get(f"/tasks/{db.task_id}/request/dropdown1")
 
     level_id = int((await res)[-1])
@@ -308,8 +308,10 @@ async def table(db: DbClient):
     @db.transaction
     async def tx(pipe: Pipeline):
         pipe.multi()
-        pipe.mset({
-            f"/tasks/{db.task_id}/stage/{db.stage}/status": "Done",
-            f"/tasks/{db.task_id}/stage/{db.stage}/dash-table": table,
-        })
+        pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/dash-table", table)
+        db.report_progress(
+            pipe=pipe,
+            status="Done",
+            version=db.version,
+        )
     await tx

@@ -5,11 +5,12 @@ cores = 1 if environ.get("DEBUG") else multiprocessing.cpu_count()
 workers_per_core = 4.0
 
 # Gunicorn config variables
-loglevel = "info"
+loglevel = "debug" if environ.get("DEBUG") else "info"
 workers = int(workers_per_core * cores)
 bind = "0.0.0.0:8050"
 keepalive = 5
 errorlog = "-"
+access_logfile = "-"
 capture_output = True
 preload_app = True
 # For debugging and testing

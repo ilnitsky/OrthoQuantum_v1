@@ -1947,12 +1947,9 @@ window.requestAnimFrame = (function(){
                             }
                             break;
                         case "heatmap":
-                            var max = d3.max(d3.values(graph.data), function(d) {
-                                if (d) return d3.max(d);
-                            });
-                            var min = d3.min(d3.values(graph.data), function(d) {
-                                if (d) return d3.min(d);
-                            });
+                            /// hard override to always have a possibility to show 4 colors
+                            var max = 100;
+                            var min = 0;
                             var heatmapColor = d3.scale.quantize()
                                 .domain([min, max])
                                 .range(colorbrewer[graph.legend.gradient.name][graph.legend.gradient.classes]);

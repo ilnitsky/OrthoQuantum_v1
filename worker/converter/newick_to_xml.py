@@ -1,11 +1,35 @@
+import csv
 import re
 from pathlib import Path
 from lxml import etree as ET
 from lxml.builder import ElementMaker
+import SPARQLWrapper
 
 tokens = re.compile(r"[^(),;]+|\(|\)|,|;")
 
-def convert(newick_file, phyloxml_file, taxa_colors={}):
+def convert(newick_file, phyloxml_file, level, taxa_colors={}):
+    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
+
+    endpoint.setQuery(f"""
+    prefix : <http://purl.orthodb.org/>
+    select ?tax_id, ?tx_name
+    where {{
+        ?clade a :Clade; up:scientificName "{level}".
+        ?tax_id a :Species; up:scientificName ?tx_name; rdfs:subClassOf+ ?clade.
+        ?org a :Organism,?tax_id; up:scientificName ?org_name.
+    }}
+    """)
+    endpoint.setReturnFormat(SPARQLWrapper.CSV)
+    n = endpoint.query().convert().decode().strip().split('\n')[1:]
+    taxids = {
+        name: taxid.rsplit("/", maxsplit=1)[-1]
+        for taxid, name in csv.reader(n)
+    }
+    taxid_name_conv = {
+        name.strip().lower(): name
+        for name in taxids
+    }
+
     with open(newick_file) as f:
         newick = f.read().strip()
 
@@ -38,6 +62,10 @@ def convert(newick_file, phyloxml_file, taxa_colors={}):
             )
         )
     )
+
+    known_names = set(taxid_name_conv.keys())
+    missing_names = set()
+
     names = []
     phylo = my_doc.find("./phylogeny", NS)
     cursor = phylo
@@ -50,9 +78,17 @@ def convert(newick_file, phyloxml_file, taxa_colors={}):
             ET.SubElement(cursor, "name").text = name
             if going_down:
                 # leaf node, put id
-                ET.SubElement(cursor, "id").text = str(cur_id)
+                lname = name.lower()
+                if lname not in taxid_name_conv:
+                    missing_names.add(name)
+                    node_id = f"unknown_{cur_id}"
+                    cur_id += 1
+                else:
+                    node_id = taxids[taxid_name_conv[lname]]
+                    known_names.remove(lname)
+
+                ET.SubElement(cursor, "id").text = node_id
                 names.append(name)
-                cur_id += 1
 
                 going_down = False
             if name in taxa_colors:
@@ -74,6 +110,14 @@ def convert(newick_file, phyloxml_file, taxa_colors={}):
             break
         else:
             name = m.replace("_", " ").strip()
+    if missing_names:
+        print(f"Import for {level}:")
+        missing_names_str = ', '.join(f'"{n}"' for n in missing_names)
+        print(f"Unmatched names in newick file: {missing_names_str}")
+        unused_names_str = ', '.join(f'"{taxid_name_conv[n]}"' for n in known_names)
+        print(f"Unused names from orthodb: {unused_names_str}")
+        # exit()
+
 
     ET.ElementTree(
         my_doc,
@@ -88,6 +132,7 @@ def main():
     convert(
         str(newick/"phyloT_vertebrata_newick.txt"),
         str(data/"4_Vertebrata.xml"),
+        "Vertebrata",
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -98,6 +143,7 @@ def main():
     convert(
         str(newick/"phyloT_Eukaryota-full_newick.txt"),
         str(data/"2_Eukaryota_Eukaryota (all species).xml"),
+        "Eukaryota",
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -133,6 +179,7 @@ def main():
     convert(
         str(newick/"phyloT_Eukaryota_newick.txt"),
         str(data/"1_Eukaryota_Eukaryota (compact).xml"),
+        "Eukaryota",
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
@@ -143,6 +190,7 @@ def main():
     convert(
         str(newick/"phyloT_Protista_newick.txt"),
         str(data/"8_Protista.xml"),
+        "Protista",
         taxa_colors={
 
             }
@@ -151,6 +199,7 @@ def main():
     convert(
         str(newick/"phyloT_Viridiplantae_newick.txt"),
         str(data/"11_Viridiplantae.xml"),
+        "Viridiplantae",
         taxa_colors={
 
             }

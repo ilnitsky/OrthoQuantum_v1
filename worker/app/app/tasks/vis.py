@@ -76,8 +76,6 @@ async def vis(db: DbClient):
             else:
                 corr_info_to_fetch[og_name] = data['label']
 
-        # res["org_name"]["value"]: int(res["count_orthologs"]["value"]
-
     if corr_info_to_fetch:
         db.report_progress(total=-1)
         async def progress(items_in_front):
@@ -126,13 +124,11 @@ async def vis(db: DbClient):
 
 
     # interpret the results:
+
     df.fillna(0, inplace=True)
-    df.reset_index(drop=False, inplace=True)
 
 
     df_for_heatmap = df.copy()
-    df_for_heatmap = df_for_heatmap.iloc[:, 1:]
-    df_for_heatmap.columns = csv_data['Name']
 
     await db.flush_progress(status="Waiting")
     tasks = []

@@ -168,7 +168,6 @@ def progress_updater_running(dp: DashProxy):
     if dp.first_load:
         dp['progress_updater', 'disabled'] = True
         return
-    print(f"{dp['input1_version', 'data']=} {dp['table_version', 'data']=}")
     dp['progress_updater', 'disabled'] = not (
         dp['table_version', 'data'] < DO_NOT_REFRESH or
         dp['vis_version', 'data'] < DO_NOT_REFRESH or

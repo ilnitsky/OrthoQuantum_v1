@@ -19,7 +19,6 @@ NS = {
 
 @async_pool.in_process()
 def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool):
-    df.set_index("Organisms", drop=True, inplace=True)
     df = df[OG_names]
 
     df.clip(upper=1, inplace=True)
@@ -75,6 +74,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
 @async_pool.in_process()
 def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str):
+    df.reset_index(drop=True, inplace=True)
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
     pres_list = [(1 - item / organism_count) for item in pres_df_zero_values]

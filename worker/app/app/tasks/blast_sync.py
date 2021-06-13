@@ -72,12 +72,14 @@ def blast(prot_fasta:str, tax_ids:list[str]):
             "-taxidlist", taxids_f.name,
             "-out", res_f.name,
             "-db", "/blast/blastdb/nr",
+            "-evalue", "1e-3", # the system relies on E < 1 (because we're using log).
             "-max_target_seqs", "2000",
             "-outfmt", f"10 {' '.join(cols.keys())}",
             "-num_threads", "4",
         ])
 
         df = pd.read_csv(res_f, names=list(cols.keys()), dtype=cols)
+        df['evalue'].replace(0.0, 1e-100, inplace=True)
         df['evalue'] = -np.log10(df['evalue'])
 
         result = {}
@@ -85,11 +87,13 @@ def blast(prot_fasta:str, tax_ids:list[str]):
         for taxid, group in df.groupby('staxid', sort=False): # for loop
             group: pd.DataFrame
             group = group[group.columns.difference(['staxid'])]
-            if group.shape[0] > 5:
+            try:
+                if group.shape[0] < 4:
+                    raise Exception() # ConvexHull would fail
                 critical_points = group.iloc[ConvexHull(group.to_numpy()).vertices]
-                critical_points = critical_points.loc[(critical_points>=critical_points.loc[critical_points.idxmax()].min()).all(axis=1)]
-            else:
+            except Exception:
                 critical_points = group
+            critical_points = critical_points.loc[(critical_points>=critical_points.loc[critical_points.idxmax()].min()).all(axis=1)]
 
             result[taxid] = critical_points
 

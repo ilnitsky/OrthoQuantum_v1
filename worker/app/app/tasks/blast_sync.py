@@ -71,7 +71,7 @@ def blast(prot_fasta:str, tax_ids:list[str]):
             "-query", req_f.name,
             "-taxidlist", taxids_f.name,
             "-out", res_f.name,
-            "-db", "/blast/blastdb/nr",
+            "-db", "/blast/blastdb/nr.00",
             "-evalue", "1e-3", # the system relies on E < 1 (because we're using log).
             "-max_target_seqs", "2000",
             "-outfmt", f"10 {' '.join(cols.keys())}",

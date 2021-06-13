@@ -277,6 +277,17 @@ def dashboard(task_id):
             ),
             className="mx-4",
         ),
+        dbc.Row(
+            dbc.Col(
+                html.Div(
+                    id="corr_table_container",
+                    className="pb-3",
+                ),
+                md=8, lg=6,
+            ),
+            justify='center',
+        ),
+
 
         dcc.Store(id='tree_version', data=0),
         dcc.Store(id='blast_version', data=0),

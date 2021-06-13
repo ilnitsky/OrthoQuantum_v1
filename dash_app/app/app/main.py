@@ -199,6 +199,7 @@ VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
     Output('heatmap_progress_container', 'children'),
     Output('heatmap_version', 'data'),
     Output('heatmap_container', 'children'),
+    Output("corr_table_container", "children"),
 
     Output('tree_progress_container', 'children'),
     Output('tree_version', 'data'),
@@ -317,6 +318,8 @@ def progress_updater(dp: DashProxy):
     for stage, do_show in show_component.items():
         if not do_show:
             dp[f"{stage}_container", "children"] = None
+            if stage == "heatmap":
+                dp[f"corr_table_container", "children"] = None
             continue
         if stage == 'table':
             req['table_data'] = f"/tasks/{task_id}/stage/table/dash-table"
@@ -336,6 +339,18 @@ def progress_updater(dp: DashProxy):
                 target="_blank",
                 className="mx-auto",
             )
+            with open(user.DATA_PATH/task_id/"Correlation_table.json", "r") as f:
+                corr_tbl = dash_table.DataTable(
+                    **json.load(f),
+                    filter_action="native",
+                    page_size=40,
+                )
+            # try:
+
+            # except Exception:
+            #     corr_tbl = None
+            dp["corr_table_container", "children"] = corr_tbl
+
         elif stage == 'tree':
             version = dp[f"{stage}_version", "data"]
             print(f"writing tree {version}")

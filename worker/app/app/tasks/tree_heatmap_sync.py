@@ -1,4 +1,5 @@
 import shutil
+import json
 
 import pandas as pd
 import numpy as np
@@ -73,7 +74,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
 
 @async_pool.in_process()
-def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str):
+def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str, table_file:str):
     df.reset_index(drop=True, inplace=True)
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
@@ -90,6 +91,31 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
     # print(df.describe(), df.shape)
     items_count = df.shape[1]
     corr = df.corr()
+    tbl_corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool)).stack()
+    tbl_corr.sort_values(ascending=False, inplace=True)
+    tbl_corr = tbl_corr.to_frame("Corr")
+    tbl_corr.reset_index(drop=False, inplace=True)
+    tbl_corr.columns = ["Prot_A", "Prot_B", "Corr"]
+
+    min_el = tbl_corr["Corr"].iat[0]
+    max_el = tbl_corr["Corr"].iat[-1]
+    width = max_el - min_el
+    tbl_corr["Quantile"] = (tbl_corr["Corr"]-min_el) / width
+
+    table_data = {
+        "data": tbl_corr.to_dict('records'),
+        "columns": [
+            {
+                "name": i,
+                "id": i,
+            }
+            for i in tbl_corr.columns
+        ]
+    }
+    with open_existing(table_file, 'w') as f:
+        json.dump(table_data, f, ensure_ascii=False, separators=(',', ':'))
+    # print(tbl_corr)
+
     # 566 - 85/85
     DEFAULT_FIG_SIZE = 10
 

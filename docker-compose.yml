@@ -22,8 +22,13 @@ services:
     volumes:
       - "user_data:/app/user_data"
       - "/home/ilnitsky/nr:/blast/blastdb"
+      - "/usr/lib/ncbi-blast+/:/blast/lib/:ro"
+      - "/lib/x86_64-linux-gnu/:/blast/lib2/:ro"
+      - "/lib64/:/blast/lib3/:ro"
+      - "/usr/bin/blastp:/blast/bin/blastp:ro"
     environment:
       REDIS_HOST: "redis"
+      LD_LIBRARY_PATH: "/blast/lib/:/blast/lib2/:/blast/lib3"
 
 
 volumes:

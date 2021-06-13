@@ -1,4 +1,3 @@
-from distutils import version
 import os
 import os.path
 import time
@@ -7,13 +6,12 @@ import secrets
 
 import urllib.parse as urlparse
 from dash import Dash
-from dash.dependencies import Input, Output, State, DashDependency
+from dash.dependencies import Input, Output, State
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import flask
-from redis.client import int_or_none
 
 from phydthree_component import PhydthreeComponent
 
@@ -154,15 +152,6 @@ if DEBUG:
         user.db.xadd("/queues/flush_cache", {"n": n})
         return f"Flush Cache: {n}"
 
-# Output('table_version', 'data'),
-@dash_app.callback(
-    Output('submit-button2', 'disabled'),
-    Input('table_version', 'data'),
-)
-def button_enabler(ver):
-    return not(
-        ver and ver>0
-    )
 
 @dash_proxy.callback(
     Output('progress_updater', 'disabled'),
@@ -179,6 +168,7 @@ def progress_updater_running(dp: DashProxy):
     if dp.first_load:
         dp['progress_updater', 'disabled'] = True
         return
+    print(f"{dp['input1_version', 'data']=} {dp['table_version', 'data']=}")
     dp['progress_updater', 'disabled'] = not (
         dp['table_version', 'data'] < DO_NOT_REFRESH or
         dp['vis_version', 'data'] < DO_NOT_REFRESH or
@@ -202,6 +192,7 @@ VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
     Output('table_container', 'children'),
     Output('missing_prot_alert', 'is_open'),
     Output('missing_prot_alert', 'children'),
+    Output('submit-button2', 'disabled'),
 
     Output('vis_progress_container', 'children'),
     Output('vis_version', 'data'),
@@ -215,6 +206,7 @@ VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
     Output('tree_container', 'children'),
 
     Output('blast_version', 'data'),
+    Output('blast_progress_container', 'children'),
 
     Output('input1_refresh', 'data'),
     Output('input2_refresh', 'data'),
@@ -237,7 +229,6 @@ VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
 def progress_updater(dp: DashProxy):
     task_id = dp['task_id', 'data']
     stages = ('table', 'vis', 'tree', 'heatmap', 'blast')
-    stages = ('table', 'vis', 'tree', 'heatmap')
 
     show_component = {}
 
@@ -273,11 +264,9 @@ def progress_updater(dp: DashProxy):
                 refresh_interval = min(refresh_interval, 500)
 
         render_pbar = tgt_ver == DO_REFRESH
-
         if dp[f"{stage}_version", "data"] != tgt_ver:
             dp[f"{stage}_version", "data"] = tgt_ver
             if stage in VISUAL_COMPONENTS:
-                print("VISUAL_COMPONENTS", stage, data['status'])
                 show_component[stage] = data['status'] == 'Done'
             render_pbar = render_pbar or data['status'] == 'Error'
             if not render_pbar:
@@ -350,15 +339,20 @@ def progress_updater(dp: DashProxy):
             )
         elif stage == 'tree':
             version = dp[f"{stage}_version", "data"]
+            print(f"writing tree {version}")
             dp[f"{stage}_container", "children"] = PhydthreeComponent(
-                url=f'/files/{task_id}/cluser.xml?nocache={version}',
+                url=f'/files/{task_id}/tree.xml?nocache={version}',
                 height=2000,
                 leafCount=tree_leaf_count,
+                version=version,
             )
 
 
     if info['table'].get('status') == 'Executing' or 'table' in show_component:
         req['missing_prot_msg'] = f"/tasks/{task_id}/stage/table/missing_msg"
+
+    if 'table' in show_component:
+        dp['submit-button2', 'disabled'] = info['table'].get('status') != 'Done'
 
     if input1_version > dp['input1_version', 'data']:
         # db has newer data, update output values
@@ -379,7 +373,6 @@ def progress_updater(dp: DashProxy):
 
         if 'table_data' in req:
             if int(req['table_version']) == dp[f"table_version", "data"]:
-                print("writing table")
                 dp[f"table_container", "children"] = dash_table.DataTable(
                     **json.loads(req['table_data']),
                     filter_action="native",
@@ -410,23 +403,11 @@ def progress_updater(dp: DashProxy):
 )
 def table(dp:DashProxy):
     """Perform action (cancel/start building the table)"""
-    if dp.first_load:
-        return
     task_id = dp['task_id', 'data']
     queue = "/queues/table"
 
     if ('submit-button', 'n_clicks') in dp.triggered:
         with user.db.pipeline(transaction=True) as pipe:
-            pipe.delete(
-                f"/tasks/{task_id}/stage/table/dash-table",
-                f"/tasks/{task_id}/stage/table/missing_msg",
-
-                f"/tasks/{task_id}/progress/table",
-                f"/tasks/{task_id}/progress/vis",
-                f"/tasks/{task_id}/progress/heatmap",
-                f"/tasks/{task_id}/progress/tree",
-                f"/tasks/{task_id}/progress/blast",
-            )
             user.enqueue(
                 version_key=f"/tasks/{task_id}/stage/table/version",
                 queue_key=queue,
@@ -437,9 +418,29 @@ def table(dp:DashProxy):
                 task_id=task_id,
                 stage="table",
             )
-            # Cancel possibly-running vis and blast tasks
-            pipe.incr(f"/tasks/{task_id}/stage/vis/version")
-            pipe.incr(f"/tasks/{task_id}/stage/blast/version")
+            user.cancel(
+                version_key=f"/tasks/{task_id}/stage/vis/version",
+                queue_key="/queues/vis",
+                queue_id_dest=f"/tasks/{task_id}/progress/vis",
+                queue_hash_key="q_id",
+
+                redis_client=pipe,
+            )
+            user.cancel(
+                version_key=f"/tasks/{task_id}/stage/blast/version",
+                queue_key="/queues/blast",
+                queue_id_dest=f"/tasks/{task_id}/progress/blast",
+                queue_hash_key="q_id",
+
+                redis_client=pipe,
+            )
+            pipe.delete(
+                f"/tasks/{task_id}/stage/table/dash-table",
+                f"/tasks/{task_id}/stage/table/missing_msg",
+
+                f"/tasks/{task_id}/progress/heatmap",
+                f"/tasks/{task_id}/progress/tree",
+            )
 
             pipe.mset({
                 f"/tasks/{task_id}/request/proteins": dp['uniprotAC', 'value'],
@@ -460,17 +461,20 @@ def table(dp:DashProxy):
             )
             res = pipe.execute()
 
-        dp['input1_version', 'data'] = decode_int(res[1][0])
-    elif ('input1_refresh', 'data') in dp.triggered:
-        (
-            dp['uniprotAC', 'value'],
-            dp['dropdown', 'value'],
-            input1_version,
-        ) = user.db.mget(
+        dp['input1_version', 'data'] = decode_int(res[0][0])
+    elif ('input1_refresh', 'data') in dp.triggered or dp.first_load:
+        data = user.db.mget(
             f"/tasks/{task_id}/request/proteins",
             f"/tasks/{task_id}/request/dropdown1",
             f"/tasks/{task_id}/stage/table/input_version"
         )
+        if not any(data):
+            return
+        (
+            dp['uniprotAC', 'value'],
+            dp['dropdown', 'value'],
+            input1_version,
+        ) = data
         dp['input1_version', 'data'] = decode_int(input1_version)
 
 
@@ -490,43 +494,40 @@ def toggle_collapse(dp:DashProxy):
     elif ("blast-button-input-value", "data") in dp.triggered:
         dp["blast-options", "is_open"] = dp["blast-button-input-value", "data"]>0
 
-    if dp["blast-options", "is_open"]:
-        dp["blast-button", "children"] = "Disable BLAST"
-        dp["blast-button", "outline"] = False
-    else:
-        dp["blast-button", "children"] = "Enable BLAST"
-        dp["blast-button", "outline"] = True
-
-@dash_proxy.callback(
-    Output("pident-input", "invalid"),
-    Output("pident-input", "value"),
-    Output("pident-slider", "value"),
-    Output("pident-output-val", "data"),
-
-    Input("pident-input", "value"),
-    Input("pident-slider", "value"),
-    Input("pident-input-val", "data"),
-)
-def pident_val(dp:DashProxy):
-    if dp.first_load or ("pident-input-val", "data") in dp.triggered:
-        val = float(dp["pident-input-val", "data"])
-        dp["pident-input", "invalid"] = False
-        dp["pident-input", "value"] = val
-        dp["pident-slider", "value"] = val
-    elif ("pident-input", "value") in dp.triggered:
-        try:
-            val = float(dp["pident-input", "value"].replace(' ', '').replace(',', '.'))
-            dp["pident-slider", "value"] = val
-        except Exception:
-            val = 0
-    elif ("pident-slider", "value") in dp.triggered:
-        val = float(dp["pident-slider", "value"])
-        dp["pident-input", "value"] = val
+    dp["blast-button", "children"] = "Disable BLAST" if dp["blast-options", "is_open"] else "Enable BLAST"
+    dp["blast-button", "outline"] = not dp["blast-options", "is_open"]
 
 
-    dp["pident-input", "invalid"] = not(0 < val <= 100)
-    dp["pident-output-val", "data"] = 0 if dp["pident-input", "invalid"] else val
+for name in ("pident", "qcovs"):
+    @dash_proxy.callback(
+        Output(f"{name}-input", "invalid"),
+        Output(f"{name}-input", "value"),
+        Output(f"{name}-slider", "value"),
+        Output(f"{name}-output-val", "data"),
 
+        Input(f"{name}-input", "value"),
+        Input(f"{name}-slider", "value"),
+        Input(f"{name}-input-val", "data"),
+    )
+    def slider_val(dp:DashProxy, name=name):
+        if dp.first_load or (f"{name}-input-val", "data") in dp.triggered:
+            val = float(dp[f"{name}-input-val", "data"])
+            dp[f"{name}-input", "invalid"] = False
+            dp[f"{name}-input", "value"] = val
+            dp[f"{name}-slider", "value"] = val
+        elif (f"{name}-input", "value") in dp.triggered:
+            try:
+                val = float(dp[f"{name}-input", "value"].replace(' ', '').replace(',', '.'))
+                dp[f"{name}-slider", "value"] = val
+            except Exception:
+                val = 0
+        elif (f"{name}-slider", "value") in dp.triggered:
+            val = float(dp[f"{name}-slider", "value"])
+            dp[f"{name}-input", "value"] = val
+
+
+        dp[f"{name}-input", "invalid"] = not(0 < val <= 100)
+        dp[f"{name}-output-val", "data"] = 0 if dp[f"{name}-input", "invalid"] else val
 
 
 
@@ -537,6 +538,7 @@ def pident_val(dp:DashProxy):
     Output("blast-button-input-value", "data"),
 
     Output("pident-input-val", "data"),
+    Output("qcovs-input-val", "data"),
     Output("evalue", "value"),
     Output('dropdown2', 'value'),
 
@@ -547,31 +549,50 @@ def pident_val(dp:DashProxy):
     State('dropdown2', 'value'),
     State('input2_version', 'data'),
     State("pident-input", "invalid"),
+    State("qcovs-input", "invalid"),
+
     State("blast-options", "is_open"),
     State("blast-button-input-value", "data"),
     State("pident-output-val", "data"),
+    State("qcovs-output-val", "data"),
+
     State("evalue", "value"),
 )
 def start_vis(dp:DashProxy):
-    if dp.first_load:
-        return
     task_id = dp['task_id', 'data']
     queue = "/queues/vis"
 
     if ('submit-button2', 'n_clicks') in dp.triggered:
         # button press triggered
-        if dp["blast-options", "is_open"] and dp["pident-input", "invalid"]:
+        try:
+            pident = float(dp["pident-output-val", "data"])
+        except Exception:
+            pident = None
+        try:
+            qcovs = float(dp["qcovs-output-val", "data"])
+        except Exception:
+            qcovs = None
+        if dp["evalue", "value"] in ('-5', '-6', '-7', '-8'):
+            evalue = dp["evalue", "value"]
+        else:
+            evalue = None
+
+        if (
+            (
+                dp["blast-options", "is_open"] and (
+                    dp["pident-input", "invalid"] or
+                    dp["qcovs-input", "invalid"]
+                )
+            ) or
+            pident is None or
+            evalue is None
+            ):
             dp["wrong-input-2", "is_open"] = True
             return
+
         dp["wrong-input-2", "is_open"] = False
 
         with user.db.pipeline(transaction=True) as pipe:
-            pipe.delete(
-                f"/tasks/{task_id}/progress/vis",
-                f"/tasks/{task_id}/progress/heatmap",
-                f"/tasks/{task_id}/progress/tree",
-                f"/tasks/{task_id}/progress/blast",
-            )
             user.enqueue(
                 version_key=f"/tasks/{task_id}/stage/vis/version",
                 queue_key=queue,
@@ -583,14 +604,28 @@ def start_vis(dp:DashProxy):
                 task_id=task_id,
                 stage="vis",
             )
+            user.cancel(
+                version_key=f"/tasks/{task_id}/stage/blast/version",
+                queue_key="/queues/blast",
+                queue_id_dest=f"/tasks/{task_id}/progress/blast",
+                queue_hash_key="q_id",
+
+                redis_client=pipe,
+            )
+            pipe.delete(
+                f"/tasks/{task_id}/progress/heatmap",
+                f"/tasks/{task_id}/progress/tree",
+            )
             # Cancel possibly-running blast tasks
             pipe.incr(f"/tasks/{task_id}/stage/blast/version")
 
             pipe.mset({
                 f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
                 f"/tasks/{task_id}/request/blast_enable": "1" if dp["blast-options", "is_open"] else "",
-                f"/tasks/{task_id}/request/blast_evalue": dp["evalue", "value"],
-                f"/tasks/{task_id}/request/blast_pident": dp["pident-output-val", "data"],
+                f"/tasks/{task_id}/request/blast_evalue": evalue,
+                f"/tasks/{task_id}/request/blast_pident": pident,
+                f"/tasks/{task_id}/request/blast_qcovs": qcovs,
+
             })
             pipe.hset(f"/tasks/{task_id}/progress/vis",
                 mapping={
@@ -606,18 +641,26 @@ def start_vis(dp:DashProxy):
                 "REPLACE",
             )
             res = pipe.execute()
-        dp['input2_version', 'data'] = decode_int(res[1][0])
-    elif ('input2_refresh', 'data') in dp.triggered:
+        dp['input2_version', 'data'] = decode_int(res[0][0])
+    elif ('input2_refresh', 'data') in dp.triggered or dp.first_load:
         # Server has newer data than we have, update dropdown value
-        input2_version, blast_enable, dp['dropdown2', 'value'], dp["evalue", "value"], dp["pident-input-val", "data"] = user.db.mget(
+        data = user.db.mget(
             f"/tasks/{task_id}/stage/vis/input2-version",
             f"/tasks/{task_id}/request/blast_enable",
             f"/tasks/{task_id}/request/dropdown2",
             f"/tasks/{task_id}/request/blast_evalue",
             f"/tasks/{task_id}/request/blast_pident",
+            f"/tasks/{task_id}/request/blast_qcovs",
         )
+        if not any(data):
+            return
+        input2_version, blast_enable, dp['dropdown2', 'value'], dp["evalue", "value"], pident, qcovs = data
+        dp["pident-input-val", "data"] = float(pident)
+        dp["qcovs-input-val", "data"] = float(qcovs)
+
         dp["blast-button-input-value", "data"] = abs(dp["blast-button-input-value", "data"]) + 1
         if not blast_enable:
+            print("blast-button-input-value")
             dp["blast-button-input-value", "data"] *= -1
 
         dp['input2_version', 'data'] = decode_int(input2_version)

@@ -19,29 +19,11 @@ NS = {
 
 @async_pool.in_process()
 def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool):
-    print("tree")
-    print(df)
-    # df['Organisms'] = df['Organisms'].astype("category")
-    # print(df)
-    # df['Organisms'].cat.set_categories(organisms, inplace=True)
-    # df.sort_values(["Organisms"], inplace=True)
-    # print(df)
-    # df.columns = ['Organisms', *OG_names]
-    # print(df)
-    # df = df[df['Organisms'].isin(organisms)]
-    # print(df)
-    # df = df.iloc[:, 1:]
-    # print(df)
-    print("set_index")
     df.set_index("Organisms", drop=True, inplace=True)
-    print(df)
     df = df[OG_names]
-    print(df)
 
-    df.astype(float, copy=False)
-    print(df)
     df.clip(upper=1, inplace=True)
-    print(df)
+    df.astype(float, copy=False)
 
     # Slower, but without fastcluster lib
     # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
@@ -64,11 +46,10 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
     gradient = ET.SubElement(legend, "gradient")
     ET.SubElement(gradient, "name").text = "Custom"
-    ET.SubElement(gradient, "classes").text = "2"
+    ET.SubElement(gradient, "classes").text = "4" if do_blast else "2"
 
     data = ET.SubElement(graph, "data")
     for index, row in df.iterrows():
-        print(index, row)
         values = ET.SubElement(data, "values", {"for":str(index)})
         for col_idx in reordered_ind:
             ET.SubElement(values, "value").text = f"{row[df.columns[col_idx]] * 100:.0f}"

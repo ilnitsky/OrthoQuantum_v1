@@ -40,7 +40,7 @@ def orthodb_get(level:str, prot_ids:list) -> defaultdict[str, list]:
         res[prot_id].append((
             result["og"]["value"].split('/')[-1].strip(),
             result["gene_name"]["value"],
-            result["gene_name"]["value"],
+            prot_id,
         ))
 
     return res

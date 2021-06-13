@@ -1,10 +1,8 @@
-from distutils import version
 from aioredis.client import Pipeline
 
-from . import tree_heatmap_sync, blast
+from . import tree_heatmap_sync
 
 from ..task_manager import DbClient
-from ..redis import redis
 from ..utils import DEBUG, atomic_file
 
 
@@ -59,7 +57,7 @@ async def tree(db: DbClient, do_blast=False, **kwargs):
             await db.flush_progress(message=f"Building tree")
 
     try:
-        with atomic_file(db.task_dir / "cluser.xml") as tmp_file:
+        with atomic_file(db.task_dir / "tree.xml") as tmp_file:
             task = tree_heatmap_sync.tree(
                 **kwargs,
                 do_blast=do_blast,

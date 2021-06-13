@@ -106,7 +106,12 @@ class DbClient():
             version=self.version,
             version_key=self._verison_key,
         )
-
+    async def check_if_cancelled(self, client=None):
+        if client is None:
+            client = redis
+        db_version = decode_int(await client.get(self._verison_key))
+        if self.version != db_version:
+            raise VersionChangedException()
     def transaction(self, func: Callable[[Pipeline], Coroutine[Any, Any, None]]) -> Coroutine[Any, Any, list]:
         @wraps(func)
         async def wrapper():
@@ -114,9 +119,7 @@ class DbClient():
                 while True:
                     try:
                         await pipe.watch(self._verison_key)
-                        db_version = decode_int(await pipe.get(self._verison_key))
-                        if self.version != db_version:
-                            raise VersionChangedException()
+                        await self.check_if_cancelled(client=pipe)
                         await func(pipe)
                         return await pipe.execute()
                     except WatchError:

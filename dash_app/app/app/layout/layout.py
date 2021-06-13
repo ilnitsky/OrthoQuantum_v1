@@ -128,6 +128,9 @@ og_from_input = html.Div(children=[
             html.Div(
                 id="table_container",
                 className="pb-3",
+                style={
+                    "overflow-x": "scroll",
+                }
             ),
             md=12,
         ),
@@ -159,6 +162,8 @@ og_from_input = html.Div(children=[
                     id="blast-button",
                     className="my-3",
                     color="success",
+                    children="Enable BLAST",
+                    outline=True,
                 ),
                 dbc.Collapse(
                     dbc.Card(dbc.CardBody([
@@ -187,7 +192,23 @@ og_from_input = html.Div(children=[
                             dcc.Slider(id="pident-slider", min=0, max=100, step=0.5),
                         ]),
                         dcc.Store(id='pident-input-val', data=70),
-                        dcc.Store(id='pident-output-val'),
+                        dcc.Store(id='pident-output-val', data=70),
+
+                        dbc.FormGroup([
+                            dbc.Label("Qcovs", html_for="qcovs-input-group"),
+                            dbc.InputGroup(
+                                [
+                                    dbc.Input(id="qcovs-input"),
+                                    dbc.InputGroupAddon("%", addon_type="append"),
+                                ],
+                                id="qcovs-input-group"
+                            ),
+                            dcc.Slider(id="qcovs-slider", min=0, max=100, step=0.5),
+                        ]),
+                        dcc.Store(id='qcovs-input-val', data=70),
+                        dcc.Store(id='qcovs-output-val', data=70),
+
+
                         dbc.Alert(
                             "Incorrect value!",
                             id="wrong-input-2",
@@ -271,6 +292,13 @@ def dashboard(task_id):
                 id='tree_container',
                 className="mx-5 mt-3",
             )
+        ),
+        dbc.Row(
+            dbc.Col(
+                id='blast_progress_container',
+                md=8, lg=6,
+            ),
+            justify='center'
         ),
 
         html.Br(),

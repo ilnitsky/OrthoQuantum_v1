@@ -1,11 +1,10 @@
 import asyncio
-import json
 
 from aioredis.client import Pipeline
 from . import vis_sync
 
 from ..task_manager import DbClient, queue_manager, cancellation_manager
-from ..redis import redis, LEVELS
+from ..redis import redis, LEVELS, enqueue
 
 from .tree_heatmap import tree, heatmap
 
@@ -45,7 +44,7 @@ async def vis(db: DbClient):
         phyloxml_file=phyloxml_file,
         og_csv_path=str(db.task_dir/'OG.csv')
     )
-    organisms:list[str]
+    organisms:list[int]
     csv_data: pd.DataFrame
 
     db.report_progress(
@@ -181,8 +180,31 @@ async def vis(db: DbClient):
 
     if blast_enable:
         # enqueue blast
-        print("to_blast_viz", to_blast)
-        pass
+        @db.transaction
+        async def res(pipe: Pipeline):
+            pipe.multi()
+            await enqueue(
+                version_key=f"/tasks/{db.task_id}/stage/blast/version",
+                queue_key="/queues/blast",
+                queue_id_dest=f"/tasks/{db.task_id}/progress/blast",
+                queue_hash_key="q_id",
+                redis_client=pipe,
+
+                task_id=db.task_id,
+                stage="blast",
+
+            )
+            pipe.hset(f"/tasks/{db.task_id}/progress/blast",
+                mapping={
+                    "status": 'Enqueued',
+                    'total': -1,
+                    "message": "BLASTing",
+                }
+            )
+
+        await res
+
+
 
     await db.flush_progress(status="Done", version=db.version)
 

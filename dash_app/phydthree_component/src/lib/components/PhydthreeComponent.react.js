@@ -26,14 +26,21 @@ export default class PhydthreeComponent extends Component {
       zoomValue: 100,
       zoomLevel: 1.0,
       displayNames: true,
+      version: this.props.version,
     };
   }
   componentDidUpdate() {
     var activeTab = this.state.activeTab;
-    switch (this.state.nextTab) {
+    var nextTab = this.state.nextTab;
+    var shouldRedraw = this.state.shouldRedraw;
+    if (this.state.version != this.props.version){
+      shouldRedraw = true;
+      nextTab = "tree";
+    }
+    switch (nextTab) {
       case "tree":
         phyd3.phylogram.delSVG(this.svg_ref.current);
-        if (this.state.shouldRedraw){
+        if (shouldRedraw){
           this.redraw();
         }
         activeTab = "tree";
@@ -47,7 +54,7 @@ export default class PhydthreeComponent extends Component {
       case "png":
         phyd3.phylogram.renderPNG();
       default:
-        if (this.state.shouldRedraw && activeTab == "tree"){
+        if (shouldRedraw && activeTab == "tree"){
           this.redraw();
           this.setState((state) => {
             return { ...state, shouldRedraw: false }
@@ -56,7 +63,7 @@ export default class PhydthreeComponent extends Component {
         return;
     }
     this.setState((state) => {
-      return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null }
+      return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null, version: this.props.version }
     });
 
   }
@@ -85,6 +92,9 @@ export default class PhydthreeComponent extends Component {
     if (this.callback != null) {
       clearTimeout(this.callback)
     }
+    d3.select(this.ref.current).html("Loading");
+    phyd3.phylogram.delSVG(this.svg_ref.current);
+    phyd3.phylogram.delSVG(this.ref.current);
   }
   redraw() {
 
@@ -241,4 +251,5 @@ PhydthreeComponent.propTypes = {
   url: PropTypes.string.isRequired,
   height: PropTypes.number.isRequired,
   leafCount: PropTypes.number.isRequired,
+  version: PropTypes.number.isRequired,
 };

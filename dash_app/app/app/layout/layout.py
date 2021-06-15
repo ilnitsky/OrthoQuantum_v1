@@ -59,6 +59,7 @@ body = dbc.Container(
                             Use UniProt Accesion Codes of your proteins to create a list with corresponding
                             Orthology groups"""),
                     dbc.Button("View tutorial", color="secondary", href="/blast"),
+                    dbc.Button("Open demo data", id="demo-btn", color="secondary", className="ml-2",),
                 ],
                 md=4,
             ),
@@ -355,6 +356,9 @@ blast = html.Div([
 index = html.Div([
     navbar,
     dcc.Location(id='location', refresh=False),
+    html.Div(
+        id="location-refresh-cont",
+    ),
     dbc.Container(
         id='page-content',
         fluid=True,

@@ -3,6 +3,7 @@ import os.path
 import time
 import json
 import secrets
+import shutil
 
 import urllib.parse as urlparse
 from dash import Dash
@@ -22,6 +23,7 @@ from .utils import DashProxy, DashProxyCreator, GROUP, decode_int, PBState, DEBU
 
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
+DEMO_TID = os.environ["DEMO_TID"]
 # app.debug = DEBUG
 
 # external JavaScript files
@@ -81,8 +83,8 @@ def new_task():
         raise RuntimeError("Failed to create a unique task_id")
 
     # Possible race condition, task_counter is only for statistics and ordering
-    task_no = user.db.incr(f"/users/{user_id}/task_counter")
-    user.db.set(f"/tasks/{task_id}/name", f"Request {task_no}")
+    user.db.incr(f"/users/{user_id}/task_counter")
+    # user.db.set(f"/tasks/{task_id}/name", f"Request {task_no}")
 
     # Publishes the task to the system, must be the last action
     user.db.rpush(f"/users/{user_id}/tasks", task_id)
@@ -94,8 +96,47 @@ def get_task(task_id):
     """Checks that task_id is valid and active, sets /accessed date to current"""
     if '/' in task_id:
         return False
+    if task_id == DEMO_TID:
+        user.db.set(f"/tasks/{task_id}/accessed", int(time.time()))
+        return True
     res = user.db.set(f"/tasks/{task_id}/accessed", int(time.time()), xx=True)
     return res
+
+
+
+
+@dash_proxy.callback(
+    Output('location-refresh-cont', 'children'),
+    Input('demo-btn', 'n_clicks'),
+)
+def demo(dp: DashProxy):
+    dp["location-refresh-cont", "children"] = None
+    if not dp['demo-btn', 'n_clicks']:
+        return
+    print(dp.first_load, dp.triggered, dp['demo-btn', 'n_clicks'])
+    new_task_id = new_task()
+    src_path = user.DATA_PATH/DEMO_TID
+    if not src_path.exists():
+        print(f"Create demo by visiting task_id {DEMO_TID}")
+        return
+    shutil.copytree(user.DATA_PATH/DEMO_TID, user.DATA_PATH/new_task_id)
+    base = f"/tasks/{DEMO_TID}"
+    tgt = f"/tasks/{new_task_id}"
+    with user.db.pipeline(transaction=False) as pipe:
+        for item in user.db.scan_iter(match=f"{base}/*"):
+            pipe.execute_command(
+                "COPY", item, tgt+item[len(base):], "REPLACE"
+            )
+        pipe.execute()
+
+    dp["location-refresh-cont", "children"] = dcc.Location(
+        id='location-refresh',
+        refresh=True,
+        search=f"?task_id={new_task_id}"
+    )
+
+
+
 
 
 
@@ -318,11 +359,26 @@ def progress_updater(dp: DashProxy):
             if stage == "heatmap":
                 dp[f"corr_table_container", "children"] = None
             continue
+        version = dp[f"{stage}_version", "data"]
         if stage == 'table':
-            req['table_data'] = f"/tasks/{task_id}/stage/table/dash-table"
-            req['table_version'] = f"/tasks/{task_id}/stage/table/version"
+            dp[f"table_container", "children"] = None
+            try:
+                with open(user.DATA_PATH/task_id/"Info_table.json", "r") as f:
+                    tbl_data = json.load(f)
+
+                if tbl_data['version'] == version:
+                    dp[f"table_container", "children"] = dash_table.DataTable(
+                        **tbl_data['data'],
+                        filter_action="native",
+                        page_size=40,
+                    )
+                else:
+                    # table updated between requests, ensure to make a request soon
+                    refresh_interval = min(refresh_interval, 300)
+            except Exception:
+                pass
+
         elif stage == 'heatmap':
-            version = dp[f"{stage}_version", "data"]
             dp[f"{stage}_container", "children"] = html.A(
                 html.Img(
                     src=f'/files/{task_id}/Correlation_preview.png?version={version}',
@@ -336,20 +392,27 @@ def progress_updater(dp: DashProxy):
                 target="_blank",
                 className="mx-auto",
             )
-            with open(user.DATA_PATH/task_id/"Correlation_table.json", "r") as f:
-                corr_tbl = dash_table.DataTable(
-                    **json.load(f),
-                    filter_action="native",
-                    page_size=40,
-                )
-            # try:
 
-            # except Exception:
-            #     corr_tbl = None
-            dp["corr_table_container", "children"] = corr_tbl
+            dp["corr_table_container", "children"] = None
+            try:
+                with open(user.DATA_PATH/task_id/"Correlation_table.json", "r") as f:
+                    tbl_data = json.load(f)
+
+                if tbl_data['version'] == version:
+                    dp["corr_table_container", "children"] = dash_table.DataTable(
+                        **tbl_data['data'],
+                        filter_action="native",
+                        page_size=40,
+                    )
+                else:
+                    # table updated between requests, ensure to make a request soon
+                    refresh_interval = min(refresh_interval, 300)
+            except Exception:
+                pass
+
+
 
         elif stage == 'tree':
-            version = dp[f"{stage}_version", "data"]
             print(f"writing tree {version}")
             dp[f"{stage}_container", "children"] = PhydthreeComponent(
                 url=f'/files/{task_id}/tree.xml?nocache={version}',
@@ -358,9 +421,6 @@ def progress_updater(dp: DashProxy):
                 version=version,
             )
 
-
-    if info['table'].get('status') == 'Executing' or 'table' in show_component:
-        req['missing_prot_msg'] = f"/tasks/{task_id}/stage/table/missing_msg"
 
     if 'table' in show_component:
         dp['submit-button2', 'disabled'] = info['table'].get('status') != 'Done'
@@ -373,25 +433,15 @@ def progress_updater(dp: DashProxy):
         # db has newer data, update output values
         dp['input2_refresh', 'data'] += 1
 
-    if req:
-        req.update(zip(req.keys(), user.db.mget(req.values())))
+    if info['table'].get('status') == 'Executing' or 'table' in show_component:
+        missing_prot_msg = user.db.get(f"/tasks/{task_id}/stage/table/missing_msg")
+        dp['missing_prot_alert', 'is_open'] = bool(missing_prot_msg)
+        if dp['missing_prot_alert', 'is_open']:
+            dp['missing_prot_alert', 'children'] = f"Unknown proteins: {missing_prot_msg[:-2]}"
+        else:
+            # table updated between requests, ensure to make a request soon
+            refresh_interval = min(refresh_interval, 300)
 
-        if 'missing_prot_msg' in req:
-            missing_prot_msg = req['missing_prot_msg']
-            dp['missing_prot_alert', 'is_open'] = bool(missing_prot_msg)
-            if dp['missing_prot_alert', 'is_open']:
-                dp['missing_prot_alert', 'children'] = f"Unknown proteins: {missing_prot_msg[:-2]}"
-
-        if 'table_data' in req:
-            if int(req['table_version']) == dp[f"table_version", "data"]:
-                dp[f"table_container", "children"] = dash_table.DataTable(
-                    **json.loads(req['table_data']),
-                    filter_action="native",
-                    page_size=40,
-                )
-            else:
-                # table updated between requests, ensure to
-                refresh_interval = min(refresh_interval, 300)
 
     if refresh_interval != float('+inf'):
         dp['progress_updater', 'interval'] = refresh_interval

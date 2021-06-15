@@ -294,24 +294,22 @@ async def table(db: DbClient):
 
     #prepare datatable update
     table_data = {
-        "data": og_info_df.to_dict('records'),
-        "columns": [
-            {
-                "name": i,
-                "id": i,
-            }
-            for i in og_info_df.columns
-        ]
+        "version": db.version,
+        "data": {
+            "data": og_info_df.to_dict('records'),
+            "columns": [
+                {
+                    "name": i,
+                    "id": i,
+                }
+                for i in og_info_df.columns
+            ]
+        }
     }
-    table = json.dumps(table_data, ensure_ascii=False, separators=(',', ':'))
+    await table_sync.save_table(db.task_dir / "Info_table.json", table_data)
 
-    @db.transaction
-    async def tx(pipe: Pipeline):
-        pipe.multi()
-        pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/dash-table", table)
-        db.report_progress(
-            pipe=pipe,
-            status="Done",
-            version=db.version,
-        )
-    await tx
+
+    db.report_progress(
+        status="Done",
+        version=db.version,
+    )

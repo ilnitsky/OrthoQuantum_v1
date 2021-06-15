@@ -1,4 +1,5 @@
 import asyncio
+from tempfile import NamedTemporaryFile
 from collections import defaultdict
 import io
 from typing import Optional
@@ -165,17 +166,43 @@ async def blast(db: DbClient):
     )
 
     render_cond = asyncio.Condition()
-    # if there is something from cache
-
     to_blast_iter = iter(to_blast)
+
     async def blast_task_func():
         for name in to_blast_iter:
             tax_ids = to_blast[name]
             prot = name_2_prot[name]
             prot_fasta = prot_seq[prot]
+            with NamedTemporaryFile("r", suffix=".blast_result.csv") as res_f:
+                with (NamedTemporaryFile("w", suffix=".req_file.fa") as req_f,
+                    NamedTemporaryFile("w", suffix=".taxids") as taxids_f):
 
-            res = await blast_sync.blast(prot_fasta, tax_ids)
-            res: dict[int, pd.DataFrame]
+                    await blast_sync.write_blast_files(req_f, prot_fasta, taxids_f, tax_ids)
+                    proc = await asyncio.create_subprocess_exec(
+                        "blastp",
+                        "-query", req_f.name,
+                        "-taxidlist", taxids_f.name,
+                        "-out", res_f.name,
+                        "-db", "/blast/blastdb/nr.00",
+                        "-evalue", "1e-3", # the system relies on E < 1 (because we're using log).
+                        "-max_target_seqs", "2000",
+                        "-outfmt", f"10 {' '.join(blast_sync.COLS.keys())}",
+                        "-num_threads", "4",
+
+                    )
+                    try:
+                        return_code = await proc.wait()
+                    except asyncio.CancelledError:
+                        proc.kill()
+                        raise
+
+                if return_code != 0:
+                    await db.report_error("Unknown blast error")
+                    return
+
+                res = await blast_sync.process_blast_data(res_fn=res_f.name)
+                res: dict[int, pd.DataFrame]
+
             cur_blasted = {}
             async with raw_redis.pipeline(transaction=False) as pipe:
                 memfile = io.BytesIO()

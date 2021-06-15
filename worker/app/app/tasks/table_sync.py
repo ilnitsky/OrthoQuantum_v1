@@ -1,4 +1,5 @@
 from collections import defaultdict
+import json
 
 import SPARQLWrapper
 import requests
@@ -145,3 +146,8 @@ def process_prot_data(data:list[tuple[str, str, str]], output_file:str)-> pd.Dat
         uniprot_df.to_csv(f, sep=';', index=False)
 
     return uniprot_df
+
+@async_pool.in_thread()
+def save_table(file, table_data):
+    with open(file, "w") as f:
+        json.dump(table_data, f, ensure_ascii=False, separators=(',', ':'))

@@ -27,6 +27,8 @@ export default class PhydthreeComponent extends Component {
       zoomLevel: 1.0,
       displayNames: true,
       version: this.props.version,
+      showNames: true,
+      dynamicHide: false,
     };
   }
   componentDidUpdate() {
@@ -111,7 +113,7 @@ export default class PhydthreeComponent extends Component {
       showGraphs: true,
       showGraphLegend: true,
       showLength: false,
-      showNodeNames: true,
+      showNodeNames: this.state.showNames,
       showNodesType: "only leaf",
       nodeHeight: 10,
       origScaleX: scaleX,
@@ -199,6 +201,9 @@ export default class PhydthreeComponent extends Component {
         <div style={{display: this.state.activeTab !== "tree" ? "none" : "inherit"}}>
           <Label check className="ml-4">
             <Input type="checkbox" id="dynamicHide" defaultChecked={this.state.dynamicHide} onClick={e => {this.setState({...this.state, dynamicHide: !this.state.dynamicHide})}}/> Dynamic hide
+          </Label>
+          <Label check className="ml-4">
+            <Input type="checkbox" id="nodeNames" defaultChecked={this.state.showNames} onClick={e => {this.setState({...this.state, showNames: !this.state.showNames})}}/> Show names
           </Label>
           <Button id="resetZoom" className="ml-2">Reset Zoom</Button>
           <Button id="resetPos" className="ml-2">Reset Position</Button>

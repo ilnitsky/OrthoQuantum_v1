@@ -27,9 +27,11 @@ async def heatmap(db: DbClient, **kwargs):
             atomic_file(db.task_dir / "Correlation_table.json") as tmp_file3 ):
             task = tree_heatmap_sync.heatmap(
                 **kwargs,
+                version=db.version,
                 output_file=tmp_file,
                 preview_file=tmp_file2,
                 table_file=tmp_file3,
+
             )
             task.set_progress_callback(progress)
             await task

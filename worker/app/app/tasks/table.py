@@ -17,6 +17,30 @@ from ..utils import atomic_file
 
 INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
+TABLE_COLUMNS = [
+    "label",
+    "Name",
+    "description",
+    "clade",
+    "evolRate",
+    "totalGenesCount",
+    "multiCopyGenesCount",
+    "singleCopyGenesCount",
+    "inSpeciesCount",
+    # "medianExonsCount", "stddevExonsCount",
+    "medianProteinLength",
+    "stddevProteinLength"
+]
+
+REQUEST_COLUMNS = TABLE_COLUMNS.copy()
+try:
+    REQUEST_COLUMNS.remove("Name")
+except ValueError:
+    pass
+REQUEST_COLUMNS.append("og")
+
+
+
 async def fetch_proteins(db: DbClient, level:str, prots_to_fetch:list[str]):
     result: dict[str, list] = {}
 
@@ -222,21 +246,6 @@ async def table(db: DbClient):
     og_list = uniprot_df['label']
     db.report_progress(total=len(og_list))
 
-    dash_columns = [
-        "label",
-        "description",
-        "clade",
-        "evolRate",
-        "totalGenesCount",
-        "multiCopyGenesCount",
-        "singleCopyGenesCount",
-        "inSpeciesCount",
-        # "medianExonsCount", "stddevExonsCount",
-        "medianProteinLength",
-        "stddevProteinLength",
-        "og"
-    ]
-
     orthogroups_to_fetch = []
 
     og_info = defaultdict(dict)
@@ -244,7 +253,7 @@ async def table(db: DbClient):
     cur_time = int(time())
     async with redis.pipeline(transaction=False) as pipe:
         for og in og_list:
-            pipe.hmget(f"/cache/ortho/{og}/data", dash_columns)
+            pipe.hmget(f"/cache/ortho/{og}/data", REQUEST_COLUMNS)
             pipe.set(f"/cache/ortho/{og}/accessed", cur_time, xx=True)
 
         cache_data = (await pipe.execute())[::2]
@@ -252,7 +261,7 @@ async def table(db: DbClient):
     for og, data in zip(og_list, cache_data):
         if None in data:
             continue
-        og_info[og] = dict(zip(dash_columns, data))
+        og_info[og] = dict(zip(REQUEST_COLUMNS, data))
 
     db.report_progress(current_delta=len(og_info))
     orthogroups_to_fetch = list(set(og_list)-og_info.keys())
@@ -262,7 +271,7 @@ async def table(db: DbClient):
             await fetch_orthogroups(
                 db=db,
                 orthogroups_to_fetch=orthogroups_to_fetch,
-                dash_columns=dash_columns,
+                dash_columns=REQUEST_COLUMNS,
             )
         )
 
@@ -272,26 +281,11 @@ async def table(db: DbClient):
             vals.values()
             for vals in og_info.values()
         ),
-        columns=dash_columns,
+        columns=REQUEST_COLUMNS,
     )
     og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
 
-    display_columns = [
-        "label",
-        "Name",
-        "description",
-        "clade",
-        "evolRate",
-        "totalGenesCount",
-        "multiCopyGenesCount",
-        "singleCopyGenesCount",
-        "inSpeciesCount",
-        # "medianExonsCount", "stddevExonsCount",
-        "medianProteinLength",
-        "stddevProteinLength"
-    ]
-    og_info_df = og_info_df[display_columns]
-
+    og_info_df = og_info_df[TABLE_COLUMNS]
     #prepare datatable update
     table_data = {
         "version": db.version,

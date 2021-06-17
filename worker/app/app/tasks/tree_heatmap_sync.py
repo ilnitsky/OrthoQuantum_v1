@@ -100,11 +100,12 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
 
     min_el = tbl_corr["Corr"].iat[0]
     max_el = tbl_corr["Corr"].iat[-1]
+
     width = max_el - min_el
     if width == 0:
         width = 1
-    tbl_corr["Quantile"] = ((min_el-tbl_corr["Corr"]) / width) + 1
-
+    tbl_corr["Quantile"] = (((min_el-tbl_corr["Corr"]) / width) + 1).round(5)
+    tbl_corr["Corr"] = tbl_corr["Corr"].round(5)
     table_data = {
         "version": version,
         "data": {

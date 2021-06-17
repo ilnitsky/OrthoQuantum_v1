@@ -844,8 +844,7 @@ window.requestAnimFrame = (function(){
 
             // main group
             vis = svg.append("svg:g", ":first-child")
-                .attr("id","main")
-                .attr("transform", "translate("+options.marginX+", "+options.marginY+")");
+                .attr("id","main");
 
             svg.append("svg:text")
                 .attr("dy", "20px")
@@ -898,6 +897,9 @@ window.requestAnimFrame = (function(){
             applyZoomTransform();
             applyLeafTransform();
             applyLabelGroupTransform();
+
+            var bbx = vis[0][0].getBBox();
+            vis.attr("transform", "translate("+(20-bbx.x)+", "+(20-bbx.y)+")");
         }
 
         function highlightSearch() {
@@ -955,7 +957,7 @@ window.requestAnimFrame = (function(){
                 oWidth = width.value,
                 oHeight = height.value;
 
-            transform.value = "translate("+options.marginX+", "+options.marginY+")";
+            transform.value = "translate("+(20-bbox.x)+", "+(20-bbox.y)+")";
             width.value = (Math.max(+width.value.replace('px', ''), bbox.width) + options.marginX).toString();
             height.value = (Math.max(+height.value.replace('px', ''), bbox.height) + options.marginY).toString();
 
@@ -1561,20 +1563,23 @@ window.requestAnimFrame = (function(){
                 .attr("dy", options.nodeHeight / 2 + 5)
                 .attr('font-size', (options.nodeHeight*1.5)+'px');
 
+            if (options.showNodeNames){
+                // primary method : check the longest Bounding box
 
-            // primary method : check the longest Bounding box
+                vis.selectAll("g.leaf.cid_"+longestNode).selectAll("text.name")
+                    .each(function() {
+                        // this call is forcing reflow and layout (~10ms)
+                        var box = this.getBBox();
+                        if (box.width > margin) margin = box.width;
+                    });
 
-            vis.selectAll("g.leaf.cid_"+longestNode).selectAll("text.name")
-                .each(function() {
-                    // this call is forcing reflow and layout (~10ms)
-                    var box = this.getBBox();
-                    if (box.width > margin) margin = box.width;
-                });
-
-            // alternative method : fixed width relative to node size
-            //margin = 100*options.nodeHeight/6;
-            margin += 10;
-            if (margin < options.textLength) margin = options.textLength;
+                // alternative method : fixed width relative to node size
+                //margin = 100*options.nodeHeight/6;
+                margin += 10;
+                if (margin < options.textLength) margin = options.textLength;
+            } else {
+                margin = 5;
+            }
             textPadding = margin;
             d3.select("#nodeHeight")
                 .attr("value", options.nodeHeight*2+"px");

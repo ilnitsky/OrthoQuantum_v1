@@ -31,6 +31,17 @@ nav_children = [
 ]
 if DEBUG:
     nav_children.insert(0, dbc.NavItem(dbc.NavLink("Flush Cache", id="flush-button")),)
+    nav_children.insert(0, dbc.NavItem(
+        [
+            html.Div("X-LARGE (XL)", className="d-none d-xl-block font-weight-bold"),
+            html.Div("LARGE (LG)", className="d-none d-lg-block d-xl-none font-weight-bold"),
+            html.Div("MEDIUM (M)", className="d-none d-md-block d-lg-none font-weight-bold"),
+            html.Div("SMALL (SM)", className="d-none d-sm-block d-md-none font-weight-bold"),
+            html.Div("X-SMALL (Defaut)", className="d-block d-sm-none alert font-weight-bold"),
+        ]
+
+    ))
+
 
 navbar = dbc.NavbarSimple(
     children=nav_children,
@@ -133,7 +144,7 @@ og_from_input = html.Div(children=[
                     "overflow-x": "scroll",
                 }
             ),
-            md=12,
+            md=8, lg=6,
         ),
         justify='center',
     ),
@@ -272,23 +283,25 @@ def dashboard(task_id):
             justify='center'
         ),
         dbc.Row(
-            dbc.Col(
-                id='heatmap_container',
-                className="text-center",
-            ),
+            [
+                dbc.Col(
+                    id='heatmap_container',
+                    className="text-center",
+                    md=6,
+                ),
+                dbc.Col(
+                    html.Div(
+                        id="corr_table_container",
+                        className="pb-3",
+                        style={
+                            "overflow-x": "scroll",
+                        },
+                    ),
+                    md=6,
+                ),
+            ],
             className="mx-4",
         ),
-        dbc.Row(
-            dbc.Col(
-                html.Div(
-                    id="corr_table_container",
-                    className="pb-3",
-                ),
-                md=8, lg=6,
-            ),
-            justify='center',
-        ),
-
 
         dcc.Store(id='tree_version', data=0),
         dcc.Store(id='blast_version', data=0),

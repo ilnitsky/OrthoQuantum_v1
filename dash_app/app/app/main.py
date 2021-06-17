@@ -402,7 +402,7 @@ def progress_updater(dp: DashProxy):
                     dp["corr_table_container", "children"] = dash_table.DataTable(
                         **tbl_data['data'],
                         filter_action="native",
-                        page_size=40,
+                        page_size=20,
                     )
                 else:
                     # table updated between requests, ensure to make a request soon

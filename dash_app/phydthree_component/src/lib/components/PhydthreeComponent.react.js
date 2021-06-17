@@ -188,6 +188,7 @@ export default class PhydthreeComponent extends Component {
         </NavItem>
         <NavItem className="ml-auto">
           <NavLink
+            disabled={this.state.activeTab !== 'tree'}
             onClick={() => { this.toggle('png'); }}
           >
             Download image

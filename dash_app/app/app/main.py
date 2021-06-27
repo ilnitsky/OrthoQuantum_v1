@@ -24,6 +24,7 @@ from .utils import DashProxy, DashProxyCreator, GROUP, decode_int, PBState, DEBU
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 DEMO_TID = os.environ["DEMO_TID"]
+TAXID_CACHE = {}
 # app.debug = DEBUG
 
 # external JavaScript files
@@ -101,6 +102,99 @@ def get_task(task_id):
         return True
     res = user.db.set(f"/tasks/{task_id}/accessed", int(time.time()), xx=True)
     return res
+
+
+@dash_proxy.callback(
+    Output('taxid_input', 'options'),
+    Output('taxid_input', 'value'),
+    Output('taxid_input_numeric', 'data'),
+
+    Input('taxid_input', 'search_value'),
+    Input('dropdown', 'value'),
+
+    State('taxid_input_numeric', 'data'),
+)
+def taxid_options(dp: DashProxy):
+    should_load_text = dp.first_load or ('dropdown', 'value') in dp.triggered
+    level_id = dp['dropdown', 'value']
+    if ('taxid_input', 'search_value') in dp.triggered:
+        # if numeric - give user an option to input it
+        # if clear or non-numeric - load text autocomplete if needed
+        if search_val := dp['taxid_input', 'search_value'].strip():
+            try:
+                search_val = int(search_val)
+            except Exception:
+                if dp['taxid_input_numeric', 'data']:
+                    dp['taxid_input_numeric', 'data'] = False
+                    should_load_text = True
+            else:
+                dp["taxid_input", "options"] = TAXID_CACHE[level_id].copy()
+                if not dp['taxid_input_numeric', 'data']:
+                    dp['taxid_input_numeric', 'data'] = True
+                dp["taxid_input", "options"].append({'label': dp['taxid_input', 'search_value'], 'value': search_val})
+
+        else:
+            should_load_text = should_load_text or not dp['taxid_input', 'value']
+
+
+    if should_load_text and level_id:
+        if level_id not in TAXID_CACHE:
+            TAXID_CACHE[level_id] = json.loads(user.db.get(f"/availible_levels/{level_id}/search_dropdown"))
+
+        dp["taxid_input", "options"] = TAXID_CACHE[level_id]
+
+
+@dash_proxy.callback(
+    Output('search-prot-button', 'children'),
+    Output('search-prot-button', 'disabled'),
+    Output('prot_search_updater', 'disabled'),
+    Output('prot-codes', 'value'),
+
+    Input('search-prot-button', 'n_clicks'),
+    Input('prot_search_updater', 'n_intervals'),
+
+    State('taxid_input', 'value'),
+    State('prot-codes', 'value'),
+    State('search-prot-button', 'disabled'),
+    State('task_id', 'data'),
+    # Input('dropdown', 'value'),
+    # State('taxid_input_numeric', 'data'),
+)
+def search_taxid(dp: DashProxy):
+    if dp.first_load:
+        return
+    task_id = dp['task_id', 'data']
+    if ('search-prot-button', 'n_clicks') in dp.triggered:
+        prot_codes = dp['prot-codes', 'value'].strip()
+        if prot_codes.startswith("#"):
+            return
+        if not dp['taxid_input', 'value']:
+            #TODO: show error?
+            return
+        dp['prot_search_updater', 'disabled'] = False
+        dp['search-prot-button', 'disabled'] = True
+        dp['search-prot-button', 'children'] = "Searching..."
+        with user.db.pipeline(transaction=False) as pipe:
+            pipe.delete(f"/tasks/{task_id}/stage/prot_search/result")
+            pipe.xadd(
+                "/queues/seatch_prot",
+                {
+                    "task_id": task_id,
+                    "prot_codes": prot_codes,
+                    "taxid": dp['taxid_input', 'value']
+                },
+            )
+            pipe.execute()
+    elif ('prot_search_updater', 'n_intervals') in dp.triggered:
+        res = user.db.get(f"/tasks/{task_id}/stage/prot_search/result")
+        if res:
+            dp['prot_search_updater', 'disabled'] = True
+            dp['search-prot-button', 'disabled'] = False
+            dp['search-prot-button', 'children'] = "Find Uniprot ACs"
+
+            dp['prot-codes', 'value'] = res
+
+
 
 
 

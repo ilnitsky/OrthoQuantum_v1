@@ -15,6 +15,7 @@ fastcluster = "*"
 aioredis = ">=2.0.0a1"
 aiohttp = "*"
 scipy = "*"
+mygene = "*"
 
 [dev-packages]
 

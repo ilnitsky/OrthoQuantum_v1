@@ -4,6 +4,13 @@ from pathlib import Path
 import json
 from itertools import chain
 from typing import Optional, Any
+from lxml import etree as ET
+
+ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+NS = {
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "": "http://www.phyloxml.org"
+}
 
 
 import aioredis
@@ -15,6 +22,7 @@ redis = aioredis.from_url(f"redis://{HOST}", encoding="utf-8", decode_responses=
 raw_redis = aioredis.from_url(f"redis://{HOST}", decode_responses=False)
 
 LEVELS = {}
+TAXID_TO_NAME = {}
 
 
 _enqueue_script = redis.register_script("""
@@ -115,11 +123,42 @@ async def init_availible_levels():
                 str(file.resolve()),
             )
         )
+
     l.sort()
 
-    availible_levels = {}
-    for id, level, name, path in l:
-        LEVELS[id] = (level, path)
-        availible_levels[name] = id
+    parser = ET.XMLParser(remove_blank_text=True)
 
-    await redis.set("/availible_levels", json.dumps(availible_levels))
+    async with redis.pipeline(transaction=False) as pipe:
+        availible_levels = {}
+        for id, level, name, path in l:
+            LEVELS[id] = (level, path)
+            availible_levels[name] = id
+
+            # options for the gene search dropdown
+
+            tree = ET.parse(path, parser)
+            root = tree.getroot()
+
+            orgs_xml = root.xpath("//pxml:id/..", namespaces={'pxml':"http://www.phyloxml.org"})
+            # Assuming only children have IDs
+            orgs = []
+            for org_xml in orgs_xml:
+                try:
+                    taxid = int(org_xml.find("id", NS).text)
+                    name = org_xml.find("name", NS).text
+                    orgs.append({
+                        'label': name,
+                        'value': taxid,
+                    })
+                    TAXID_TO_NAME[taxid] = name
+
+                except Exception:
+                    # org_id contains letters, this could happen for missing organism
+                    pass
+            orgs.sort(key=lambda x: x['label'])
+            pipe.set(f"/availible_levels/{id}/search_dropdown", json.dumps(orgs))
+
+
+        pipe.set("/availible_levels", json.dumps(availible_levels))
+
+        await pipe.execute()

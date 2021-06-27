@@ -107,12 +107,41 @@ og_from_input = html.Div(children=[
     dbc.Row([
         dbc.Col(
             html.Div([
-                dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=6, style={'width': '100%'}),
-                html.Button(id='submit-button', type='submit', children='Submit'),
+                dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=10, style={'width': '100%'}),
+                dbc.Button(
+                    id="submit-button",
+                    color="primary",
+                    children="Submit",
+                ),
                 # html.Button(id='su', type='submit', children='From .txt File'),
             ]),
-            md=8,
-            lg=6,
+            md=4,
+            lg=3,
+        ),
+        dbc.Col(
+            html.Div([
+                dcc.Store(id='taxid_input_numeric', data=False),
+                dcc.Interval(
+                    id='prot_search_updater',
+                    interval=500, # in milliseconds
+                    disabled=True,
+                ),
+                dcc.Dropdown(
+                    id='taxid_input',
+                    placeholder="Select species/enter taxid",
+                    className="mb-2"
+                ),
+                dcc.Textarea(id="prot-codes", placeholder='Gene of interest names', value='', rows=6, style={'width': '100%'}),
+                dbc.Button(
+                    id="search-prot-button",
+                    className="float-right",
+                    color="primary",
+                    children="Find Uniprot ACs",
+                    outline=True,
+                ),
+            ]),
+            md=4,
+            lg=3,
         ),
     ], justify='center'),
     html.Br(),

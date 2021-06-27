@@ -14,6 +14,7 @@ for attempt in range(10):
     try:
         db = redis.Redis("redis", encoding="utf-8", decode_responses=True)
         db.ping()
+        db.brpoplpush("/worker_initialied", "/worker_initialied", timeout=0)
         break
     except Exception:
         if attempt == 9:

@@ -15,7 +15,6 @@ from ..task_manager import DbClient, queue_manager, cancellation_manager
 from ..redis import redis, LEVELS
 from ..utils import atomic_file
 
-INVALID_PROT_IDS = re.compile(r"[^A-Za-z0-9\-\n \t]+")
 
 TABLE_COLUMNS = [
     "label",
@@ -177,14 +176,19 @@ async def fetch_orthogroups(db: DbClient, orthogroups_to_fetch: list[str], dash_
 
     return og_info
 
+# https://www.uniprot.org/help/accession_numbers
+VALID_PROT_IDS = re.compile(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}")
+COMMENT = re.compile(r"#.*\n")
 
 
 @queue_manager.add_handler("/queues/table")
 @cancellation_manager.wrap_handler
 async def table(db: DbClient):
     prot_req = await redis.get(f"/tasks/{db.task_id}/request/proteins")
+
     prot_ids = list(dict.fromkeys( # removing duplicates
-        INVALID_PROT_IDS.sub("", prot_req).upper().split(),
+        m.group(0)
+        for m in VALID_PROT_IDS.finditer(COMMENT.sub("", prot_req).upper())
     ))
     @db.transaction
     async def res(pipe:Pipeline):

@@ -20,7 +20,6 @@ async def flush_cache(queue_name, q_id, **queue_params):
     print("Cache flushed")
 
 
-
 # Delete keys that haven't been accessed in the last 3 months
 MAX_CACHE_LIFE_WITHOUT_ACCESS = timedelta(days=30*3).total_seconds()
 # Delete cache key after 6 months regardless of access date (to refresh data)
@@ -75,13 +74,16 @@ async def clean_cache():
 
 
 async def main():
+    await redis.delete("/worker_initialied")
     await init_db()
+    await redis.rpush("/worker_initialied", int(time()))
     cache_cleaner = asyncio.create_task(clean_cache())
     try:
         async with async_pool, queue_manager:
             await queue_manager()
     finally:
         cache_cleaner.cancel()
+        await redis.delete("/worker_initialied")
 
 
 if __name__ == "__main__":

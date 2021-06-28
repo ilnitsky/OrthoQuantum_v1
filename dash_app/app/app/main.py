@@ -13,6 +13,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import flask
+import redis
 
 from phydthree_component import PhydthreeComponent
 
@@ -83,13 +84,19 @@ def new_task():
     else:
         raise RuntimeError("Failed to create a unique task_id")
 
-    # Possible race condition, task_counter is only for statistics and ordering
-    user.db.incr(f"/users/{user_id}/task_counter")
-    # user.db.set(f"/tasks/{task_id}/name", f"Request {task_no}")
-
-    # Publishes the task to the system, must be the last action
-    user.db.rpush(f"/users/{user_id}/tasks", task_id)
-
+    with user.db.pipeline(transaction=True) as pipe:
+        while True:
+            try:
+                pipe.watch(f"/users/{user_id}/task_counter")
+                pipe.multi()
+                pipe.incr(f"/users/{user_id}/task_counter")
+                pipe.execute_command("COPY",f"/users/{user_id}/task_counter", f"/tasks/{task_id}/name", "REPLACE")
+                pipe.rpush(f"/users/{user_id}/tasks", task_id)
+                task_num = pipe.execute()[0]
+                break
+            except redis.WatchError:
+                pass
+        user.db.set(f"/tasks/{task_id}/name", f"Request #{task_num}")
     return task_id
 
 
@@ -102,6 +109,40 @@ def get_task(task_id):
         return True
     res = user.db.set(f"/tasks/{task_id}/accessed", int(time.time()), xx=True)
     return res
+
+@dash_proxy.callback(
+    Output('request-title', 'children'),
+    Output('request-input', 'value'),
+    Output('edit-request-title', 'className'),
+    Output('request-input', 'className'),
+
+    Input('edit-request-title', 'n_clicks'),
+    Input('request-input', 'n_blur'),
+    Input('request-input', 'n_submit'),
+
+    State('request-input', 'value'),
+    State('request-title', 'children'),
+    State('task_id', 'data'),
+)
+def task_name(dp: DashProxy):
+    task_id = dp['task_id', 'data']
+    if dp.first_load:
+        # set from db
+        dp['request-title', 'children'] = user.db.get(f"/tasks/{task_id}/name")
+    elif dp.triggered.intersection((('request-input', 'n_blur'), ('request-input', 'n_submit'))):
+        # set in db, update and show the text
+        dp['edit-request-title', 'className'] = "text-decoration-none"
+        dp['request-input', 'className'] = "form-control-lg d-none"
+        new_name = dp['request-input', 'value'].strip()
+        if new_name:
+            # Only if new name is not empty
+            dp['request-title', 'children'] = new_name
+            user.db.set(f"/tasks/{task_id}/name", new_name)
+    else:
+        # show editing interface
+        dp['edit-request-title', 'className'] = "text-decoration-none d-none"
+        dp['request-input', 'className'] = "form-control-lg"
+        dp['request-input', 'value'] = dp['request-title', 'children']
 
 
 @dash_proxy.callback(
@@ -132,9 +173,6 @@ def taxid_options(dp: DashProxy):
                 if not dp['taxid_input_numeric', 'data']:
                     dp['taxid_input_numeric', 'data'] = True
                 dp["taxid_input", "options"].append({'label': dp['taxid_input', 'search_value'], 'value': search_val})
-
-        else:
-            should_load_text = should_load_text or not dp['taxid_input', 'value']
 
 
     if should_load_text and level_id:
@@ -173,7 +211,7 @@ def search_taxid(dp: DashProxy):
             return
         dp['prot_search_updater', 'disabled'] = False
         dp['search-prot-button', 'disabled'] = True
-        dp['search-prot-button', 'children'] = "Searching..."
+        dp['search-prot-button', 'children'] = [dbc.Spinner(size="sm", spinnerClassName="mr-2"), "Searching..."]
         with user.db.pipeline(transaction=False) as pipe:
             pipe.delete(f"/tasks/{task_id}/stage/prot_search/result")
             pipe.xadd(

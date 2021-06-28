@@ -49,8 +49,8 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
         {"{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": "http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd"},
         E.phylogeny(
             {"rooted":"true"},
-            E.name("demo tree"),
-            E.description("tree test"),
+            E.name("Phylogenetic tree"),
+            E.description(f"{level.capitalize()} tree, 123 species"), # TODO: after species are set
         ),
         E.taxonomies(
             *(

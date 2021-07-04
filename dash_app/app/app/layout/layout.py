@@ -3,7 +3,6 @@ import json
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from dash_html_components.Div import Div
 
 from ..user import db
 from ..utils import DEBUG
@@ -290,6 +289,38 @@ def dashboard(task_id):
         body,
         html.Br(),
         html.Br(),
+
+        dbc.Row(
+            dbc.Col(
+                [
+                    html.A(
+                        [
+                            html.H1(
+                                "",
+                                className="text-center",
+                                id="request-title",
+                            ),
+                            dbc.Tooltip(
+                                "Click to edit",
+                                target=f"request-title",
+                                placement="right",
+                            ),
+                        ]
+                        ,
+                        id="edit-request-title",
+                        role="button",
+                        className="text-decoration-none"
+                    ),
+                    dbc.Input(
+                        id="request-input",
+                        className="d-none",
+                        style={"text-align": "center"}
+                    ),
+                ],
+                md=8, lg=6, className="mb-3",
+            ),
+            justify='center'
+        ),
         og_from_input,
         dcc.Store(id='input2_refresh', data=0),
         dcc.Store(id='input2_version', data=0),

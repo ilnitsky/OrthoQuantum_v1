@@ -407,6 +407,17 @@ window.requestAnimFrame = (function(){
             repaint();
         })
 
+        d3.select("#fitTree").on("click", function(){
+            // reset phylogram
+            onodes = jQuery.extend(true, {}, allNodes);
+            options.scaleX = options.origScaleX;
+            options.scaleY = 1;
+            options.translateX = 0;
+            options.translateY = 0;
+            zoom.translate([0, 0]);
+            repaint();
+        })
+
         d3.select("#resetPos").on("click", function(){
             // reset phylogram
             onodes = jQuery.extend(true, {}, allNodes);
@@ -565,6 +576,44 @@ window.requestAnimFrame = (function(){
             canvas.toBlob(function(blob) {
                 saveAs(blob, "phylogram.png");
             });
+        };
+
+        phyd3.phylogram.updateNodeNames = function (showGroups, showSpecies) {
+            var showNodeNames;
+            var showNodesType;
+            switch ((showGroups<<1)|showSpecies) {
+                case 0:
+                    showNodeNames = false;
+                    showNodesType = options.showNodesType;
+                    break;
+                case 1:
+                    showNodeNames = true;
+                    showNodesType = "only leaf";
+                    break;
+                case 2:
+                    showNodeNames = true;
+                    showNodesType = "only inner";
+                    break;
+                case 3:
+                    showNodeNames = true;
+                    showNodesType = "all";
+                    break;
+                default:
+                    break;
+            }
+            var updNodeType = options.showNodesType != showNodesType;
+            var updNodeNames = options.showNodeNames != showNodeNames;
+            options.showNodesType = showNodesType;
+            options.showNodeNames = showNodeNames;
+            if (!(updNodeType || updNodeNames)){
+                // no change needed
+                return
+            }
+            if (updNodeType){
+                redrawTree();
+            }
+            changeLeafText();
+            applyLeafTransform();
         };
 
         d3.select("#searchQuery").on("change", function() {
@@ -1563,7 +1612,8 @@ window.requestAnimFrame = (function(){
                 .attr("dy", options.nodeHeight / 2 + 5)
                 .attr('font-size', (options.nodeHeight*1.5)+'px');
 
-            if (options.showNodeNames){
+
+            if (options.showNodeNames && options.showNodesType != "only inner"){
                 // primary method : check the longest Bounding box
 
                 vis.selectAll("g.leaf.cid_"+longestNode).selectAll("text.name")
@@ -1908,7 +1958,7 @@ window.requestAnimFrame = (function(){
                                 if (max > boxMax) boxMax = max;
                                 if (min < boxMin) boxMin = min;
                             }
-                            console.log(boxMin, boxMax);
+
                             boxplotScaling[graph.id] = d3.scale.linear().domain([boxMin, boxMax]);
                             for (cid in graph.data) {
                                 if (!graph.data[cid]) continue;

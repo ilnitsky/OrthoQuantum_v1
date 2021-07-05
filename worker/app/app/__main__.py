@@ -74,7 +74,6 @@ async def clean_cache():
 
 
 async def main():
-    await redis.delete("/worker_initialied")
     await init_db()
     await redis.rpush("/worker_initialied", int(time()))
     cache_cleaner = asyncio.create_task(clean_cache())

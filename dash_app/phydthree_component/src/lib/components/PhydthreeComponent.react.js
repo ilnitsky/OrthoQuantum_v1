@@ -27,7 +27,8 @@ export default class PhydthreeComponent extends Component {
       zoomLevel: 1.0,
       displayNames: true,
       version: this.props.version,
-      showNames: true,
+      showGroups: false,
+      showSpecies: true,
       dynamicHide: false,
     };
   }
@@ -113,14 +114,14 @@ export default class PhydthreeComponent extends Component {
       showGraphs: true,
       showGraphLegend: true,
       showLength: false,
-      showNodeNames: this.state.showNames,
+      showNodeNames: this.state.showGroups || this.state.showSpecies,
       showNodesType: "only leaf",
       nodeHeight: 10,
       origScaleX: scaleX,
       scaleX: scaleX,
       origScaleY: scaleY,
       scaleY: scaleY,
-      scaleStep: 0.2,
+      scaleStep: 0.23,
       margin: 100,
       showPhylogram: true,
       showTaxonomy: false,
@@ -132,6 +133,12 @@ export default class PhydthreeComponent extends Component {
       foregroundColor: "#000000",
       nanColor: "#f5f5f5",
     };
+    if (this.state.showGroups && this.state.showSpecies){
+      opts.showNodesType = "all";
+    } else if (this.state.showGroups){
+      opts.showNodesType = "only inner";
+    }
+
     // vv url from props
     d3.xml(this.props.url, (err, xml) => {
       if (err != null) {
@@ -140,9 +147,6 @@ export default class PhydthreeComponent extends Component {
         var tree = phyd3.phyloxml.parse(xml);
         d3.select(this.ref.current).html("Loading");
         phyd3.phylogram.build(this.ref.current, tree, opts);
-        if (this.state.firstRender && this.props.leafCount > 1000){
-          this.toggle("svg");
-        }
       }
     });
   }
@@ -198,16 +202,34 @@ export default class PhydthreeComponent extends Component {
 
 
     <div className="tab-content">
-      <div style={{height: "50px"}} className="mt-2">
+      <div style={{height: "56px"}} className="mt-2">
         <div style={{display: this.state.activeTab !== "tree" ? "none" : "inherit"}}>
-          <Label check className="ml-4">
-            <Input type="checkbox" id="dynamicHide" defaultChecked={this.state.dynamicHide} onClick={e => {this.setState({...this.state, dynamicHide: !this.state.dynamicHide})}}/> Dynamic hide
-          </Label>
-          <Label check className="ml-4">
-            <Input type="checkbox" id="nodeNames" defaultChecked={this.state.showNames} onClick={e => {this.setState({...this.state, showNames: !this.state.showNames})}}/> Show names
-          </Label>
-          <Button id="resetZoom" className="ml-2">Reset Zoom</Button>
-          <Button id="resetPos" className="ml-2">Reset Position</Button>
+          <span className="align-top">Show names:</span>
+          <div className="align-top d-inline-block">
+            <Label check className="ml-4">
+              <Input type="checkbox" id="nodeNames" defaultChecked={this.state.showGroups} onClick={e => {
+                phyd3.phylogram.updateNodeNames(!this.state.showGroups, this.state.showSpecies);
+                this.setState({...this.state, showGroups: !this.state.showGroups});
+              }}/>
+              Groups
+            </Label><br/>
+            <Label check className="ml-4">
+              <Input type="checkbox" id="nodeNames" defaultChecked={this.state.showSpecies} onClick={e => {
+                phyd3.phylogram.updateNodeNames(this.state.showGroups, !this.state.showSpecies);
+                this.setState({...this.state, showSpecies: !this.state.showSpecies});
+              }}/>
+              Species
+            </Label>
+          </div>
+          <div className="ml-4 align-top d-inline-block">
+            <Label check className="ml-4">
+              <Input type="checkbox" id="dynamicHide" defaultChecked={this.state.dynamicHide} onClick={e => {this.setState({...this.state, dynamicHide: !this.state.dynamicHide})}}/>
+              Dynamic hide
+            </Label>
+          </div>
+          <Button id="resetZoom" className="ml-4 align-top">Reset Zoom</Button>
+          <Button id="resetPos" className="ml-2 align-top">Reset Position</Button>
+          <Button id="fitTree" className="ml-2 align-top">Fit Tree To View</Button>
         </div>
 
         <div style={{display: this.state.activeTab !== "svg" ? "none" : "inherit"}}>

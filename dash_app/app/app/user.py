@@ -138,8 +138,8 @@ _enqueue_script = db.register_script("""
     local version = redis.call('incr', KEYS[1])
     local hkey = table.remove(ARGV)
     local queue_id = nil
-    if (KEYS[3] ~= '') then
-        if (hkey == '') then
+    if (KEYS[3] ~= '!') then
+        if (hkey == '!') then
             queue_id = redis.call('get', KEYS[3])
         else
             queue_id = redis.call('hget', KEYS[3], hkey)
@@ -154,8 +154,8 @@ _enqueue_script = db.register_script("""
     -- enqueue
     if #ARGV ~= 0 then
         queue_id = redis.call('xadd', KEYS[2], '*', 'version', version, unpack(ARGV))
-        if (KEYS[3] ~= '') then
-            if (hkey == '') then
+        if (KEYS[3] ~= '!') then
+            if (hkey == '!') then
                 redis.call('set', KEYS[3], queue_id)
             else
                 redis.call('hset', KEYS[3], hkey, queue_id)
@@ -172,12 +172,12 @@ def enqueue(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, par
     args = list(chain.from_iterable(kwargs.items()))
     if not args:
         raise RuntimeError("empty queue data")
-    args.append(queue_hash_key or '')
+    args.append(queue_hash_key or '!')
     return _enqueue_script(
         keys=(
             version_key,
             queue_key,
-            queue_id_dest or '',
+            queue_id_dest or '!',
         ),
         args=args,
         client=redis_client,
@@ -188,8 +188,8 @@ def cancel(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, redi
         keys=(
             version_key,
             queue_key,
-            queue_id_dest or '',
+            queue_id_dest or '!',
         ),
-        args=(queue_hash_key or '',),
+        args=(queue_hash_key or '!',),
         client=redis_client,
     )

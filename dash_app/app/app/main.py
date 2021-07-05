@@ -110,6 +110,245 @@ def get_task(task_id):
     res = user.db.set(f"/tasks/{task_id}/accessed", int(time.time()), xx=True)
     return res
 
+dash_app.clientside_callback(
+    """
+    function(button_n_clicks, blast_value, cur_state) {
+        if (dash_clientside.callback_context.triggered.length){
+            trigger = dash_clientside.callback_context.triggered[0].prop_id;
+            if (trigger == "blast-button.n_clicks"){
+                cur_state = !cur_state;
+            } else if (trigger == "blast-button-input-value.data") {
+                cur_state = blast_value > 0
+            }
+        }
+        if (cur_state){
+            return ["Disable BLAST", true, false];
+        } else {
+            return ["Enable BLAST", false, true];
+        }
+    }
+    """,
+    Output("blast-button", "children"),
+    Output("blast-options", "is_open"),
+    Output("blast-button", "outline"),
+
+    Input("blast-button", "n_clicks"),
+    Input("blast-button-input-value", "data"),
+    State("blast-options", "is_open"),
+)
+
+
+
+for name in ("pident", "qcovs"):
+    dash_app.clientside_callback(
+        """
+        function(text_input_val, slider_val, data_input_val) {
+            // debugger;
+            var val = NaN;
+            var trigger = null;
+            var no_update_field = null;
+            if (dash_clientside.callback_context.triggered.length){
+                trigger = dash_clientside.callback_context.triggered[0].prop_id;
+            }
+            switch(trigger){
+                case "|NAME|-input.value":
+                    val = text_input_val;
+                    no_update_field = 1;
+                    break;
+                case "|NAME|-slider.value":
+                    val = slider_val;
+                    no_update_field = 2;
+                    break;
+                case "|NAME|-input-val.data":
+                    val = data_input_val;
+                    no_update_field = 3;
+                    break;
+            }
+            var text_val = val;
+            val = Number(val);
+            var invalid = false;
+            if (isNaN(val)){
+                invalid = true;
+            }else{
+                text_val = val;
+                invalid = !((0 < val) && (val <= 100));
+            }
+            var output = [invalid, text_val, val, val];
+            if (isNaN(val)){
+                output[2] = window.dash_clientside.no_update;
+            }
+            if (no_update_field != null){
+                output[no_update_field] = window.dash_clientside.no_update;
+            }
+            return output;
+        }
+        """.replace("|NAME|", name),
+        Output(f"{name}-input", "invalid"),
+        Output(f"{name}-input", "value"),
+        Output(f"{name}-slider", "value"),
+        Output(f"{name}-output-val", "data"),
+
+        Input(f"{name}-input", "value"),
+        Input(f"{name}-slider", "value"),
+        Input(f"{name}-input-val", "data"),
+    )
+
+
+dash_app.clientside_callback(
+    """
+    function(n_clicks, enabled) {
+        // debugger;
+        if(n_clicks == null){
+            // initial load
+            return [enabled, enabled];
+        }
+        enabled=!enabled;
+        return [enabled, enabled];
+    }
+    """,
+    Output('tutorial_enabled', 'data'),
+    Output('tutorial_checkbox', 'checked'),
+    Input("tutorial-checkbox-div", "n_clicks"),
+    State('tutorial_enabled', 'data'),
+)
+
+
+dash_app.clientside_callback(
+    """
+    function(n_clicks, cur_state) {
+        if(n_clicks == null){
+            // initial load
+            return [window.dash_clientside.no_update, window.dash_clientside.no_update];
+        }
+
+        if (cur_state){
+            return ["dropdown-menu dropdown-menu-right", false];
+        } else {
+            return ["show dropdown-menu dropdown-menu-right", true];
+        }
+    }
+    """,
+    Output('request_list_dropdown', 'className'),
+    Output('request_list_dropdown_shown', 'data'),
+    Input("request_list_menu_item", "n_clicks"),
+    State('request_list_dropdown_shown', 'data'),
+)
+
+@dash_proxy.callback(
+    Output('request_list_dropdown', 'children'),
+
+    Input('request_list_dropdown_shown', 'data'),
+)
+def request_list(dp: DashProxy):
+    if dp.first_load:
+        return
+    res = [
+        dbc.DropdownMenuItem(
+            "New request",
+            external_link=True, href=f"/",
+        ),
+        dbc.DropdownMenuItem(divider=True),
+    ]
+    if not dp['request_list_dropdown_shown', 'data']:
+        # To show "loading" next time we are opened
+        res.append(dbc.DropdownMenuItem("Loading...", disabled=True))
+        dp['request_list_dropdown', 'children'] = res
+        return
+
+    user_id = flask.session.get("USER_ID")
+    if not user_id:
+        dp['request_list_dropdown', 'children'] = [
+            dbc.DropdownMenuItem("New request"),
+        ]
+        return
+
+    task_ids = user.db.lrange(f"/users/{user_id}/tasks", 0, -1)
+    task_ids.reverse()
+
+    stages = {
+        'table': "Uniprot request",
+        'vis': "Visualization",
+        'tree': "Phylotree generation",
+        'heatmap': "Heatmap generation",
+        'blast': "Blast search",
+    }
+    with user.db.pipeline(transaction=False) as pipe:
+        for task_id in task_ids:
+            pipe.get(f"/tasks/{task_id}/name")
+            for stage in stages:
+                pipe.hget(f"/tasks/{task_id}/progress/{stage}", "status")
+        data = pipe.execute()
+    print(data)
+    data_it = iter(data)
+    for task_id in task_ids:
+        name = next(data_it)
+
+        not_started = True
+        spinner = False
+        message = None
+        for stage, status in tuple(zip(stages, data_it)):
+            # statuses: ("Enqueued", "Executing", "Waiting", "Done", "Error")
+            if status == "Waiting":
+                continue
+            elif status is None:
+                continue
+            elif status == "Done":
+                not_started = False
+                continue
+            elif status == "Enqueued":
+                message = f"{stages[stage]} enqueued"
+                spinner = True
+            elif status == "Executing":
+                message = f"{stages[stage]} in progress"
+                spinner = True
+            elif status == "Error":
+                message = f"{stages[stage]} error"
+            break
+        else:
+            if not_started:
+                message = "No tasks were started"
+            else:
+                message = "All tasks are done"
+        child_contents = [
+            html.Strong(name),
+            html.Br(),
+        ]
+        if spinner:
+            child_contents.append(dbc.Spinner(
+                size="sm",
+                color="secondary",
+                spinnerClassName="mr-2",
+            ))
+        child_contents.append(message)
+
+        res.append(
+            dbc.DropdownMenuItem(
+                html.Div(child_contents),
+                external_link=True, href=f"/?task_id={task_id}",
+            )
+        )
+
+    dp['request_list_dropdown', 'children'] = res
+
+
+@dash_proxy.callback(
+    # TODO: add tooltips where needed and add them here
+    # to enable hiding
+    Output('tooltip-edit-title', 'className'),
+
+    Input('tutorial_enabled', 'data'),
+)
+def tutorial_tooltips(dp: DashProxy):
+    # Enable or disable all tooltips that are passed as outputs
+    className = "" if dp['tutorial_enabled', 'data'] else "d-none"
+    for el_id, el_property in dp._output_order:
+        if el_property != 'className':
+            continue
+        dp[el_id, el_property] = className
+
+
+
+
 @dash_proxy.callback(
     Output('request-title', 'children'),
     Output('request-input', 'value'),
@@ -245,7 +484,7 @@ def demo(dp: DashProxy):
     dp["location-refresh-cont", "children"] = None
     if not dp['demo-btn', 'n_clicks']:
         return
-    print(dp.first_load, dp.triggered, dp['demo-btn', 'n_clicks'])
+
     new_task_id = new_task()
     src_path = user.DATA_PATH/DEMO_TID
     if not src_path.exists():
@@ -541,11 +780,7 @@ def progress_updater(dp: DashProxy):
                     refresh_interval = min(refresh_interval, 300)
             except Exception:
                 pass
-
-
-
         elif stage == 'tree':
-            print(f"writing tree {version}")
             dp[f"{stage}_container", "children"] = PhydthreeComponent(
                 url=f'/files/{task_id}/tree.xml?nocache={version}',
                 height=2000,
@@ -673,58 +908,6 @@ def table(dp:DashProxy):
 
 
 @dash_proxy.callback(
-    Output("blast-button", "children"),
-    Output("blast-options", "is_open"),
-    Output("blast-button", "outline"),
-
-    Input("blast-button", "n_clicks"),
-    Input("blast-button-input-value", "data"),
-    State("blast-options", "is_open"),
-)
-def toggle_collapse(dp:DashProxy):
-    if ("blast-button", "n_clicks") in dp.triggered:
-        dp["blast-options", "is_open"] = not dp["blast-options", "is_open"]
-    elif ("blast-button-input-value", "data") in dp.triggered:
-        dp["blast-options", "is_open"] = dp["blast-button-input-value", "data"]>0
-
-    dp["blast-button", "children"] = "Disable BLAST" if dp["blast-options", "is_open"] else "Enable BLAST"
-    dp["blast-button", "outline"] = not dp["blast-options", "is_open"]
-
-
-for name in ("pident", "qcovs"):
-    @dash_proxy.callback(
-        Output(f"{name}-input", "invalid"),
-        Output(f"{name}-input", "value"),
-        Output(f"{name}-slider", "value"),
-        Output(f"{name}-output-val", "data"),
-
-        Input(f"{name}-input", "value"),
-        Input(f"{name}-slider", "value"),
-        Input(f"{name}-input-val", "data"),
-    )
-    def slider_val(dp:DashProxy, name=name):
-        if dp.first_load or (f"{name}-input-val", "data") in dp.triggered:
-            val = float(dp[f"{name}-input-val", "data"])
-            dp[f"{name}-input", "invalid"] = False
-            dp[f"{name}-input", "value"] = val
-            dp[f"{name}-slider", "value"] = val
-        elif (f"{name}-input", "value") in dp.triggered:
-            try:
-                val = float(dp[f"{name}-input", "value"].replace(' ', '').replace(',', '.'))
-                dp[f"{name}-slider", "value"] = val
-            except Exception:
-                val = 0
-        elif (f"{name}-slider", "value") in dp.triggered:
-            val = float(dp[f"{name}-slider", "value"])
-            dp[f"{name}-input", "value"] = val
-
-
-        dp[f"{name}-input", "invalid"] = not(0 < val <= 100)
-        dp[f"{name}-output-val", "data"] = 0 if dp[f"{name}-input", "invalid"] else val
-
-
-
-@dash_proxy.callback(
     Output('input2_version', 'data'),
 
     Output("wrong-input-2", "is_open"),
@@ -835,6 +1018,7 @@ def start_vis(dp:DashProxy):
             )
             res = pipe.execute()
         dp['input2_version', 'data'] = decode_int(res[0][0])
+
     elif ('input2_refresh', 'data') in dp.triggered or dp.first_load:
         # Server has newer data than we have, update dropdown value
         data = user.db.mget(

@@ -49,8 +49,6 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
         {"{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": "http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd"},
         E.phylogeny(
             {"rooted":"true"},
-            E.name("Phylogenetic tree"),
-            E.description(f"{level.capitalize()} tree, 123 species"), # TODO: after species are set
         ),
         E.taxonomies(
             *(
@@ -72,12 +70,20 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
     name = None
     going_down = True
     cur_id = 0
+    species_count = 0
     for tok in tokens.finditer(newick):
         m = tok.group(0)
         if m == ")" or m == ",":
-            ET.SubElement(cursor, "name").text = name
+            if name in taxa_colors:
+                tax = ET.SubElement(cursor, "taxonomy")
+                ET.SubElement(tax, "code").text = taxa_colors[name]["code"]
+                ET.SubElement(cursor, "name").text = name
+            elif going_down:
+                ET.SubElement(cursor, "name").text = name
+
             if going_down:
                 # leaf node, put id
+                species_count += 1
                 lname = name.lower()
                 if lname not in taxid_name_conv:
                     missing_names.add(name)
@@ -91,9 +97,6 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
                 names.append(name)
 
                 going_down = False
-            if name in taxa_colors:
-                tax = ET.SubElement(cursor, "taxonomy")
-                ET.SubElement(tax, "code").text = taxa_colors[name]["code"]
 
             cursor = cursor.getparent()
 
@@ -110,6 +113,9 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
             break
         else:
             name = m.replace("_", " ").strip()
+    ET.SubElement(phylo, "name").text = "Phylogenetic tree"
+    ET.SubElement(phylo, "description").text = f"{level.capitalize()}, {species_count} species"
+
     if missing_names:
         print(f"Import for {level}:")
         missing_names_str = ', '.join(f'"{n}"' for n in missing_names)

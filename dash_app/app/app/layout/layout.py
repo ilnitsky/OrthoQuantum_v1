@@ -16,16 +16,33 @@ DROPDOWN_OPTIONS = [
 ]
 nav_children = [
     dbc.NavItem(dbc.NavLink("Login", href="/blast")),
-    dbc.DropdownMenu(
-        nav=True,
-        in_navbar=True,
-        label="Menu",
-        children=[
-            dbc.DropdownMenuItem(dbc.NavLink("Heatmap Correlation", href="/correlation")),
-            dbc.DropdownMenuItem("Presence", href="/reports"),
-            dbc.DropdownMenuItem(divider=True),
-            dbc.DropdownMenuItem("Entry 3"),
+    # dbc.DropdownMenu doesn't expose n_clicks to fetch the newest data
+    # recreating their functionality manually
+    html.Li([
+            html.A(
+                "My requests",
+                className="nav-link dropdown-toggle",
+                href="#",
+                id="request_list_menu_item",
+                role="button",
+            ),
+            dcc.Store(id='request_list_dropdown_shown', data=False),
+            html.Div([
+                    dbc.DropdownMenuItem(
+                        "New request",
+                        external_link=True, href=f"/",
+                    ),
+                    dbc.DropdownMenuItem(divider=True),
+                    dbc.DropdownMenuItem("Loading...", disabled=True),
+                ],
+                id="request_list_dropdown",
+                role="menu",
+                tabIndex="-1",
+                className="dropdown-menu dropdown-menu-right",
+                style={"max-height": "80vh", "overflow-y": "scroll", "min-width": "300px"},
+            ),
         ],
+        className="nav-item dropdown"
     ),
 ]
 if DEBUG:
@@ -68,8 +85,27 @@ body = dbc.Container(
                     html.P("""Download presence and study orthology group presence.
                             Use UniProt Accesion Codes of your proteins to create a list with corresponding
                             Orthology groups"""),
-                    dbc.Button("View tutorial", color="secondary", href="/blast"),
-                    dbc.Button("Open demo data", id="demo-btn", color="secondary", className="ml-2",),
+                    dbc.InputGroup([
+                        # dbc.Button("View tutorial", color="secondary", href="/blast"),
+                        html.Div([
+                            dbc.Checkbox(id="tutorial_checkbox"),
+                            dbc.Label(
+                                "Show tutorial",
+                                html_for="tutorial_checkbox",
+                                className="form-check-label",
+                                style={"margin-left": "0.5em"},
+                            ),
+                        ],
+                        # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
+                        className="input-group-text important-btn-secondary", id="tutorial-checkbox-div"),
+                        dbc.Button("Open demo data", id="demo-btn", color="secondary", className="ml-2",),
+                        dbc.Tooltip(
+                            "Information would be displayed while hovering over an element",
+                            # id="tooltip-edit-title",
+                            target="tutorial-checkbox-div",
+                            placement="bottom"
+                        ),
+                    ]),
                 ],
                 md=4,
             ),
@@ -302,8 +338,10 @@ def dashboard(task_id):
                             ),
                             dbc.Tooltip(
                                 "Click to edit",
-                                target=f"request-title",
+                                id="tooltip-edit-title",
+                                target="request-title",
                                 placement="right",
+                                className="d-none"
                             ),
                         ]
                         ,
@@ -432,6 +470,7 @@ index = html.Div([
     html.Div(
         id="location-refresh-cont",
     ),
+    dcc.Store(id='tutorial_enabled', data=True, storage_type="local"),
     dbc.Container(
         id='page-content',
         fluid=True,

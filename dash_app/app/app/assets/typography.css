@@ -12,3 +12,19 @@ hr {
 .nav-link {
     cursor: pointer
 }
+
+/*
+force to match btn-secondary look
+*/
+.important-btn-secondary {
+    color: #fff;
+    background-color: #aea79f;
+    border-color: #aea79f;
+    cursor: pointer;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+}
+.important-btn-secondary:hover {
+    color: #fff;
+    background-color: #9c948a;
+    border-color: #978e83;
+}

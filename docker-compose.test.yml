@@ -14,7 +14,7 @@ services:
       DEMO_TID: "${DEMO_TID:?missing_demo_task_id}"
       PYTHONUNBUFFERED: "1"
     volumes:
-      - "user_data:/app/user_data"
+      - "./user_data:/app/user_data"
 
   redis:
     build: ./redis
@@ -29,25 +29,14 @@ services:
         DEBUG: "1"
     restart: unless-stopped
     volumes:
-      - "user_data:/app/user_data"
+      - "./user_data:/app/user_data"
       - "./blast_data:/blast/blastdb"
     environment:
       REDIS_HOST: "redis"
       PYTHONUNBUFFERED: "TRUE"
 
 volumes:
-  user_data:
-    # driver: local
-    # driver_opts:
-    #   type: none
-    #   o: bind
-    #   device: ./user_data
   redis_data:
-    # driver: local
-    # driver_opts:
-    #   type: none
-    #   o: bind
-    #   device: ./redis_data
 
 
 

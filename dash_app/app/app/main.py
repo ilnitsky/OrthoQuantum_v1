@@ -142,11 +142,18 @@ dash_app.clientside_callback(
 for name in ("pident", "qcovs"):
     dash_app.clientside_callback(
         """
-        function(text_input_val, slider_val, data_input_val) {
-            // debugger;
+        function(text_input_val, slider_val, data_input_val, blast_enabled) {
+            noupd = window.dash_clientside.no_update;
+            if (!blast_enabled){
+                // blast is disabled, force-valid even if error
+                // to allow sending the request
+                return [false, noupd, noupd, noupd];
+            }
+
             var val = NaN;
             var trigger = null;
             var no_update_field = null;
+
             if (dash_clientside.callback_context.triggered.length){
                 trigger = dash_clientside.callback_context.triggered[0].prop_id;
             }
@@ -163,6 +170,14 @@ for name in ("pident", "qcovs"):
                     val = data_input_val;
                     no_update_field = 3;
                     break;
+                default:
+                    // initial load
+                    if (isNaN(data_input_val) || data_input_val<0 || data_input_val>100){
+                        val = 70;
+                    }else{
+                        val = data_input_val;
+                    }
+                    break;
             }
             var text_val = val;
             val = Number(val);
@@ -175,10 +190,10 @@ for name in ("pident", "qcovs"):
             }
             var output = [invalid, text_val, val, val];
             if (isNaN(val)){
-                output[2] = window.dash_clientside.no_update;
+                output[2] = noupd;
             }
             if (no_update_field != null){
-                output[no_update_field] = window.dash_clientside.no_update;
+                output[no_update_field] = noupd;
             }
             return output;
         }
@@ -191,6 +206,7 @@ for name in ("pident", "qcovs"):
         Input(f"{name}-input", "value"),
         Input(f"{name}-slider", "value"),
         Input(f"{name}-input-val", "data"),
+        Input("blast-options", "is_open"),
     )
 
 
@@ -940,33 +956,31 @@ def start_vis(dp:DashProxy):
 
     if ('submit-button2', 'n_clicks') in dp.triggered:
         # button press triggered
-        try:
-            pident = float(dp["pident-output-val", "data"])
-        except Exception:
-            pident = None
-        try:
-            qcovs = float(dp["qcovs-output-val", "data"])
-        except Exception:
-            qcovs = None
-        if dp["evalue", "value"] in ('-5', '-6', '-7', '-8'):
-            evalue = dp["evalue", "value"]
+        if dp["blast-options", "is_open"]:
+            if dp["pident-input", "invalid"] or dp["qcovs-input", "invalid"]:
+                # client validation failed
+                dp["wrong-input-2", "is_open"] = True
+                return
+            # performing server validation
+            try:
+                pident = float(dp["pident-output-val", "data"])
+                qcovs = float(dp["qcovs-output-val", "data"])
+                evalue = dp["evalue", "value"]
+                if evalue not in ('-5', '-6', '-7', '-8'):
+                    raise ValueError()
+            except Exception:
+                # client validation succeeded, server validation failed
+                dp["wrong-input-2", "is_open"] = True
+                return
+
+            # validation succeeded
+            dp["wrong-input-2", "is_open"] = False
         else:
-            evalue = None
+            # no blast options, set to default ('') for redis request
+            qcovs = ''
+            pident = ''
+            evalue = ''
 
-        if (
-            (
-                dp["blast-options", "is_open"] and (
-                    dp["pident-input", "invalid"] or
-                    dp["qcovs-input", "invalid"]
-                )
-            ) or
-            pident is None or
-            evalue is None
-            ):
-            dp["wrong-input-2", "is_open"] = True
-            return
-
-        dp["wrong-input-2", "is_open"] = False
 
         with user.db.pipeline(transaction=True) as pipe:
             user.enqueue(

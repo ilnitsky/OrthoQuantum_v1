@@ -32,7 +32,7 @@ async def vis(db: DbClient):
             f"/tasks/{db.task_id}/request/blast_enable",
             # f"/tasks/{db.task_id}/request/blast_evalue",
             # f"/tasks/{db.task_id}/request/blast_pident",
-            f"/tasks/{db.task_id}/request/dropdown2"
+            f"/tasks/{db.task_id}/request/tax-level"
         )
 
     blast_enable, level_id = (await res)[-1]

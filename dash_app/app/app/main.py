@@ -406,13 +406,13 @@ def task_name(dp: DashProxy):
     Output('taxid_input_numeric', 'data'),
 
     Input('taxid_input', 'search_value'),
-    Input('dropdown', 'value'),
+    Input('tax-level-dropdown', 'value'),
 
     State('taxid_input_numeric', 'data'),
 )
 def taxid_options(dp: DashProxy):
-    should_load_text = dp.first_load or ('dropdown', 'value') in dp.triggered
-    level_id = dp['dropdown', 'value']
+    should_load_text = dp.first_load or ('tax-level-dropdown', 'value') in dp.triggered
+    level_id = dp['tax-level-dropdown', 'value']
     if ('taxid_input', 'search_value') in dp.triggered:
         # if numeric - give user an option to input it
         # if clear or non-numeric - load text autocomplete if needed
@@ -450,7 +450,6 @@ def taxid_options(dp: DashProxy):
     State('prot-codes', 'value'),
     State('search-prot-button', 'disabled'),
     State('task_id', 'data'),
-    # Input('dropdown', 'value'),
     # State('taxid_input_numeric', 'data'),
 )
 def search_taxid(dp: DashProxy):
@@ -738,8 +737,6 @@ def progress_updater(dp: DashProxy):
                 **pbar,
             )
 
-    req = {}
-
     for stage, do_show in show_component.items():
         if not do_show:
             dp[f"{stage}_container", "children"] = None
@@ -832,7 +829,7 @@ def progress_updater(dp: DashProxy):
 
 @dash_proxy.callback(
     Output('uniprotAC', 'value'),
-    Output('dropdown', 'value'),
+    Output('tax-level-dropdown', 'value'),
 
     Output('input1_version', 'data'),
 
@@ -843,7 +840,7 @@ def progress_updater(dp: DashProxy):
     State('input1_version', 'data'),
 
     State('uniprotAC', 'value'),
-    State('dropdown', 'value'),
+    State('tax-level-dropdown', 'value'),
 )
 def table(dp:DashProxy):
     """Perform action (cancel/start building the table)"""
@@ -888,7 +885,7 @@ def table(dp:DashProxy):
 
             pipe.mset({
                 f"/tasks/{task_id}/request/proteins": dp['uniprotAC', 'value'],
-                f"/tasks/{task_id}/request/dropdown1": dp['dropdown', 'value'],
+                f"/tasks/{task_id}/request/tax-level": dp['tax-level-dropdown', 'value'],
             })
             pipe.hset(f"/tasks/{task_id}/progress/table",
                 mapping={
@@ -909,14 +906,14 @@ def table(dp:DashProxy):
     elif ('input1_refresh', 'data') in dp.triggered or dp.first_load:
         data = user.db.mget(
             f"/tasks/{task_id}/request/proteins",
-            f"/tasks/{task_id}/request/dropdown1",
+            f"/tasks/{task_id}/request/tax-level",
             f"/tasks/{task_id}/stage/table/input_version"
         )
         if not any(data):
             return
         (
             dp['uniprotAC', 'value'],
-            dp['dropdown', 'value'],
+            dp['tax-level-dropdown', 'value'],
             input1_version,
         ) = data
         dp['input1_version', 'data'] = decode_int(input1_version)
@@ -932,13 +929,11 @@ def table(dp:DashProxy):
     Output("pident-input-val", "data"),
     Output("qcovs-input-val", "data"),
     Output("evalue", "value"),
-    Output('dropdown2', 'value'),
 
     Input('submit-button2', 'n_clicks'),
     Input('input2_refresh', 'data'),
 
     State('task_id', 'data'),
-    State('dropdown2', 'value'),
     State('input2_version', 'data'),
     State("pident-input", "invalid"),
     State("qcovs-input", "invalid"),
@@ -1010,7 +1005,6 @@ def start_vis(dp:DashProxy):
             pipe.incr(f"/tasks/{task_id}/stage/blast/version")
 
             pipe.mset({
-                f"/tasks/{task_id}/request/dropdown2": dp['dropdown2', 'value'],
                 f"/tasks/{task_id}/request/blast_enable": "1" if dp["blast-options", "is_open"] else "",
                 f"/tasks/{task_id}/request/blast_evalue": evalue,
                 f"/tasks/{task_id}/request/blast_pident": pident,
@@ -1038,14 +1032,13 @@ def start_vis(dp:DashProxy):
         data = user.db.mget(
             f"/tasks/{task_id}/stage/vis/input2-version",
             f"/tasks/{task_id}/request/blast_enable",
-            f"/tasks/{task_id}/request/dropdown2",
             f"/tasks/{task_id}/request/blast_evalue",
             f"/tasks/{task_id}/request/blast_pident",
             f"/tasks/{task_id}/request/blast_qcovs",
         )
         if not any(data):
             return
-        input2_version, blast_enable, dp['dropdown2', 'value'], dp["evalue", "value"], pident, qcovs = data
+        input2_version, blast_enable, dp["evalue", "value"], pident, qcovs = data
         dp["pident-input-val", "data"] = float(pident)
         dp["qcovs-input-val", "data"] = float(qcovs)
 

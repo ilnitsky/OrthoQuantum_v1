@@ -127,8 +127,8 @@ og_from_input = html.Div(children=[
                 html.Div([
                     dcc.Dropdown(
                         placeholder="Select a taxon (level of orthology)",
-                        value='4',
-                        id='dropdown',
+                        value='4', # vertebrata
+                        id='tax-level-dropdown',
                         options=DROPDOWN_OPTIONS,
                     )
                 ]),
@@ -214,21 +214,6 @@ og_from_input = html.Div(children=[
     ),
     html.Div(id='output_row'),
     html.Br(),
-    html.Br(),
-    dbc.Row([
-        dbc.Col(
-            html.Div([
-                dcc.Dropdown(options=DROPDOWN_OPTIONS,
-                    placeholder="Select a taxon (level of orthology)",
-                    value='4',
-                    id='dropdown2',
-                ),
-                html.Div(id='dd2-output-container')
-            ]),
-            md=8,
-            lg=6,
-        ),
-    ], justify='center'),
 
     dbc.Row([
         dbc.Col(

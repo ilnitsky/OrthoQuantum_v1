@@ -200,7 +200,7 @@ async def table(db: DbClient):
             status="Executing",
             pipe=pipe,
         )
-        pipe.get(f"/tasks/{db.task_id}/request/dropdown1")
+        pipe.get(f"/tasks/{db.task_id}/request/tax-level")
 
     level_id = int((await res)[-1])
     level, _ = LEVELS[level_id]

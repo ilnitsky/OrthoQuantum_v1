@@ -131,7 +131,7 @@ def get_queue_length(queue_key, worker_group_name, task_q_id, redis_client=None)
 _enqueue_script = db.register_script("""
     -- KEYS[1] - version
     -- KEYS[2] - queue
-    -- KEYS[3] - queue_id_dest (empty string to skip)
+    -- KEYS[3] - queue_id_dest ("!" to skip)
 
     -- ARGV - kv pairs to add to the queue (leave empty to only cancel)
 

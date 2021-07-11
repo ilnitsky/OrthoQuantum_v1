@@ -12,7 +12,7 @@ import pandas as pd
 
 from . import table_sync
 from ..task_manager import DbClient, queue_manager, cancellation_manager
-from ..redis import redis, LEVELS
+from ..redis import redis, LEVELS, enqueue
 from ..utils import atomic_file
 
 
@@ -245,6 +245,30 @@ async def table(db: DbClient):
             )),
             tmp_file,
         )
+
+    # Can start visualization right now
+    @db.transaction
+    async def res(pipe: Pipeline):
+        pipe.multi()
+        await enqueue(
+            version_key=f"/tasks/{db.task_id}/stage/vis/version",
+            queue_key="/queues/vis",
+            queue_id_dest=f"/tasks/{db.task_id}/progress/vis",
+            queue_hash_key="q_id",
+            redis_client=pipe,
+
+            task_id=db.task_id,
+            stage="vis",
+        )
+        pipe.hset(f"/tasks/{db.task_id}/progress/vis",
+            mapping={
+                "status": 'Enqueued',
+                'total': -1,
+                "message": "Building visualization",
+            }
+        )
+    await res
+
     uniprot_df: pd.DataFrame
 
     og_list = uniprot_df['label']

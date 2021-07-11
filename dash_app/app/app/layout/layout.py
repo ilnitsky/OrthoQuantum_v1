@@ -22,7 +22,6 @@ nav_children = [
             html.A(
                 "My requests",
                 className="nav-link dropdown-toggle",
-                href="#",
                 id="request_list_menu_item",
                 role="button",
             ),
@@ -62,6 +61,7 @@ if DEBUG:
 navbar = dbc.NavbarSimple(
     children=nav_children,
     brand="Home",
+    brand_external_link=True,
     brand_href="/",
     sticky="top",
 )
@@ -143,12 +143,6 @@ og_from_input = html.Div(children=[
         dbc.Col(
             html.Div([
                 dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=10, style={'width': '100%'}),
-                dbc.Button(
-                    id="submit-button",
-                    color="primary",
-                    children="Submit",
-                ),
-                # html.Button(id='su', type='submit', children='From .txt File'),
             ]),
             md=4,
             lg=3,
@@ -169,7 +163,6 @@ og_from_input = html.Div(children=[
                 dcc.Textarea(id="prot-codes", placeholder='Gene of interest names', value='', rows=6, style={'width': '100%'}),
                 dbc.Button(
                     id="search-prot-button",
-                    className="float-right",
                     color="primary",
                     children="Find Uniprot ACs",
                     outline=True,
@@ -179,8 +172,104 @@ og_from_input = html.Div(children=[
             lg=3,
         ),
     ], justify='center'),
-    html.Br(),
-    html.Br(),
+
+    dbc.Row(
+        [
+            dbc.Col(
+                html.Div([
+                    dcc.Store(id='blast-button-input-value', data=0),
+                    dbc.Button(
+                        id="blast-button",
+                        className="my-3",
+                        color="success",
+                        children="Enable BLAST",
+                        outline=True,
+                    ),
+                    dbc.Collapse(
+                        dbc.Card(dbc.CardBody([
+                            dbc.FormGroup([
+                                dbc.Label("EValue", html_for="evalue"),
+                                dbc.Select(
+                                    id="evalue",
+                                    options=[
+                                        {"label": "10⁻⁵", "value": "-5"},
+                                        {"label": "10⁻⁶", "value": "-6"},
+                                        {"label": "10⁻⁷", "value": "-7"},
+                                        {"label": "10⁻⁸", "value": "-8"},
+                                    ],
+                                    value="-5",
+                                ),
+                            ]),
+                            dbc.FormGroup([
+                                dbc.Label("Pident", html_for="pident-input-group"),
+                                dbc.InputGroup(
+                                    [
+                                        dbc.Input(id="pident-input"),
+                                        dbc.InputGroupAddon("%", addon_type="append"),
+                                    ],
+                                    id="pident-input-group"
+                                ),
+                                dcc.Slider(id="pident-slider", min=0, max=100, step=0.5),
+                            ]),
+                            dcc.Store(id='pident-input-val', data=70),
+                            dcc.Store(id='pident-output-val', data=70),
+
+                            dbc.FormGroup([
+                                dbc.Label("Qcovs", html_for="qcovs-input-group"),
+                                dbc.InputGroup(
+                                    [
+                                        dbc.Input(id="qcovs-input"),
+                                        dbc.InputGroupAddon("%", addon_type="append"),
+                                    ],
+                                    id="qcovs-input-group"
+                                ),
+                                dcc.Slider(id="qcovs-slider", min=0, max=100, step=0.5),
+                            ]),
+                            dcc.Store(id='qcovs-input-val', data=70),
+                            dcc.Store(id='qcovs-output-val', data=70),
+
+
+                            dbc.Alert(
+                                "Incorrect value!",
+                                id="wrong-input-2",
+                                is_open=False,
+                                color="danger",
+                            ),
+                        ])),
+                        id="blast-options",
+                    ),
+                ]),
+                md=8,
+                lg=6,
+            ),
+        ],
+        justify='center',
+        className="mb-3"
+    ),
+
+    dbc.Row(
+        dbc.Col(
+            [
+                dbc.Button(
+                    id="submit-button",
+                    color="primary",
+                    children="Submit",
+                    className=""
+                ),
+                dbc.Button(
+                    id="cancel-button",
+                    color="danger",
+                    children="Cancel",
+                    outline=True,
+                    className="float-right d-none"
+                ),
+            ],
+            md=8,
+            lg=6,
+        ),
+        justify='center',
+        className="mb-4",
+    ),
     dbc.Row(
         dbc.Col(
             dbc.Alert(
@@ -211,89 +300,8 @@ og_from_input = html.Div(children=[
             md=8, lg=6,
         ),
         justify='center',
+        className="mb-3",
     ),
-    html.Div(id='output_row'),
-    html.Br(),
-
-    dbc.Row([
-        dbc.Col(
-            html.Div([
-                dcc.Store(id='blast-button-input-value', data=0),
-                dbc.Button(
-                    id="blast-button",
-                    className="my-3",
-                    color="success",
-                    children="Enable BLAST",
-                    outline=True,
-                ),
-                dbc.Collapse(
-                    dbc.Card(dbc.CardBody([
-                        dbc.FormGroup([
-                            dbc.Label("EValue", html_for="evalue"),
-                            dbc.Select(
-                                id="evalue",
-                                options=[
-                                    {"label": "10⁻⁵", "value": "-5"},
-                                    {"label": "10⁻⁶", "value": "-6"},
-                                    {"label": "10⁻⁷", "value": "-7"},
-                                    {"label": "10⁻⁸", "value": "-8"},
-                                ],
-                                value="-5",
-                            ),
-                        ]),
-                        dbc.FormGroup([
-                            dbc.Label("Pident", html_for="pident-input-group"),
-                            dbc.InputGroup(
-                                [
-                                    dbc.Input(id="pident-input"),
-                                    dbc.InputGroupAddon("%", addon_type="append"),
-                                ],
-                                id="pident-input-group"
-                            ),
-                            dcc.Slider(id="pident-slider", min=0, max=100, step=0.5),
-                        ]),
-                        dcc.Store(id='pident-input-val', data=70),
-                        dcc.Store(id='pident-output-val', data=70),
-
-                        dbc.FormGroup([
-                            dbc.Label("Qcovs", html_for="qcovs-input-group"),
-                            dbc.InputGroup(
-                                [
-                                    dbc.Input(id="qcovs-input"),
-                                    dbc.InputGroupAddon("%", addon_type="append"),
-                                ],
-                                id="qcovs-input-group"
-                            ),
-                            dcc.Slider(id="qcovs-slider", min=0, max=100, step=0.5),
-                        ]),
-                        dcc.Store(id='qcovs-input-val', data=70),
-                        dcc.Store(id='qcovs-output-val', data=70),
-
-
-                        dbc.Alert(
-                            "Incorrect value!",
-                            id="wrong-input-2",
-                            is_open=False,
-                            color="danger",
-                        ),
-                    ])),
-                    id="blast-options",
-                ),
-            ]),
-            md=8,
-            lg=6,
-
-        ),
-    ], justify='center'),
-    html.Br(),
-    dbc.Row(
-        dbc.Col(
-            html.Button(id='submit-button2', type='submit', disabled=True, children='Go'),
-            md=8,
-            lg=6,
-
-        ),
-    justify='center'),
 ])
 
 
@@ -301,6 +309,8 @@ def dashboard(task_id):
     return html.Div([
         dcc.Store(id='task_id', data=task_id),
         dcc.Store(id='input1_version', data=0),
+        # desired version of table component, updated on submit and cancellation
+        dcc.Store(id='table_version_target', data=0),
         dcc.Store(id='input1_refresh', data=0),
         dcc.Interval(
             id='progress_updater',
@@ -344,7 +354,9 @@ def dashboard(task_id):
             ),
             justify='center'
         ),
+
         og_from_input,
+
         dcc.Store(id='input2_refresh', data=0),
         dcc.Store(id='input2_version', data=0),
 
@@ -397,21 +409,20 @@ def dashboard(task_id):
         ),
         dbc.Row(
             dbc.Col(
-                id='tree_container',
-                className="mx-5 mt-3",
-            )
-        ),
-        dbc.Row(
-            dbc.Col(
                 id='blast_progress_container',
                 md=8, lg=6,
             ),
             justify='center'
         ),
+        dbc.Row(
+            dbc.Col(
+                id='tree_container',
+                className="mx-5 mt-3",
+            )
+        ),
+        html.Br(),
+        html.Br(),
 
-        html.Br(),
-        html.Br(),
-        # dcc.Link('Navigate to "Images"', href='/reports'),
     ])
 
 reports = html.Div([
@@ -439,7 +450,6 @@ reports = html.Div([
 
 blast = html.Div([
     body,
-    html.Div(id='1'),
     html.Br(),
     html.Br(),
     html.P("The user can submit the query in the front page by either listing the Uniprot identifiers in the input field or by uploading .txt file. Taxonomic orthology levels include Eukaryota, Metazoa, Viridiplantae, Vertebrata, Aves, Actinopterygii, Fungi, Protista. For large taxonomic groups there is an option to continue with a compact set of species with a good quality of genome assembly, or with a full set of species from OrthoDB that may provide better resolution for conservation patterns (for example, the choice between 120 or 1100 species in Metazoa). After entering the query, a table of information related to each orthogroup is loaded. It collates query protein names with OrthoDB orthogroups identifiers, it also contains some other information about orthogroups already described in the previous section. The user can choose clades for which to display the correlation matrix and the presence heatmap with phylogenetic tree. Blast search can be performed to complement OrthoDB presence data. The user can change the default parameters for blastp search: sequence identity and E-value threshold."),

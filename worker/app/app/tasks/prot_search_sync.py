@@ -29,13 +29,21 @@ def search_for_prot(taxid, prot_codes:str):
         up = res['uniprot']
         ac = None
         if 'Swiss-Prot' in up:
-            ac = up['Swiss-Prot']
-        elif 'TrEMBL' in up:
+            if isinstance(up['Swiss-Prot'], str):
+                ac = up['Swiss-Prot']
+            else:
+                try:
+                    ac = up['Swiss-Prot'][0]
+                except IndexError:
+                    pass
+
+        if not ac and 'TrEMBL' in up:
             for ac in up['TrEMBL']:
                 if len(ac) == 6: # found a good one
                     break
             # ether 6 char or the last from the list
-        else:
+
+        if not ac:
             result.append(f"# {res['query']} - {name}: not found")
             print(f"Error with parsing search: {res}")
             continue

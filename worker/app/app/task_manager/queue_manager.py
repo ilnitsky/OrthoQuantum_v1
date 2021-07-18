@@ -71,9 +71,9 @@ class QueueManager():
         async with redis as r:
             queue_list = {}
             while True:
-                max_count = 30 # max jobs to receive per loop
-                has_full_queues = False
                 if self.update_listening_queues.is_set():
+                    max_count = 30 # max jobs to receive per loop
+                    has_full_queues = False
                     queue_list.clear()
                     for q_name, q in self.queues.items():
                         if q.slots_left > 0:

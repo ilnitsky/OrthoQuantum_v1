@@ -991,7 +991,6 @@ def submit(dp:DashProxy):
 
         dp["blast-button-input-value", "data"] = abs(dp["blast-button-input-value", "data"]) + 1
         if not blast_enable:
-            print("blast-button-input-value")
             dp["blast-button-input-value", "data"] *= -1
     elif ('cancel-button', 'n_clicks') in dp.triggered:
         with user.db.pipeline(transaction=True) as pipe:

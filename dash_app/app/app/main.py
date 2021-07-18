@@ -83,7 +83,7 @@ def router_page(href):
         if not user.is_logged_in():
             return login(pathname), search
 
-        args = urlparse.parse_qs(url.query)
+        args = urlparse.parse_qs(url.query, keep_blank_values=True)
         task_id = args.get('task_id', (None,))[0]
 
         if 'create' not in args:

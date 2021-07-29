@@ -293,6 +293,12 @@ def request_list(dp: DashProxy):
     # TODO: add tooltips where needed and add them here
     # to enable hiding
     Output('tooltip-edit-title', 'className'),
+    Output('tooltip-orthology', 'className'),
+    Output('tooltip-gene-search', 'className'),
+    Output('tooltip-blast-button', 'className'),
+    Output('tooltip-table', 'className'),
+    Output('tooltip-heatmap', 'className'),
+    Output('tooltip-tree', 'className'),
 
     Input('tutorial_enabled', 'data'),
 )
@@ -626,11 +632,13 @@ VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
     Output('vis_progress_container', 'children'),
     Output('vis_version', 'data'),
 
+    Output('heatmap_title_row', 'style'),
     Output('heatmap_progress_container', 'children'),
     Output('heatmap_version', 'data'),
     Output('heatmap_container', 'children'),
     Output("corr_table_container", "children"),
 
+    Output('tree_title_row', 'style'),
     Output('tree_progress_container', 'children'),
     Output('tree_version', 'data'),
     Output('tree_container', 'children'),
@@ -743,7 +751,10 @@ def progress_updater(dp: DashProxy):
         if not do_show:
             dp[f"{stage}_container", "children"] = None
             if stage == "heatmap":
-                dp[f"corr_table_container", "children"] = None
+                dp["corr_table_container", "children"] = None
+                dp[f"{stage}_title_row", "style"] = {'display': 'none'}
+            elif stage == "tree":
+                dp[f"{stage}_title_row", "style"] = {'display': 'none'}
             continue
         version = dp[f"{stage}_version", "data"]
         if stage == 'table':
@@ -765,6 +776,7 @@ def progress_updater(dp: DashProxy):
                 pass
 
         elif stage == 'heatmap':
+            dp[f"{stage}_title_row", "style"] = {}
             dp[f"{stage}_container", "children"] = html.A(
                 html.Img(
                     src=f'/files/{task_id}/Correlation_preview.png?version={version}',
@@ -796,6 +808,7 @@ def progress_updater(dp: DashProxy):
             except Exception:
                 pass
         elif stage == 'tree':
+            dp[f"{stage}_title_row", "style"] = {}
             dp[f"{stage}_container", "children"] = PhydthreeComponent(
                 url=f'/files/{task_id}/tree.xml?nocache={version}',
                 height=2000,

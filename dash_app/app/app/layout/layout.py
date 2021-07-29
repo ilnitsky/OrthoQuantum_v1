@@ -123,15 +123,24 @@ body = dbc.Container(
 
 og_from_input = html.Div(children=[
     dbc.Row([
-            dbc.Col(
-                html.Div([
-                    dcc.Dropdown(
-                        placeholder="Select a taxon (level of orthology)",
-                        value='4', # vertebrata
-                        id='tax-level-dropdown',
-                        options=DROPDOWN_OPTIONS,
-                    )
-                ]),
+            dbc.Col([
+                    html.Div(
+                        dcc.Dropdown(
+                            placeholder="Select a taxon (level of orthology)",
+                            value='4', # vertebrata
+                            id='tax-level-dropdown',
+                            options=DROPDOWN_OPTIONS,
+                        ),
+                        id='tax-dropdown-container',
+                    ),
+                    dbc.Tooltip(
+                        "Select level of orthology. Clustering of homologous sequences in OrthoDB occurs at the specified taxonomic level.",
+                        id="tooltip-orthology",
+                        target="tax-dropdown-container",
+                        placement="right",
+                        className="d-none"
+                    ),
+                ],
                 md=8,
                 lg=6,
             ),
@@ -161,6 +170,13 @@ og_from_input = html.Div(children=[
                     className="mb-2"
                 ),
                 dcc.Textarea(id="prot-codes", placeholder='Gene of interest names', value='', rows=6, style={'width': '100%'}),
+                dbc.Tooltip(
+                    "Convert gene names to Uniprot IDs to perform search.",
+                    id="tooltip-gene-search",
+                    target="prot-codes",
+                    placement="right",
+                    className="d-none"
+                ),
                 dbc.Button(
                     id="search-prot-button",
                     color="primary",
@@ -184,6 +200,13 @@ og_from_input = html.Div(children=[
                         color="success",
                         children="Enable BLAST",
                         outline=True,
+                    ),
+                    dbc.Tooltip(
+                        "For orthogroups that have missing elements, an additional search for potential homologs will be conducted against the NCBI nr database  using the blastp algorithm. Percent identity and query coverage parameters can be changed.",
+                        id="tooltip-blast-button",
+                        target="blast-button",
+                        placement="right",
+                        className="d-none"
                     ),
                     dbc.Collapse(
                         dbc.Card(dbc.CardBody([
@@ -290,13 +313,22 @@ og_from_input = html.Div(children=[
     dcc.Store(id='table_version', data=0),
     dbc.Row(
         dbc.Col(
-            html.Div(
-                id="table_container",
-                className="pb-3",
-                style={
-                    "overflow-x": "scroll",
-                }
-            ),
+            [
+                html.Div(
+                    id="table_container",
+                    className="pb-3",
+                    style={
+                        "overflow-x": "scroll",
+                    }
+                ),
+                dbc.Tooltip(
+                    "Orthogroups information. To see the PANTHER subfamily annotation click on the name of protein/orthogroup.",
+                    id="tooltip-table",
+                    target="table_container",
+                    placement="right",
+                    className="d-none"
+                ),
+            ],
             md=8, lg=6,
         ),
         justify='center',
@@ -379,6 +411,22 @@ def dashboard(task_id):
         ),
         dbc.Row(
             [
+                html.H3("Correlation matrix", id="corr_matrix_title"),
+                dbc.Tooltip(
+                    "The colors on the correlation matrix reflect the values of the Pearson correlation coefficient, on both axes a color bar is added corresponding to the percentage of homologs presence in species: a high percentage corresponds to black, a low one is colored bright red. The table contains sorted pairwise correlations.",
+                    id="tooltip-heatmap",
+                    target="corr_matrix_title",
+                    placement="right",
+                    className="d-none",
+                ),
+            ],
+            justify='center',
+            id="heatmap_title_row",
+            style={'display': "none"},
+            className='mt-5 mb-3'
+        ),
+        dbc.Row(
+            [
                 dbc.Col(
                     id='heatmap_container',
                     className="text-center",
@@ -401,9 +449,26 @@ def dashboard(task_id):
         dcc.Store(id='tree_version', data=0),
         dcc.Store(id='blast_version', data=0),
         dbc.Row(
+            [
+                html.H3("Phylogenetic profile plot", id="tree_title"),
+                dbc.Tooltip(
+                    "The columns show the orthogroups, with the same name as the query proteins. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors. To scale the graph use a mouse wheel (only  x axis -  Alt, only y axis - Ctrl).",
+                    id="tooltip-tree",
+                    target="tree_title",
+                    placement="right",
+                    className="d-none"
+                ),
+            ],
+            justify='center',
+            id="tree_title_row",
+            style={'display': "none"},
+            className='mt-5 mb-0'
+        ),
+        dbc.Row(
             dbc.Col(
                 id='tree_progress_container',
                 md=8, lg=6,
+                className='mt-3'
             ),
             justify='center'
         ),
@@ -411,6 +476,7 @@ def dashboard(task_id):
             dbc.Col(
                 id='blast_progress_container',
                 md=8, lg=6,
+                className='mt-3'
             ),
             justify='center'
         ),

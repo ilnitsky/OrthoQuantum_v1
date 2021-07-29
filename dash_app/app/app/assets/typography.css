@@ -28,3 +28,7 @@ force to match btn-secondary look
     background-color: #9c948a;
     border-color: #978e83;
 }
+/* Wider tooltips */
+.tooltip-inner {
+    max-width: 400px;
+}

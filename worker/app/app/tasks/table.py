@@ -85,7 +85,6 @@ async def fetch_proteins(db: DbClient, level:str, prots_to_fetch:list[str]):
         math.ceil(len(prots_to_fetch) / max_items_per_chunk), # minimal num of requests
     )
     chunk_length = math.ceil(len(prots_to_fetch)/chunk_count)
-    print(chunk_length)
     tasks = [
         asyncio.create_task(fetch_prot_chunk(
             # chunk

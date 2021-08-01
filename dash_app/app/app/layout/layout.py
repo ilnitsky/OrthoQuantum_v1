@@ -316,7 +316,6 @@ og_from_input = html.Div(children=[
             [
                 html.Div(
                     id="table_container",
-                    className="pb-3",
                     style={
                         "overflow-x": "scroll",
                     }
@@ -341,8 +340,9 @@ def dashboard(task_id):
     return html.Div([
         dcc.Store(id='task_id', data=task_id),
         dcc.Store(id='input1_version', data=0),
-        # desired version of table component, updated on submit and cancellation
+        # desired version of a component, updated on submit and cancellation
         dcc.Store(id='table_version_target', data=0),
+        dcc.Store(id='tree_version_target', data=0),
         dcc.Store(id='input1_refresh', data=0),
         dcc.Interval(
             id='progress_updater',
@@ -403,13 +403,6 @@ def dashboard(task_id):
 
         dcc.Store(id='heatmap_version', data=0),
         dbc.Row(
-            dbc.Col(
-                id='heatmap_progress_container',
-                md=8, lg=6,
-            ),
-            justify='center'
-        ),
-        dbc.Row(
             [
                 html.H3("Correlation matrix", id="corr_matrix_title"),
                 dbc.Tooltip(
@@ -424,6 +417,13 @@ def dashboard(task_id):
             id="heatmap_title_row",
             style={'display': "none"},
             className='mt-5 mb-3'
+        ),
+        dbc.Row(
+            dbc.Col(
+                id='heatmap_progress_container',
+                md=8, lg=6,
+            ),
+            justify='center'
         ),
         dbc.Row(
             [
@@ -485,6 +485,58 @@ def dashboard(task_id):
                 id='tree_container',
                 className="mx-5 mt-3",
             )
+        ),
+        html.Div(
+            [
+                dbc.Row(
+                    dbc.Col(
+                        [
+                            html.Div([
+                                html.Span(
+                                    "Show names:",
+                                    className="align-top"
+                                ),
+                                html.Div(
+                                    [
+                                        dbc.Label([dbc.Checkbox(id="show_groups", className="form-check-input"), "Groups"], className="ml-4 form-check-label"),
+                                        html.Br(),
+                                        dbc.Label([dbc.Checkbox(id="show_species", className="form-check-input"), "Species"], className="ml-4 form-check-label"),
+
+                                    ],
+                                    className="align-top d-inline-block"
+                                ),
+                                dbc.Button("Rerender", id="rerenderSSR_button", className="ml-4 align-top")
+                            ]),
+                            dcc.Slider(id="svg_zoom", min=0, max=200, value=100, step=1, updatemode='drag'),
+                            html.Span(
+                                id="svg_zoom_text",
+                                className="float-right"
+                            ),                        ],
+
+                        md=6, lg=4,
+                        className="mt-2 mx-5",
+                    ),
+                ),
+                dbc.Row(
+                    dbc.Col(
+                        [
+                            html.Div(
+                                html.Img(
+                                    id="ssr_tree_img",
+                                ),
+                                style={
+                                    "max-width": "100%",
+                                    "max-height": "2000px",
+                                    "overflow": "scroll",
+                                },
+                            ),
+                        ],
+                        className="mx-5 mt-3",
+                    )
+                ),
+            ],
+            id='ssr_tree_block',
+            style={"display": "none"}
         ),
         html.Br(),
         html.Br(),

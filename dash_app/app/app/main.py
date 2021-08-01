@@ -14,6 +14,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
 import flask
+from flask_compress import Compress
 import redis
 
 from phydthree_component import PhydthreeComponent
@@ -25,6 +26,19 @@ from .utils import DashProxy, DashProxyCreator, GROUP, decode_int, PBState, DEBU
 
 app = flask.Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
+app.config["COMPRESS_REGISTER"] = False
+app.config["COMPRESS_MIMETYPES"] = [
+    'image/svg+xml',
+    'text/html',
+    'text/css',
+    'text/xml',
+    'application/json',
+    'application/javascript'
+]
+compress = Compress()
+compress.init_app(app)
+
+
 DEMO_TID = os.environ["DEMO_TID"]
 TAXID_CACHE = {}
 # app.debug = DEBUG
@@ -63,9 +77,6 @@ dash_app = Dash(
 dash_app.layout = layout.index
 
 dash_proxy = DashProxyCreator(dash_app)
-
-
-
 
 @dash_app.callback(
     Output('page-content', 'children'),
@@ -586,6 +597,7 @@ for name in ("pident", "qcovs"):
     Input('table_version', 'data'),
     Input('input1_version', 'data'),
     Input('table_version_target', 'data'),
+    Input('tree_version_target', 'data'),
 
     Input('vis_version', 'data'),
     Input('heatmap_version', 'data'),
@@ -607,12 +619,45 @@ def progress_updater_running(dp: DashProxy):
     if any(dp[key, 'data']< DO_NOT_REFRESH for key in versions):
         dp['progress_updater', 'disabled'] = False
         dp['cancel-button', 'className'] = "float-right"
-    elif dp['table_version_target', 'data'] > dp['table_version', 'data']:
+    elif (dp['table_version_target', 'data'] > dp['table_version', 'data']) or \
+        (dp['tree_version_target', 'data'] > dp['tree_version', 'data']):
         dp['progress_updater', 'disabled'] = False
         dp['cancel-button', 'className'] = "float-right d-none"
     else:
         dp['progress_updater', 'disabled'] = True
         dp['cancel-button', 'className'] = "float-right d-none"
+
+
+
+dash_app.clientside_callback(
+    """
+    function(zoomVal) {
+        zoomVal = Number(zoomVal);
+        if (isNaN(zoomVal)){
+            zoomVal = 100;
+        }
+
+        if (zoomVal>100){
+            zoomVal = zoomVal*2 - 100;
+        }
+        zoomVal = (zoomVal/100).toFixed(2);
+
+        return [
+            zoomVal + "x",
+            {
+                transform: "scale("+zoomVal+")",
+                transformOrigin: "0 0",
+            },
+        ]
+    }
+    """,
+    # Output('request_list_dropdown', 'className'),
+    Output('svg_zoom_text', 'children'),
+    Output('ssr_tree_img', 'style'),
+    Input("svg_zoom", "value"),
+    # State('request_list_dropdown_shown', 'data'),
+)
+
 
 
 DO_REFRESH_NO_PROGRESS = -2
@@ -642,6 +687,10 @@ VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
     Output('tree_progress_container', 'children'),
     Output('tree_version', 'data'),
     Output('tree_container', 'children'),
+    Output('ssr_tree_block', 'style'),
+    Output('ssr_tree_img', 'src'),
+    Output("show_groups", "checked"),
+    Output("show_species", "checked"),
 
     Output('blast_version', 'data'),
     Output('blast_progress_container', 'children'),
@@ -672,12 +721,23 @@ def progress_updater(dp: DashProxy):
             pipe.hgetall(f"/tasks/{task_id}/progress/{stage}")
         pipe.mget(
             f"/tasks/{task_id}/stage/table/input_version",
-            f"/tasks/{task_id}/stage/tree/leaf_count",
+            f"/tasks/{task_id}/stage/tree/info",
+            f"/tasks/{task_id}/stage/tree/opts",
         )
         res = pipe.execute()
     res_it = iter(res)
     info = dict(zip(stages, res_it))
-    input1_version, tree_leaf_count = decode_int(*next(res_it))
+    input1_version, tree_info, tree_opts = next(res_it)
+    input1_version = decode_int(input1_version)
+    if tree_info:
+        tree_info = json.loads(tree_info)
+    else:
+        tree_info = None
+    if tree_opts:
+        tree_opts = json.loads(tree_opts)
+    else:
+        tree_opts = {}
+
 
     refresh_interval = float('+inf')
 
@@ -707,6 +767,9 @@ def progress_updater(dp: DashProxy):
                 dp[f"{stage}_progress_container", "children"] = None
 
         if render_pbar:
+            if stage in ('tree', 'heatmap'):
+                # show the title if rendering progress bars
+                dp[f"{stage}_title_row", "style"] = {}
             pbar = {
                 "style": {"height": "30px"},
                 'color': 'danger' if data['status'] == "Error" else 'info'
@@ -728,8 +791,17 @@ def progress_updater(dp: DashProxy):
                 msg = f"{msg} ({data['current']}/{data['total']})"
 
             if data['status'] == 'Enqueued':
+                # HACK: queue for SSR is called /ssr, but it uses stage name "tree"
+                # There is no queue called "tree", since tree xml generation is a
+                # subtask of the "vis" task (which has its own queue)
+                if stage == "tree":
+                    queue_key=f"/queues/ssr"
+                else:
+                    queue_key=f"/queues/{stage}"
+
+
                 gueue_len = user.get_queue_length(
-                    queue_key=f"/queues/{stage}",
+                    queue_key=queue_key,
                     worker_group_name=GROUP,
                     task_q_id=data['q_id'],
                 )
@@ -755,6 +827,9 @@ def progress_updater(dp: DashProxy):
                 dp[f"{stage}_title_row", "style"] = {'display': 'none'}
             elif stage == "tree":
                 dp[f"{stage}_title_row", "style"] = {'display': 'none'}
+                dp["ssr_tree_block", "style"] = {"display": "none"}
+                dp["ssr_tree_img", "src"] = ""
+
             continue
         version = dp[f"{stage}_version", "data"]
         if stage == 'table':
@@ -809,12 +884,25 @@ def progress_updater(dp: DashProxy):
                 pass
         elif stage == 'tree':
             dp[f"{stage}_title_row", "style"] = {}
-            dp[f"{stage}_container", "children"] = PhydthreeComponent(
-                url=f'/files/{task_id}/tree.xml?nocache={version}',
-                height=2000,
-                leafCount=tree_leaf_count,
-                version=version,
-            )
+            dp["ssr_tree_block", "style"] = {"display": "none"}
+            dp["ssr_tree_img", "src"] = ""
+            tree_kind = tree_info['kind']
+            if tree_kind == 'interactive':
+                dp[f"{stage}_container", "children"] = PhydthreeComponent(
+                    url=f'/files/{task_id}/tree.xml?nocache={version}',
+                    height=2000,
+                    leafCount=tree_info['shape'][0],
+                    version=version,
+                )
+            else:
+                assert tree_kind in ('svg', 'png')
+                dp[f"{stage}_container", "children"] = None
+                dp["ssr_tree_block", "style"] = {}
+                dp["ssr_tree_img", "src"] = f"/files/{task_id}/ssr_img.{tree_kind}?version={version}"
+                showNodesType = tree_opts.get("showNodesType", "only leaf")
+                showNodeNames = tree_opts.get("showNodeNames", True)
+                dp['show_groups', 'checked'] = showNodeNames and showNodesType != "only leaf"
+                dp['show_species', 'checked'] = showNodeNames and showNodesType != "only inner"
 
     if input1_version > dp['input1_version', 'data']:
         # db has newer data, update output values
@@ -847,10 +935,12 @@ def progress_updater(dp: DashProxy):
     Output('tax-level-dropdown', 'value'),
     Output('input1_version', 'data'),
     Output('table_version_target', 'data'),
+    Output('tree_version_target', 'data'),
     ###
 
     ###
     Input('submit-button', 'n_clicks'),
+    Input('rerenderSSR_button', 'n_clicks'),
     Input('input1_refresh', 'data'),
     Input('cancel-button', 'n_clicks'),
     ###
@@ -863,6 +953,9 @@ def progress_updater(dp: DashProxy):
     State("blast-button-input-value", "data"),
     State("pident-output-val", "data"),
     State("qcovs-output-val", "data"),
+
+    State("show_groups", "checked"),
+    State("show_species", "checked"),
 
     State("evalue", "value"),
     State("submit-button", "children"),
@@ -931,6 +1024,14 @@ def submit(dp:DashProxy):
 
                 redis_client=pipe,
             )
+            user.cancel(
+                version_key=f"/tasks/{task_id}/stage/tree/version",
+                queue_key="/queues/ssr",
+                queue_id_dest=f"/tasks/{task_id}/progress/tree",
+                queue_hash_key="q_id",
+
+                redis_client=pipe,
+            )
             pipe.delete(
                 f"/tasks/{task_id}/stage/table/missing_msg",
                 f"/tasks/{task_id}/progress/heatmap",
@@ -964,6 +1065,43 @@ def submit(dp:DashProxy):
 
         dp['input1_version', 'data'] = decode_int(res[0][0])
         dp['table_version_target', 'data'] = dp['input1_version', 'data']
+
+    elif ('rerenderSSR_button', 'n_clicks') in dp.triggered:
+        showGroups = dp['show_groups', 'checked']
+        showSpecies = dp['show_species', 'checked']
+        opts = {}
+        if showGroups and showSpecies:
+            opts["showNodesType"] = "all"
+        elif showGroups:
+            opts["showNodesType"] = "only inner"
+        else:
+            opts["showNodesType"] = "only leaf"
+        opts["showNodeNames"] = showGroups or showSpecies
+
+        with user.db.pipeline(transaction=True) as pipe:
+            user.enqueue(
+                version_key=f"/tasks/{task_id}/stage/tree/version",
+                queue_key="/queues/ssr",
+                queue_id_dest=f"/tasks/{task_id}/progress/tree",
+                queue_hash_key="q_id",
+                redis_client=pipe,
+
+                task_id=task_id,
+                stage="tree",
+            )
+            pipe.set(
+                f"/tasks/{task_id}/stage/tree/opts",
+                json.dumps(opts),
+            )
+            pipe.hset(f"/tasks/{task_id}/progress/tree",
+                mapping={
+                    "status": 'Enqueued',
+                    'total': PBState.UNKNOWN_LEN,
+                    "message": "Rerendering",
+                }
+            )
+            res = pipe.execute()
+        dp['tree_version_target', 'data'] = decode_int(res[0][0])
 
     elif ('input1_refresh', 'data') in dp.triggered or dp.first_load:
         # Server has newer data than we have, update dropdown value
@@ -1031,6 +1169,14 @@ def submit(dp:DashProxy):
 
                 redis_client=pipe,
             )
+            user.cancel(
+                version_key=f"/tasks/{task_id}/stage/tree/version",
+                queue_key="/queues/ssr",
+                queue_id_dest=f"/tasks/{task_id}/progress/tree",
+                queue_hash_key="q_id",
+
+                redis_client=pipe,
+            )
             pipe.delete(
                 f"/tasks/{task_id}/progress/heatmap",
                 f"/tasks/{task_id}/progress/tree",
@@ -1039,11 +1185,13 @@ def submit(dp:DashProxy):
             res = pipe.execute()
 
             dp['table_version_target', 'data'] = 0  # stop updator
+            dp['tree_version_target', 'data'] = 0  # stop updator
 
 
 
 
 @dash_app.server.route('/files/<task_id>/<name>')
+@compress.compressed()
 def serve_user_file(task_id, name):
     # uid = user.db.get(f"/tasks/{task_id}/user_id")
     # if flask.session.get("USER_ID", '') != uid:
@@ -1051,5 +1199,11 @@ def serve_user_file(task_id, name):
     response = flask.make_response(flask.send_from_directory(f"/app/user_data/{task_id}", name))
     if name.lower().endswith(".xml"):
         response.mimetype = "text/xml"
-
+    elif name.lower().endswith(".svg"):
+        response.mimetype = "image/svg+xml"
     return response
+
+
+@dash_app.server.route('/some_non_public_ssr_path')
+def serve_ssr():
+    return flask.send_file(f"/app/ssr/index.html")

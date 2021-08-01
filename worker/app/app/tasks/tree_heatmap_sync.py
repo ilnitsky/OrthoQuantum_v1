@@ -55,22 +55,10 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
         for col_idx in reordered_ind:
             ET.SubElement(values, "value").text = f"{row[df.columns[col_idx]] * 100:.0f}"
 
-    # for blast
-    blast = None
-    if do_blast:
-        blast = {}
-        for col_idx in reordered_ind:
-            prot_name = df.columns[col_idx]
-            species_with_0_idx = df[df[prot_name] == 0].index
-            # TODO species_with_0_idx should be taxids
-            if len(species_with_0_idx):
-                blast[prot_name] = species_with_0_idx.tolist()
-
-
     with open_existing(output_file, 'wb') as f:
         tree.write(f, xml_declaration=True)
 
-    return len(organisms), blast
+    return df.shape
 
 
 
@@ -126,7 +114,7 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
     DEFAULT_FIG_SIZE = 10
 
     if items_count >= 66:
-        # generate hi-rez version for the click and low-res preview
+        # generate hi-res version for the click and low-res preview
         size = min(items_count * 0.17, 250) # size when items are readable (+ png size limit)
         sns.clustermap(
             corr,
@@ -154,7 +142,7 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
             plt.savefig(f, format="png")
 
     else:
-        # hi-rez and low-rez are the same
+        # hi-res and low-res are the same
         sns.clustermap(
             corr,
             cmap=customPalette,

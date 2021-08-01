@@ -719,6 +719,47 @@ window.requestAnimFrame = (function(){
             d3.select(svg_item).html(null);
         }
 
+        phyd3.phylogram.gensvg_static = function () {
+            var svg = $(selector).find("svg")[0];
+            var g = svg.getElementById("main"),
+                bbox = g.getBBox(),
+                transform = g.getAttributeNode("transform"),
+                width = svg.getAttributeNode("width"),
+                height = svg.getAttributeNode("height");
+
+            transform.value = "translate("+(20-bbox.x)+", "+(20-bbox.y)+")";
+            width.value = (Math.max(+width.value.replace('px', ''), bbox.width) + options.marginX).toString();
+            height.value = (Math.max(+height.value.replace('px', ''), bbox.height) + options.marginY).toString();
+
+            if (typeof window.XMLSerializer != "undefined") {
+                var svgData = (new XMLSerializer()).serializeToString(svg);
+            } else if (typeof svg.xml != "undefined") {
+                var svgData = svg.xml;
+            }
+
+            $(selector).empty();
+            return svgData;
+        };
+
+        phyd3.phylogram.genpng_static = function (svgData) {
+            var canvas = document.createElement("canvas");
+            canvg(canvas, svgData);
+            console.log("genpng_static");
+
+            canvas.toBlob((blob) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                console.log("blob.size", blob.size)
+                reader.onloadend = function() {
+                    const base64data = reader.result;
+                    console.log("base64data.length", base64data.length)
+                    window.png_callback(
+                        base64data.substr(base64data.indexOf(',')+1),
+                    );
+                }
+            });
+        };
+
         // group labels action handling functions
         function applyLabelGroupTransform() {
             vis.selectAll('text.groupLabel').remove();

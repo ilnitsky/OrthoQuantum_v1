@@ -10,6 +10,7 @@ redis = "*"
 dash-bootstrap-components = "*"
 meinheld = "*"
 gunicorn = "*"
+flask-compress = "*"
 
 [dev-packages]
 pylint = "*"

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="/assets/phyd3.min.css" />
+  </head>
+  <body>
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js" type="text/javascript"></script>
+    <script src="https://d3js.org/d3.v3.min.js" type="text/javascript"></script>
+    <script src="/assets/phyd3.min.js" type="text/javascript"></script>
+    <div id="svg"></div>
+    <div id="wait" style="display: none;"></div>
+    <script>
+      window.parser = new DOMParser;
+      window.build_tree = function (text, opts) {
+        console.log("build_tree");
+        const xml = window.parser.parseFromString(text, "application/xml");
+        console.log("parsed");
+        phyd3.phylogram.build("#svg", phyd3.phyloxml.parse(xml), opts);
+        console.log("built");
+        return phyd3.phylogram.gensvg_static();
+      }
+      window.build_tree_png = function (text, opts) {
+        console.log("build_tree_png");
+        const tree = window.build_tree(text, opts);
+        console.log("build_tree done");
+        phyd3.phylogram.genpng_static(tree)
+        console.log("genpng_static done");
+        return;
+      }
+      var tag = document.createElement("div");
+      tag.id = "loaded";
+      document.getElementById("wait").append(tag);
+    </script>
+  </body>
+</html>

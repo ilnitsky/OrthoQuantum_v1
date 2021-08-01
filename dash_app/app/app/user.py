@@ -22,47 +22,33 @@ for attempt in range(10):
         time.sleep(1)
 
 
-# TODO: change to something more proper
-# data will be stored at DATA_PATH / "user_id"
-
 DATA_PATH = Path.cwd() / "user_data"
 DATA_PATH.mkdir(exist_ok=True)
 
 
 def register():
-    # TODO: put in DB
     exc = None
     for _ in range(10):
         try:
-            flask.session["USER_ID"] = secrets.token_hex(16)
-            path().mkdir()
+            user_id = secrets.token_hex(16)
+            if not db.setnx(f"/users/{user_id}/task_counter", "0"):
+                continue
+            flask.session["USER_ID"] = user_id
             break
         except Exception as e:
             exc = e
     else:
-        raise RuntimeError("Failed to create a user dir") from exc
+        raise RuntimeError("Failed to create a user") from exc
 
 
 def is_logged_in() -> bool:
     try:
-        if not path().exists():
+        if not db.exists(f"/users/{flask.session['USER_ID']}/task_counter"):
             del flask.session["USER_ID"]
             return False
         return True
     except Exception:
         return False
-
-
-def path() -> Path:
-    """Returns the path appropriate to store user's files"""
-    try:
-        return DATA_PATH / flask.session["USER_ID"]
-    except Exception:
-        raise RuntimeError("XXX user not logged in!")
-
-
-def url_for(filename):
-    return f'/files/{flask.session["USER_ID"]}/{quote(filename)}'
 
 
 from typing import Any, Optional
@@ -126,8 +112,6 @@ def get_queue_length(queue_key, worker_group_name, task_q_id, redis_client=None)
         client=redis_client,
     )
 
-
-
 _enqueue_script = db.register_script("""
     -- KEYS[1] - version
     -- KEYS[2] - queue
@@ -144,7 +128,8 @@ _enqueue_script = db.register_script("""
         else
             queue_id = redis.call('hget', KEYS[3], hkey)
         end
-        redis.call('del', KEYS[3])
+        -- should delete this? fails for tree ssr
+        -- redis.call('del', KEYS[3])
     end
 
     if (queue_id and queue_id ~= '') then

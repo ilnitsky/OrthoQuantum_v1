@@ -1,5 +1,4 @@
 import asyncio
-from dataclasses import dataclass
 from collections.abc import Callable, Coroutine
 from typing import Any, Optional
 from functools import wraps
@@ -11,13 +10,13 @@ from .exceptions import VersionChangedException
 from ..redis import redis, GROUP
 from ..utils import decode_int, DATA_PATH
 
-@dataclass
 class ProgressUpdate:
-    _current : Optional[int] = None
-    _current_delta : int = 0
-    _total : Optional[int] = None
-    _total_delta : int = 0
-    other = {}
+    def __init__(self) -> None:
+        self._current : Optional[int] = None
+        self._current_delta : int = 0
+        self._total : Optional[int] = None
+        self._total_delta : int = 0
+        self.other = {}
 
     def reset(self):
         res = dict()

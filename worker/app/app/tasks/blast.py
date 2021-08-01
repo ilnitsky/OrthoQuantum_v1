@@ -13,7 +13,7 @@ from lxml import etree as ET
 
 from ..task_manager import DbClient, queue_manager, cancellation_manager
 from ..utils import atomic_file
-from ..redis import raw_redis
+from ..redis import raw_redis, enqueue
 from . import blast_sync
 
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
@@ -34,7 +34,7 @@ COLS = (
 
 @queue_manager.add_handler("/queues/blast", max_running=3)
 @cancellation_manager.wrap_handler
-async def blast(db: DbClient):
+async def blast(db: DbClient, blast_autoreload=False, enqueue_tree_gen=False):
     @db.transaction
     async def res(pipe:Pipeline):
         pipe.multi()
@@ -246,6 +246,33 @@ async def blast(db: DbClient):
             async with render_cond:
                 await render_cond.wait_for(lambda: blasted or (blast_tasks is None))
                 if blast_tasks is None and not blasted:
+                    # we're finished
+                    @db.transaction
+                    async def res(pipe:Pipeline):
+                        pipe.multi()
+                        if enqueue_tree_gen:
+                            await enqueue(
+                                version_key=f"/tasks/{db.task_id}/stage/tree/version",
+                                queue_key="/queues/ssr",
+                                queue_id_dest=f"/tasks/{db.task_id}/progress/tree",
+                                queue_hash_key="q_id",
+                                redis_client=pipe,
+
+                                task_id=db.task_id,
+                                stage="tree",
+                            )
+                            pipe.hset(f"/tasks/{db.task_id}/progress/tree",
+                                mapping={
+                                    "status": 'Enqueued',
+                                    'total': -1,
+                                    "message": "Re-rendering",
+                                }
+                            )
+                        elif not blast_autoreload:
+                            # trigger tree reload
+                            # incr by 1_000_000 to avoid messing up with anti-cache things...
+                            pipe.hincrby(f"/tasks/{db.task_id}/progress/tree", "version", 1_000_000)
+                    await res
                     return
                 tree_upd = blasted
                 blasted = {}
@@ -268,13 +295,14 @@ async def blast(db: DbClient):
                 await db.check_if_cancelled()
                 # minimal race condition window before last command and writing the tree file
                 # shouldn't give us any trouble
-            @db.transaction
-            async def res(pipe:Pipeline):
-                pipe.multi()
-                # trigger tree reload
-                # incr by 1_000_000 to avoid messing up with anti-cache things...
-                pipe.hincrby(f"/tasks/{db.task_id}/progress/tree", "version", 1_000_000)
-            await res
+            if blast_autoreload and not enqueue_tree_gen:
+                @db.transaction
+                async def res(pipe:Pipeline):
+                    pipe.multi()
+                    # trigger tree reload
+                    # incr by 1_000_000 to avoid messing up with anti-cache things...
+                    pipe.hincrby(f"/tasks/{db.task_id}/progress/tree", "version", 1_000_000)
+                await res
 
     render_task = asyncio.create_task(render_tree())
     try:

@@ -10,6 +10,7 @@ from .tree_heatmap import tree, heatmap
 
 import time
 import pandas as pd
+import numpy as np
 
 
 @queue_manager.add_handler("/queues/vis")
@@ -21,7 +22,7 @@ async def vis(db: DbClient):
         db.report_progress(
             current=0,
             total=-1,
-            message="getting correlation data",
+            message="Getting correlation data",
             status="Executing",
             pipe=pipe,
         )
@@ -52,9 +53,8 @@ async def vis(db: DbClient):
         total=len(csv_data),
     )
 
-    df = pd.DataFrame(data={"Organisms": organisms}, dtype=int)
-    df.set_index('Organisms', inplace=True)
     corr_info_to_fetch = {}
+    corr_info = {}
 
     cur_time = int(time.time())
     async with redis.pipeline(transaction=False) as pipe:
@@ -66,12 +66,7 @@ async def vis(db: DbClient):
         for (_, data), cache in zip(csv_data.iterrows(), res):
             og_name=data['Name']
             if cache:
-                df[og_name] = pd.Series(
-                    map(int, cache.values()),
-                    index=[int(x) for x in cache.keys()],
-                    name=og_name,
-                    dtype=int,
-                )
+                corr_info[og_name] = cache
                 db.report_progress(current_delta=1)
             else:
                 corr_info_to_fetch[og_name] = data['label']
@@ -112,7 +107,7 @@ async def vis(db: DbClient):
                     pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
                     pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
 
-                    df[og_name] = pd.Series(data, name=og_name, dtype=int)
+                    corr_info[og_name] = data
                     db.report_progress(current_delta=1)
 
                 await pipe.execute()
@@ -121,11 +116,23 @@ async def vis(db: DbClient):
                 t.cancel()
             raise
 
+    df = pd.DataFrame(
+        data={
+            col_name: pd.Series(
+                data=data.values(),
+                index=np.fromiter(data.keys(), count=len(data), dtype=np.int64),
+                name=col_name,
+            )
+            for col_name, data in corr_info.items()
+        },
+        index=organisms,
+    )
+    df.fillna(0, inplace=True)
+    df = df.astype(np.int8, copy=False)
+    db.report_progress(message="Processing correlation data")
 
 
     # interpret the results:
-
-    df.fillna(0, inplace=True)
 
 
     df_for_heatmap = df.copy()
@@ -158,16 +165,12 @@ async def vis(db: DbClient):
         )
     )
 
-
-    # TODO: blast
-
-
     del csv_data
     del df
     del organisms
 
     try:
-        _, to_blast = await asyncio.gather(*tasks)
+        _, (shape, tree_kind) = await asyncio.gather(*tasks)
     except:
         for task in tasks:
             task.cancel()
@@ -175,7 +178,6 @@ async def vis(db: DbClient):
 
 
     if blast_enable:
-        # enqueue blast
         @db.transaction
         async def res(pipe: Pipeline):
             pipe.multi()
@@ -188,7 +190,8 @@ async def vis(db: DbClient):
 
                 task_id=db.task_id,
                 stage="blast",
-
+                blast_autoreload="1" if shape[0]*shape[1]<80_000 else "",
+                enqueue_tree_gen="1" if tree_kind!="interactive" else "",
             )
             pipe.hset(f"/tasks/{db.task_id}/progress/blast",
                 mapping={
@@ -200,11 +203,4 @@ async def vis(db: DbClient):
 
         await res
 
-
-
     await db.flush_progress(status="Done", version=db.version)
-
-
-    # for prot, tax_ids in to_blast.items():
-    #     # TODO: schedule per-process
-    #     blast.do_blast(prot, tax_ids)

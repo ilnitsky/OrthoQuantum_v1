@@ -1,9 +1,11 @@
+import json
 from aioredis.client import Pipeline
 
 from . import tree_heatmap_sync
 
 from ..task_manager import DbClient
 from ..utils import DEBUG, atomic_file
+from ..redis import enqueue
 
 
 # heatmap and tree are very-very similar, but differ just enough to
@@ -15,6 +17,7 @@ async def heatmap(db: DbClient, **kwargs):
         total=-1,
     )
     async def progress(items_in_front):
+        nonlocal db
         if items_in_front > 0:
             db.report_progress(message=f"In queue to build heatmap ({items_in_front} tasks in front)")
         elif items_in_front == 0:
@@ -68,22 +71,49 @@ async def tree(db: DbClient, do_blast=False, **kwargs):
                 output_file=tmp_file,
             )
             task.set_progress_callback(progress)
-            leaf_count, to_blast = await task
+            shape = await task
 
-        # if task_res is not None:
-        #     # tree leaf count for display purposes
-        #     to_set[f"/tasks/{db.task_id}/stage/{db.stage}/tree-res"] = task_res[0]
-        #     to_blast: dict[str, list[int]] = task_res[1] # prot->[taxid]
+        # choose presentation method based on shape (squares count)
+
+        info = {
+            "kind": "interactive",
+            "shape": shape,
+        }
+        #TODO: настроить параметр
+        if shape[0]*shape[1] > 1:
+            info["kind"] = "svg"
 
         @db.transaction
         async def tx(pipe: Pipeline):
             pipe.multi()
-            db.report_progress(
-                pipe=pipe,
-                status="Done",
-                version=db.version,
-            )
-            pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/leaf_count", leaf_count)
+            # use default options from default render
+            pipe.set(f"/tasks/{db.task_id}/stage/tree/opts", "{}")
+            pipe.set(f"/tasks/{db.task_id}/stage/{db.stage}/info", json.dumps(info))
+            if info["kind"] == "interactive":
+                db.report_progress(
+                    pipe=pipe,
+                    status="Done",
+                    version=db.version,
+                )
+            else:
+                # Perform SSR
+                await enqueue(
+                    version_key=f"/tasks/{db.task_id}/stage/tree/version",
+                    queue_key="/queues/ssr",
+                    queue_id_dest=f"/tasks/{db.task_id}/progress/tree",
+                    queue_hash_key="q_id",
+                    redis_client=pipe,
+
+                    task_id=db.task_id,
+                    stage="tree",
+                )
+                pipe.hset(f"/tasks/{db.task_id}/progress/tree",
+                    mapping={
+                        "status": 'Enqueued',
+                        'total': -1,
+                        "message": "Rendering",
+                    }
+                )
         await tx
 
     except Exception as e:
@@ -93,5 +123,5 @@ async def tree(db: DbClient, do_blast=False, **kwargs):
         await db.report_error(msg, cancel_rest=False)
         raise
 
-    return to_blast
+    return shape, info["kind"]
 

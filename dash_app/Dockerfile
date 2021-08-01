@@ -176,7 +176,5 @@ COPY --chown=www:www --from=phyd3-builder /node-app/dist/assets/* /app/app/asset
 
 EXPOSE 8050
 
-ENV MPLCONFIGDIR=/app/matplotlib-conf
-
 CMD [ "" ]
 ENTRYPOINT [ "/app/entrypoint.sh" ]

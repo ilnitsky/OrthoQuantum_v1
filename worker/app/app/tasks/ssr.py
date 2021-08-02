@@ -132,7 +132,7 @@ async def get_browser():
             headless=True,
             # devtools=True,
             autoClose=False,
-            args=["--no-sandbox", "--enable-low-end-device-mode"],
+            args=["--no-sandbox"],
             # dumpio=True,
         )
     return browser

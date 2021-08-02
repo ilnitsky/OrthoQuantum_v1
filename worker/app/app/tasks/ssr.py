@@ -132,8 +132,8 @@ async def get_browser():
             headless=True,
             # devtools=True,
             autoClose=False,
-            args=["--no-sandbox"],
-            dumpio=True,
+            args=["--no-sandbox", "--enable-low-end-device-mode"],
+            # dumpio=True,
         )
     return browser
 

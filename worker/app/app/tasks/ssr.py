@@ -133,7 +133,7 @@ async def get_browser():
             # devtools=True,
             autoClose=False,
             args=["--no-sandbox"],
-            # dumpio=True,
+            dumpio=True,
         )
     return browser
 

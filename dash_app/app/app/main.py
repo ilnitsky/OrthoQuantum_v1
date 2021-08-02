@@ -755,7 +755,7 @@ def progress_updater(dp: DashProxy):
             if data['status'] == 'Waiting' or stage == 'blast':
                 refresh_interval = min(refresh_interval, 5000)
             else:
-                refresh_interval = min(refresh_interval, 500)
+                refresh_interval = min(refresh_interval, 2500)
 
         render_pbar = tgt_ver == DO_REFRESH
         if dp[f"{stage}_version", "data"] != tgt_ver:

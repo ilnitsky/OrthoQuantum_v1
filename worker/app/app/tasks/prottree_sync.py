@@ -1,5 +1,4 @@
 import pandas as pd
-import json
 import subprocess
 from pathlib import Path
 
@@ -19,7 +18,6 @@ PANTHER_PATH = Path.cwd() / 'panther'
 @async_pool.in_process(max_running=1)
 def prottree(prot_id:str, prottree_file:str):
     command = f"""grep --no-filename $(grep --no-filename "{prot_id}" {PANTHERDB}/PTHR16.0* | awk '{{print $4}}' | tr ":" "\\t" | awk '{{print $1}}') {PANTHERDB}/PTHR16.0*"""
-    print(command)
     with subprocess.Popen(["/bin/bash", "-c", command], stdout=subprocess.PIPE) as proc:
         panther_df = pd.read_csv(
             proc.stdout,

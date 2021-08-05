@@ -95,13 +95,6 @@ async def init_db():
     await init_availible_levels()
 
 
-
-
-
-
-
-
-
 async def init_availible_levels():
     global LEVELS
     phyloxml_dir = Path.cwd() / "phyloxml"

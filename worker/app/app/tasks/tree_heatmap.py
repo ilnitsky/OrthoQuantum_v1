@@ -79,9 +79,9 @@ async def tree(db: DbClient, do_blast=False, **kwargs):
             "kind": "interactive",
             "shape": shape,
         }
-        #TODO: настроить параметр
-        if shape[0]*shape[1] > 1:
-            info["kind"] = "svg"
+        #TODO: always svg
+        # if shape[0]*shape[1] > 1:
+        #     info["kind"] = "svg"
 
         @db.transaction
         async def tx(pipe: Pipeline):

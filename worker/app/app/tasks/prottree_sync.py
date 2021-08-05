@@ -16,7 +16,7 @@ PANTHER_PATH = Path.cwd() / 'panther'
 
 
 @async_pool.in_process(max_running=1)
-def prottree(prot_id:str, prottree_file:str):
+def prottree_generator(prot_id:str, prottree_file:str):
     command = f"""grep --no-filename $(grep --no-filename "{prot_id}" {PANTHERDB}/PTHR16.0* | awk '{{print $4}}' | tr ":" "\\t" | awk '{{print $1}}') {PANTHERDB}/PTHR16.0*"""
     with subprocess.Popen(["/bin/bash", "-c", command], stdout=subprocess.PIPE) as proc:
         panther_df = pd.read_csv(
@@ -26,6 +26,9 @@ def prottree(prot_id:str, prottree_file:str):
             usecols=['Genome', 'Gene', 'Family', 'Subfamily', 'Uniprot'], # ignore extra columns
         )
 
+    if panther_df.empty:
+        return "No matches found for this protein"
+
     panther_df['Genome'] = panther_df['Genome'].str.split('|', 1, expand=True)[0]
     panther_df = panther_df[['Genome', 'Gene', 'Family', 'Subfamily', 'Uniprot']]
 
@@ -33,13 +36,12 @@ def prottree(prot_id:str, prottree_file:str):
     value_count = value_count.where(value_count > 8).dropna()
     threshold_families = value_count.index.tolist()
 
+    if len(threshold_families) == 0:
+        return "No matches found for this protein"
+
     panther_df = panther_df.drop_duplicates(subset=['Genome', 'Subfamily'], keep='last').assign(v=1).pivot('Subfamily', 'Genome').fillna(0)
     panther_df = panther_df['v'].T
     panther_df = panther_df[threshold_families]
-
-    ### panther_df.index = panther_df.index.map(species_data)
-    ### panther_df = panther_df.reset_index()
-    # panther_df = tree_taxid.merge(panther_df, on='Genome', how='left').fillna(0).set_index('Genome')
 
     tree_taxid = pd.read_csv(PANTHER_PATH / "prottree_id_converter.csv")
     tree_taxid = tree_taxid.merge(panther_df, on='Genome', how='left', copy=False)
@@ -70,6 +72,8 @@ def prottree(prot_id:str, prottree_file:str):
 
     with open(prottree_file, 'wb') as f:
         tree.write(f, xml_declaration=True)
+
+    return ""
 
     #Plotly figure
     # fig = go.Figure(data = go.Heatmap(

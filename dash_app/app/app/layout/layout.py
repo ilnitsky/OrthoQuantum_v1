@@ -590,9 +590,8 @@ index = html.Div([
     )
 ])
 
-def prottree(task_id, prot_id):
+def prottree(prot_id):
     return html.Div([
-        dcc.Store(id='task_id', data=task_id),
         dcc.Store(id='prot_id', data=prot_id),
         dcc.Interval(
             id='prottree_progress_updater',

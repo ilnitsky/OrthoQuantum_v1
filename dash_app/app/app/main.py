@@ -122,7 +122,7 @@ def router_page(href):
         prot_id = args.get('prot_id', (None,))[0]
 
         if task_id is None or prot_id is None or not get_task(task_id):
-            return dcc.Location(pathname="/", id="some_id2", hash="1", refresh=True), '/'
+            return dcc.Location(pathname="/", id="some_id2", hash="1", refresh=True), search
 
         while True:
             try:
@@ -134,14 +134,13 @@ def router_page(href):
                         pipe.xadd(
                             "/queues/prottree",
                             {
-                                "task_id": task_id,
                                 "prot_id": prot_id,
                             },
                         )
                         pipe.hset(f"/prottree_tasks/{prot_id}/progress",
                             mapping={
                                 "status": 'Enqueued',
-                                "message": "Building prottree", # TODO: правильное название
+                                "message": "Gene/protein subfamily tree",
                             }
                         )
                         res = pipe.execute()
@@ -150,7 +149,7 @@ def router_page(href):
                 continue
         if status is None:
             user.db.hset(f"/prottree_tasks/{prot_id}/progress", "q_id", res[0])
-        return layout.prottree(task_id, prot_id), search
+        return layout.prottree(prot_id), search
     if pathname == '/reports':
         return layout.reports, search
     if pathname == '/blast':
@@ -165,11 +164,9 @@ def router_page(href):
 
     Input('prottree_progress_updater', 'n_intervals'),
 
-    State('task_id', 'data'),
     State('prot_id', 'data'),
 )
 def prottree(dp: DashProxy):
-    task_id = dp['task_id', 'data']
     prot_id = dp['prot_id', 'data']
 
     data = user.db.hgetall(f"/prottree_tasks/{prot_id}/progress")

@@ -134,7 +134,7 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
     ).write(phyloxml_file, xml_declaration=True, encoding="ASCII")
 
 
-def convert_panther(newick_file, phyloxml_file, prot_tree_file):
+def convert_panther(newick_file, phyloxml_file, prot_tree_file, colors):
     with open(newick_file) as f:
         newick = f.read().strip()
 
@@ -155,6 +155,15 @@ def convert_panther(newick_file, phyloxml_file, prot_tree_file):
         E.phylogeny(
             {"rooted":"true"},
         ),
+        E.taxonomies(
+            *(
+                E.taxonomy(
+                    E.color(tax["color"]),
+                    code=tax["code"],
+                )
+                for tax in colors.values()
+            )
+        )
     )
 
     names = []
@@ -167,7 +176,12 @@ def convert_panther(newick_file, phyloxml_file, prot_tree_file):
     for tok in tokens.finditer(newick):
         m = tok.group(0)
         if m == ")" or m == ",":
-            ET.SubElement(cursor, "name").text = name
+            if name in colors:
+                tax = ET.SubElement(cursor, "taxonomy")
+                ET.SubElement(tax, "code").text = colors[name]["code"]
+                ET.SubElement(cursor, "name").text = name
+            elif going_down:
+                ET.SubElement(cursor, "name").text = name
 
             if going_down:
                 # leaf node, put id
@@ -229,6 +243,12 @@ def main():
         str(panther/"phyloT_PANTHER_newick.txt"),
         str(panther/'panther'/"PANTHER.xml"),
         str(panther/'panther'/"prottree_id_converter.csv"),
+        colors={
+            # "Mammalia": {
+            #     "code": "mam",
+            #     "color": "0x40FF00",
+            # }
+        }
     )
 
     convert(

@@ -917,9 +917,9 @@ def progress_updater(dp: DashProxy):
                     msg,
                     className="justify-content-center d-flex position-absolute w-100",
                     style={"color": "black"},
-                    key=f"{stage}_progress_text"
+                    key=f"{stage}_progress_text",
                 ),
-                key=f"{stage}_progress_bar"
+                key=f"{stage}_progress_bar",
                 **pbar,
             )
 

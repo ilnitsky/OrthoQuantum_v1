@@ -1,1 +1,1 @@
-from .layout import dashboard, reports, blast, index, navbar
+from .layout import dashboard, reports, blast, index, navbar, prottree

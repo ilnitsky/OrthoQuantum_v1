@@ -6,4 +6,5 @@ from . import (
     blast,
     prot_search,
     ssr,
+    prottree,
 )

@@ -33,6 +33,8 @@ services:
     volumes:
       - "./user_data:/app/user_data"
       - "./blast_data:/blast/blastdb"
+      - "./pantherdb:/PANTHERDB"
+
     environment:
       REDIS_HOST: "redis"
       PYTHONUNBUFFERED: "TRUE"

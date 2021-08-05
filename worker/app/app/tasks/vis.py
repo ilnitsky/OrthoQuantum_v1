@@ -31,8 +31,6 @@ async def vis(db: DbClient):
 
         pipe.mget(
             f"/tasks/{db.task_id}/request/blast_enable",
-            # f"/tasks/{db.task_id}/request/blast_evalue",
-            # f"/tasks/{db.task_id}/request/blast_pident",
             f"/tasks/{db.task_id}/request/tax-level"
         )
 

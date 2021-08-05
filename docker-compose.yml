@@ -25,6 +25,7 @@ services:
     volumes:
       - "user_data:/app/user_data"
       - "/home/ilnitsky/nr:/blast/blastdb"
+      - "/home/ilnitsky/PANTHERDB:/PANTHERDB"
       - "/usr/lib/ncbi-blast+/:/blast/lib/:ro"
       - "/lib/x86_64-linux-gnu/:/blast/lib2/:ro"
       - "/lib64/:/blast/lib3/:ro"

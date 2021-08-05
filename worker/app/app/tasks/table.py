@@ -39,6 +39,8 @@ except ValueError:
 REQUEST_COLUMNS.append("og")
 
 
+PROTTREE_URL = re.compile(r"(.+)")
+
 
 async def fetch_proteins(db: DbClient, level:str, prots_to_fetch:list[str]):
     result: dict[str, list] = {}
@@ -314,17 +316,26 @@ async def table(db: DbClient):
 
     og_info_df = og_info_df[TABLE_COLUMNS]
     #prepare datatable update
+
+    og_info_df['Name'] = og_info_df['Name'].str.replace(PROTTREE_URL, f"[\\1](/prottree?task_id={db.task_id}&prot_id=\\1)")
+    data = og_info_df.to_dict('records'),
+    columns = []
+    for col_name in og_info_df.columns:
+        column = {
+            "name": col_name,
+            "id": col_name,
+        }
+        if col_name == "Name":
+            column['type'] = 'text'
+            column['presentation'] = 'markdown'
+        columns.append(column)
+
+
     table_data = {
         "version": db.version,
         "data": {
             "data": og_info_df.to_dict('records'),
-            "columns": [
-                {
-                    "name": i,
-                    "id": i,
-                }
-                for i in og_info_df.columns
-            ]
+            "columns": columns
         }
     }
     await table_sync.save_table(db.task_dir / "Info_table.json", table_data)

@@ -115,12 +115,114 @@ def router_page(href):
         search = f"?{new_args}"
 
         return layout.dashboard(task_id), search
+
+    if pathname == '/prottree':
+        args = urlparse.parse_qs(url.query, keep_blank_values=True)
+        task_id = args.get('task_id', (None,))[0]
+        prot_id = args.get('prot_id', (None,))[0]
+
+        if task_id is None or prot_id is None or not get_task(task_id):
+            return dcc.Location(pathname="/", id="some_id2", hash="1", refresh=True), '/'
+
+        while True:
+            try:
+                with user.db.pipeline(transaction=True) as pipe:
+                    pipe.watch(f"/prottree_tasks/{prot_id}/progress")
+                    status = pipe.hget(f"/prottree_tasks/{prot_id}/progress", "status")
+                    if status in (None, "Error"):
+                        pipe.multi()
+                        pipe.xadd(
+                            "/queues/prottree",
+                            {
+                                "task_id": task_id,
+                                "prot_id": prot_id,
+                            },
+                        )
+                        pipe.hset(f"/prottree_tasks/{prot_id}/progress",
+                            mapping={
+                                "status": 'Enqueued',
+                                "message": "Building prottree", # TODO: правильное название
+                            }
+                        )
+                        res = pipe.execute()
+                break
+            except Exception:
+                continue
+        if status is None:
+            user.db.hset(f"/prottree_tasks/{prot_id}/progress", "q_id", res[0])
+        return layout.prottree(task_id, prot_id), search
     if pathname == '/reports':
         return layout.reports, search
     if pathname == '/blast':
         return layout.blast, search
-
     return '404', search
+
+
+# prottree page
+@dash_proxy.callback(
+    Output('prottree_progress_updater', 'disabled'),
+    Output('prottree_container', 'children'),
+
+    Input('prottree_progress_updater', 'n_intervals'),
+
+    State('task_id', 'data'),
+    State('prot_id', 'data'),
+)
+def prottree(dp: DashProxy):
+    task_id = dp['task_id', 'data']
+    prot_id = dp['prot_id', 'data']
+
+    data = user.db.hgetall(f"/prottree_tasks/{prot_id}/progress")
+    msg = data['message']
+    if data['status'] == "Done":
+        dp['prottree_progress_updater', 'disabled'] = True
+        dp["prottree_container", "children"] = PhydthreeComponent(
+            url=f'/prottree/{prot_id}.xml',
+            height=2000,
+            leafCount=142,
+            version=0,
+        )
+        return
+
+    pbar = {
+        "style": {"height": "30px"},
+        'color': 'info',
+        'max': 100,
+        'value': 100,
+        'animated': True,
+        'striped': True,
+    }
+    if data['status'] == "Enqueued":
+        # show_q_pos
+        gueue_len = user.get_queue_length(
+            queue_key='/queues/prottree',
+            worker_group_name=GROUP,
+            task_q_id=data['q_id'],
+        )
+
+        if gueue_len > 0:
+            msg = f"{msg}: {gueue_len} task{'s' if gueue_len>1 else ''} before yours"
+        else:
+            msg = f"{msg}: starting"
+    elif data['status'] == "Error":
+        dp['prottree_progress_updater', 'disabled'] = True
+        pbar['color'] = 'danger'
+        pbar['animated'] = False
+        pbar['striped'] = False
+    # elif data['status'] == "Executing":
+        # Nothing to do, defaults are fine
+
+    dp["prottree_container", "children"] = dbc.Progress(
+        children=html.Span(
+            msg,
+            className="justify-content-center d-flex position-absolute w-100",
+            style={"color": "black"},
+            key="prottree_progress_text"
+        ),
+        key="prottree_progress_bar",
+        **pbar,
+    )
+
 
 if DEBUG:
     @dash_app.callback(
@@ -815,7 +917,9 @@ def progress_updater(dp: DashProxy):
                     msg,
                     className="justify-content-center d-flex position-absolute w-100",
                     style={"color": "black"},
+                    key=f"{stage}_progress_text"
                 ),
+                key=f"{stage}_progress_bar"
                 **pbar,
             )
 
@@ -1202,6 +1306,18 @@ def serve_user_file(task_id, name):
     elif name.lower().endswith(".svg"):
         response.mimetype = "image/svg+xml"
     return response
+
+
+@dash_app.server.route('/prottree/<name>')
+@compress.compressed()
+def serve_prottree(name):
+    response = flask.make_response(flask.send_from_directory(f"/app/user_data/prottrees", name))
+    if name.lower().endswith(".xml"):
+        response.mimetype = "text/xml"
+    elif name.lower().endswith(".svg"):
+        response.mimetype = "image/svg+xml"
+    return response
+
 
 
 @dash_app.server.route('/some_non_public_ssr_path')

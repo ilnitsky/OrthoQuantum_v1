@@ -589,3 +589,20 @@ index = html.Div([
         fluid=True,
     )
 ])
+
+def prottree(task_id, prot_id):
+    return html.Div([
+        dcc.Store(id='task_id', data=task_id),
+        dcc.Store(id='prot_id', data=prot_id),
+        dcc.Interval(
+            id='prottree_progress_updater',
+            interval=500, # in milliseconds
+            disabled=False,
+        ),
+        dbc.Row(
+            dbc.Col(
+                id='prottree_container',
+                className="mx-5 mt-3",
+            )
+        ),
+    ])

@@ -69,6 +69,8 @@ async def clean_cache():
                 count += 1
         if count:
             print(f"Deleted {count} old cache records")
+        # compact the DB every so often
+        await redis.bgrewriteaof()
         await asyncio.sleep(timedelta(hours=2).total_seconds()) # run every 2 hours
 
 

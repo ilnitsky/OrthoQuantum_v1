@@ -5,6 +5,9 @@ from lxml import etree as ET
 from lxml.builder import ElementMaker
 import SPARQLWrapper
 
+import prottree_species_data
+import csv
+
 tokens = re.compile(r"[^(),;]+|\(|\)|,|;")
 
 def convert(newick_file, phyloxml_file, level, taxa_colors={}):
@@ -130,10 +133,103 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
         parser=ET.XMLParser(remove_blank_text=True),
     ).write(phyloxml_file, xml_declaration=True, encoding="ASCII")
 
+
+def convert_panther(newick_file, phyloxml_file, prot_tree_file):
+    with open(newick_file) as f:
+        newick = f.read().strip()
+
+    ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+    NS = {
+        "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        None: "http://www.phyloxml.org"
+    }
+    E = ElementMaker(
+        namespace="http://www.phyloxml.org",
+        nsmap={
+            None: "http://www.phyloxml.org",
+            "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+        }
+    )
+    my_doc = E.phyloxml(
+        {"{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": "http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd"},
+        E.phylogeny(
+            {"rooted":"true"},
+        ),
+    )
+
+    names = []
+    phylo = my_doc.find("./phylogeny", NS)
+    cursor = phylo
+    name = None
+    going_down = True
+    cur_id = 0
+    species_count = 0
+    for tok in tokens.finditer(newick):
+        m = tok.group(0)
+        if m == ")" or m == ",":
+            ET.SubElement(cursor, "name").text = name
+
+            if going_down:
+                # leaf node, put id
+                species_count += 1
+
+                cur_id += 1
+                ET.SubElement(cursor, "id").text = str(cur_id)
+
+                names.append(name)
+
+                going_down = False
+
+            cursor = cursor.getparent()
+
+            if m == ")":
+                continue
+
+        if m == "(" or m == ",":
+            cursor = ET.SubElement(cursor, "clade")
+            going_down = True
+            continue
+
+        if m == ";":
+            assert cursor == phylo, "incorrect newick file"
+            break
+        else:
+            name = m.replace("_", " ").strip()
+
+    ET.SubElement(phylo, "name").text = "Gene tree" # TODO: correct name
+    ET.SubElement(phylo, "description").text = f""
+
+
+    ET.ElementTree(
+        my_doc,
+        parser=ET.XMLParser(remove_blank_text=True),
+    ).write(phyloxml_file, xml_declaration=True, encoding="ASCII")
+
+    pantherID_2_name = prottree_species_data.species_data
+    name_2_id = dict((name, i) for i, name in enumerate(names, 1))
+
+    assert len(name_2_id) == len(pantherID_2_name), "can't translate"
+    assert set(name_2_id.keys()) == set(pantherID_2_name.values()), "can't translate"
+
+
+    with open(prot_tree_file, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(("Genome", "TreeID"))
+        for pantherID, name in pantherID_2_name.items():
+            writer.writerow((pantherID, name_2_id[name]))
+
+
 def main():
     cwd = Path(__file__).parent.absolute()
     newick = cwd / "newick"
+    panther = cwd / "panther"
     data = cwd.parent /"app"/"phyloxml"
+
+    convert_panther(
+        str(panther/"phyloT_PANTHER_newick.txt"),
+        str(panther/'panther'/"PANTHER.xml"),
+        str(panther/'panther'/"prottree_id_converter.csv"),
+    )
 
     convert(
         str(newick/"phyloT_vertebrata_newick.txt"),

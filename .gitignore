@@ -281,3 +281,5 @@ dash_app/ssr
 *.tar.gz
 .stignore
 blast_data
+pantherdb
+worker/converter/panther/panther

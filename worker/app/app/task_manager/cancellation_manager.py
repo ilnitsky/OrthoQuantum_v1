@@ -122,7 +122,10 @@ class CancellationManager():
                 self._tasks.pop(key, None)
                 await self._psub.unsubscribe(version_sub)
                 if should_ack:
-                    await redis.xack(q_name, GROUP, q_id)
+                    async with redis.pipeline(transaction=True) as pipe:
+                        pipe.xack(q_name, GROUP, q_id)
+                        pipe.xdel(q_name, q_id)
+                        await pipe.execute()
                 await db.flush_progress()
 
         return wrapper

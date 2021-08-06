@@ -12,5 +12,6 @@ async def search_prot(queue_name, q_id, task_id, prot_codes, taxid):
     finally:
         async with redis.pipeline(transaction=False) as pipe:
             pipe.xack(queue_name, GROUP, q_id)
+            pipe.xdel(queue_name, q_id)
             pipe.set(f"/tasks/{task_id}/stage/prot_search/result", res)
             await pipe.execute()

@@ -24,6 +24,7 @@ async def build_prottree(queue_name, q_id, prot_id):
     finally:
         async with redis.pipeline(transaction=True) as pipe:
             pipe.xack(queue_name, GROUP, q_id)
+            pipe.xdel(queue_name, q_id)
             pipe.hmset(f"/prottree_tasks/{prot_id}/progress", {
                 "status": 'Error' if error_msg else 'Done',
                 "message": error_msg,

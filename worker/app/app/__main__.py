@@ -16,6 +16,7 @@ async def flush_cache(queue_name, q_id, **queue_params):
         async for item in redis.scan_iter(match="/cache/*"):
             pipe.delete(item)
         pipe.xack(queue_name, GROUP, q_id)
+        pipe.xdel(queue_name, q_id)
         await pipe.execute()
     print("Cache flushed")
 

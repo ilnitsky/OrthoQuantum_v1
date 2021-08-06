@@ -244,11 +244,97 @@ def main():
         str(panther/'panther'/"PANTHER.xml"),
         str(panther/'panther'/"prottree_id_converter.csv"),
         colors={
-            # "Mammalia": {
-            #     "code": "mam",
-            #     "color": "0x40FF00",
-            # }
+            "Bacteria": {
+                "code": "bac",
+                "color": "0xc6b1b2",
+            },
+            "Mammalia": {
+                "code": "mam",
+                "color": "0x06d6a0",
+            },
+            "Sauropsida": {
+                "code": "ave",
+                "color": "0xb98b73",
+            },
+
+            "Cnidaria": {
+                "code": "cni",
+                "color": "0xb8f2e6",
+            },
+
+            "Actinopterygii": {
+                "code": "act",
+                "color": "0x118ab2",
+            },
+
+            "Nematoda": {
+                "code": "nmt",
+                "color": "0xaed9eo",
+            },
+
+            "Arthropoda": {
+                "code": "art",
+                "color": "0xee6c4d",
+            },
+            "Insecta": {
+                "code": "ins",
+                "color": "0xee6c4d",
+            },
+
+            "Arachnida": {
+                "code": "arc",
+                "color": "0xf5a693",
+            },
+
+            "Basidiomycota": {
+                "code": "bsd",
+                "color": "0x8342ao",
+            },
+            "Ascomycota": {
+                "code": "asc",
+                "color": "0x6c3dbe",
+            },
+
+            "Chlorophyta": {
+                "code": "clp",
+                "color": "0x4dedd5",
+            },
+            "asterids": {
+                "code": "ast",
+                "color": "0x32e875",
+            },
+            "rosids": {
+                "code": "ros",
+                "color": "0x32e875",
+            },
+            "Liliopsida": {
+                "code": "lil",
+                "color": "0x32e875",
+            },
+            "Discoba": {
+                "code": "dcb",
+                "color": "0x8d99ae",
+            },
+
+            "Sar": {
+                "code": "sar",
+                "color": "0x7e220c",
+            },
+
+            "Metamonada": {
+                "code": "met",
+                "color": "0xb7b7a4",
+            },
+            "Amoebozoa": {
+                "code": "amb",
+                "color": "0x9c6644",
+            },
+            "Archaea": {
+                "code": "arh",
+                "color": "0x493657",
+            },
         }
+
     )
 
     convert(

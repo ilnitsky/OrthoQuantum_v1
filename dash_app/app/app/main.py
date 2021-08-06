@@ -123,13 +123,18 @@ def router_page(href):
 
         if task_id is None or prot_id is None or not get_task(task_id):
             return dcc.Location(pathname="/", id="some_id2", hash="1", refresh=True), search
-
+        if '-' in prot_id:
+            prot_ids = prot_id.split('-')
+            prot_ids.sort()
+            prot_id = prot_ids[0]
+        did_schedule = False
+        ignore_prottree_cache = True
         while True:
             try:
                 with user.db.pipeline(transaction=True) as pipe:
                     pipe.watch(f"/prottree_tasks/{prot_id}/progress")
                     status = pipe.hget(f"/prottree_tasks/{prot_id}/progress", "status")
-                    if status in (None, "Error"):
+                    if ignore_prottree_cache or status in (None, "Error"):
                         pipe.multi()
                         pipe.xadd(
                             "/queues/prottree",
@@ -144,10 +149,11 @@ def router_page(href):
                             }
                         )
                         res = pipe.execute()
+                        did_schedule = True
                 break
             except Exception:
                 continue
-        if status is None:
+        if did_schedule:
             user.db.hset(f"/prottree_tasks/{prot_id}/progress", "q_id", res[0])
         return layout.prottree(prot_id), search
     if pathname == '/reports':

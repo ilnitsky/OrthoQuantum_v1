@@ -357,14 +357,16 @@ def main():
                 "code": "mam",
                 "color": "0x06d6a0",
             },
-            "Ecdysozoa": {
+            "Nematoda": {
+                "code": "nmt",
+                "color": "0xaed9eo",
+            },
+
+            "Arthropoda": {
                 "code": "ecd",
                 "color": "0xee6c4d",
             },
-            "Viridiplantae": {
-                "code": "vir",
-                "color": "0xef476f",
-            },
+
             "Protista": {
                 "code": "pro",
                 "color": "0x073b4c",
@@ -373,14 +375,91 @@ def main():
                 "code": "act",
                 "color": "0x118ab2",
             },
-            "Fungi": {
-                "code": "fun",
-                "color": "0xb5179e",
-            },
             "Sauropsida": {
                 "code": "sau",
                 "color": "0xb98b73",
-            }
+            },
+            "Apicomplexa": {
+                "code": "api",
+                "color": "0xcb997e",
+            },
+            "Ciliophora": {
+                "code": "cil",
+                "color": "0xddbea9",
+            },
+
+            "Stramenopiles": {
+                "code": "str",
+                "color": "0x6b705c",
+            },
+
+
+            "Cnidaria": {
+                "code": "cni",
+                "color": "0xb8f2e6",
+            },
+
+
+            "Lophotrochozoa": {
+                "code": "lop",
+                "color": "0xaed9eo",
+            },
+
+
+            "Metamonada": {
+                "code": "met",
+                "color": "0xb7b7a4",
+            },
+
+
+            "Amoebozoa": {
+                "code": "amb",
+                "color": "0x9c6644",
+            },
+
+
+            "Basidiomycota": {
+                "code": "bsd",
+                "color": "0x8342ao",
+            },
+            "Ascomycota": {
+                "code": "asc",
+                "color": "0x6c3dbe",
+            },
+
+
+            "Chlorophyta": {
+                "code": "clp",
+                "color": "0x4dedd5",
+            },
+
+
+            "Streptophyta": {
+                "code": "srp",
+                "color": "0x32e875",
+            },
+
+            "Rhodophyta": {
+                "code": "rhd",
+                "color": "0x006d77",
+            },
+
+
+            "Discoba": {
+                "code": "dcb",
+                "color": "0x8d99ae",
+            },
+
+            "Fungi incertae sedis": {
+                "code": "fsd",
+                "color": "0xb5838d",
+            },
+
+
+
+
+
+
 
         }
     )
@@ -391,8 +470,67 @@ def main():
         taxa_colors={
             "Mammalia": {
                 "code": "mam",
-                "color": "0x40FF00",
-            }
+                "color": "0x06d6a0",
+            },
+            "Aves": {
+                "code": "ave",
+                "color": "0xb98b73",
+            },
+
+            "Cnidaria": {
+                "code": "cni",
+                "color": "0xb8f2e6",
+            },
+
+            "Actinopterygii": {
+                "code": "act",
+                "color": "0x118ab2",
+            },
+            "Basidiomycota": {
+                "code": "bsd",
+                "color": "0x8342ao",
+            },
+            "Ascomycota": {
+                "code": "asc",
+                "color": "0x6c3dbe",
+            },
+            "Chlorophyta": {
+                "code": "clp",
+                "color": "0x4dedd5",
+            },
+
+
+            "Streptophyta": {
+                "code": "srp",
+                "color": "0x32e875",
+            },
+
+            "Rhodophyta": {
+                "code": "rhd",
+                "color": "0x006d77",
+            },
+
+            "Nematoda": {
+                "code": "nmt",
+                "color": "0xaed9eo",
+            },
+
+            "Insecta": {
+                "code": "ins",
+                "color": "0xee6c4d",
+            },
+
+            "Arachnida": {
+                "code": "arc",
+                "color": "0xf5a693",
+            },
+            "Sar": {
+                "code": "sar",
+                "color": "0x7e220c",
+            },
+
+
+
         }
     )
     convert(

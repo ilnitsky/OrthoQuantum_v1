@@ -17,6 +17,8 @@ aiohttp = "*"
 scipy = "*"
 mygene = "*"
 pyppeteer = "*"
+beautifulsoup4 = "*"
+httpx = "*"
 
 [dev-packages]
 

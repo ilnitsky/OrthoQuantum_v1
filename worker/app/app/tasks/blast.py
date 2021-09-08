@@ -644,8 +644,6 @@ async def blast(db: DbClient, blast_autoreload=False, enqueue_tree_gen=False):
                         prot_per_req = max(prot_per_req - PROT_INCR, MIN_PROT_PER_REQ)
                         should_increase = False
                     except Exception:
-                        # TODO:
-                        raise
                         prots_to_request.extend(running_tasks.pop(done_task))
                         # detect if we in a loop and got 5 exceptions without making any progress
                         if len(exception_task_count) == exception_task_count.maxlen and exception_task_count[0] == len(prots_to_request):

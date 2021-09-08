@@ -1,4 +1,5 @@
 import json
+from dash_bootstrap_components._components.Button import Button
 
 import dash_core_components as dcc
 import dash_html_components as html
@@ -151,14 +152,8 @@ og_from_input = html.Div(children=[
     dbc.Row([
         dbc.Col(
             html.Div([
-                dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=10, style={'width': '100%'}),
-            ]),
-            md=4,
-            lg=3,
-        ),
-        dbc.Col(
-            html.Div([
                 dcc.Store(id='taxid_input_numeric', data=False),
+                dcc.Store(id='prot-search-result', data=''),
                 dcc.Interval(
                     id='prot_search_updater',
                     interval=500, # in milliseconds
@@ -180,9 +175,19 @@ og_from_input = html.Div(children=[
                 dbc.Button(
                     id="search-prot-button",
                     color="primary",
-                    children="Find Uniprot ACs",
+                    children="Find Uniprot ACs ➜",
                     outline=True,
+                    className="float-right",
                 ),
+            ]),
+            md=4,
+            lg=3,
+        ),
+        # html.Button("➜", style={}),
+        # html.Div(dbc.Button("->")),
+        dbc.Col(
+            html.Div([
+                dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=10, style={'width': '100%'}),
             ]),
             md=4,
             lg=3,

@@ -2,9 +2,9 @@ from collections import defaultdict
 
 import pandas as pd
 import numpy as np
-from scipy.spatial import ConvexHull
 
 from lxml import etree as ET
+from bs4 import BeautifulSoup
 
 from ..async_executor import async_pool
 from ..utils import open_existing
@@ -22,9 +22,7 @@ def load_data(phyloxml_file:str, og_file:str):
 
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(phyloxml_file, parser)
-    tree_root = tree.getroot()
-
-    graph = tree_root.find('.//graphs/graph', NS)
+    graph = tree.getroot().find('.//graphs/graph', NS)
 
     name_to_idx = {
         el.text: idx
@@ -43,7 +41,7 @@ def load_data(phyloxml_file:str, og_file:str):
             if el.text == "0":
                 to_blast[prot].append(taxid)
 
-    return to_blast, name_2_prot, name_to_idx, tree, tree_root
+    return to_blast, name_2_prot, name_to_idx, tree
 
 @async_pool.in_thread()
 def write_blast_files(req_f, req, taxids_f, taxids):
@@ -54,52 +52,93 @@ def write_blast_files(req_f, req, taxids_f, taxids):
     taxids_f.flush()
 
 
+
 COLS = {
-    'staxid': np.uint32,
+    'taxid' : np.uint32,
     'evalue': np.float64,
     'pident': np.float64,
-    'qcovs': np.float64,
+    'qcov'  : np.float64,
 }
+DF_COLS = tuple(COLS.keys())[1:]
+def parse_page(raw_content: bytes):
+    soup = BeautifulSoup(raw_content, 'html.parser')
 
-@async_pool.in_process(max_running=6)
-def process_blast_data(res_fn):
-    df = pd.read_csv(res_fn, names=list(COLS.keys()), dtype=COLS)
+    form = soup.find("form", id="results")
+    params = {}
+    for inp in form.find_all("input"):
+        if 'name' in inp.attrs and 'value' in inp.attrs:
+            params[inp['name']] = inp['value']
+
+    columns_to_extract = {
+        "Taxid": None,
+        "E value": None,
+        "Per. Ident": None,
+        "Query Cover": None,
+    }
+
+    table = soup.find("table", id="dscTable")
+    header = table.find("thead").find("tr").find_all("th")
+    for idx, col in enumerate(header):
+        col_name = col.text.strip()
+        if col_name in columns_to_extract:
+            columns_to_extract[col_name] = idx
+
+    columns_to_extract = tuple(columns_to_extract.values())
+
+    if None in columns_to_extract:
+        raise RuntimeError("Missing columns!")
+
+    data = []
+    row = table.find("tbody").find("tr")
+    while row:
+        tds = row.find_all("td")
+        data.append((
+            int(tds[columns_to_extract[0]].text.strip("\n ")),
+            float(tds[columns_to_extract[1]].text.strip("\n ")),
+            float(tds[columns_to_extract[2]].text.strip("\n %")),
+            float(tds[columns_to_extract[3]].text.strip("\n %")),
+        ))
+        row = row.find_next_sibling("tr")
+    df = pd.DataFrame(data, columns=COLS.keys())
+    return df, params
+
+#in_proces
+@async_pool.in_thread(max_running=6)
+def extract_table_data(raw_content: bytes) -> tuple[dict[int, pd.DataFrame], dict]:
+    """Takes raw page data, returns optimized points for each taxid and params for next request"""
+
+    df, params = parse_page(raw_content)
+    del raw_content
+
+    # Removing Evals > 0 (sanity check)
+    df.drop(df[df['evalue'] > 0.0].index, inplace=True)
+
     # replacing 0es with a VERY small value (for log to work)
-    df['evalue'].replace(0.0, 1e-100, inplace=True)
+    df['evalue'].replace(0.0, 1e-300, inplace=True)
+
     # transforming evalue: log switches it from extremely small numbers (like 10^-100)
     # to reasonable numbers like -100. "-" turns this parameter from "smaller is better"
-    # to "larger is better", this way the convex hull point-pruning algorithm works
+    # to "larger is better", this way the point-pruning algorithm works
+    # under the assumption "larger is always better" (and all parameters are positive)
     df['evalue'] = -np.log10(df['evalue'])
 
     result = {}
 
-    for taxid, group in df.groupby('staxid', sort=False):
+    for taxid, group in df.groupby('taxid', sort=False):
         group: pd.DataFrame
-        group = group[group.columns.difference(['staxid'])]
-        try:
-            if group.shape[0] < 4:
-                raise Exception() # ConvexHull would fail, and the dataset already contains just 4 points, don't optimize it
-            # Consider only the points that define the convex hull (border) of the parameter space in 3D space
-            critical_points = group.iloc[ConvexHull(group.to_numpy()).vertices]
-        except Exception:
-            critical_points = group
-        # filter the poins: exclude points that definetily don't affect the match
 
-        # find indexes of points with max parameter values
-        # get points with max parameter values for each parameter (123, 5, 6), (14, 500, 2), etc
-        # get minimal values in the set of parameter maximum: (14, 5, 2) for the case above
-        # keep all points >= than the parameters found above
-        critical_points = critical_points.loc[
-            (
-                critical_points>=critical_points.loc[
-                    critical_points.idxmax()
-                ].min()
-            ).all(axis=1)
-        ]
+        points = group[group.columns.difference(['taxid'])].to_numpy()
+        # optimizing the number of stored points (since our filters are all >=)
+        pts_to_keep = np.empty((0, points.shape[1]))
+        points = points[np.argsort(-np.linalg.norm(points, axis=1))]
+        while points.size:
+            point = points[0,]
+            pts_to_keep = np.append(pts_to_keep, [point], axis=0)
+            points = points[(points>point).any(axis=1)]
 
-        result[taxid] = critical_points
+        result[taxid] = pd.DataFrame(pts_to_keep, columns=DF_COLS)
 
-    return result
+    return result, params
 
 # limited by max blast workers
 @async_pool.in_thread()

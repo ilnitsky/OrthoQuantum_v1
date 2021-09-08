@@ -552,6 +552,7 @@ def taxid_options(dp: DashProxy):
     Output('search-prot-button', 'disabled'),
     Output('prot_search_updater', 'disabled'),
     Output('prot-codes', 'value'),
+    Output('prot-search-result', 'data'),
 
     Input('search-prot-button', 'n_clicks'),
     Input('prot_search_updater', 'n_intervals'),
@@ -592,9 +593,9 @@ def search_taxid(dp: DashProxy):
         if res is not None:
             dp['prot_search_updater', 'disabled'] = True
             dp['search-prot-button', 'disabled'] = False
-            dp['search-prot-button', 'children'] = "Find Uniprot ACs"
-
-            dp['prot-codes', 'value'] = res
+            dp['search-prot-button', 'children'] = "Find Uniprot ACs ➜"
+            dp['prot-codes', 'value'] = ''
+            dp['prot-search-result', 'data'] = res
 
 
 dash_app.clientside_callback(
@@ -1050,6 +1051,7 @@ def progress_updater(dp: DashProxy):
     Input('rerenderSSR_button', 'n_clicks'),
     Input('input1_refresh', 'data'),
     Input('cancel-button', 'n_clicks'),
+    Input('prot-search-result', 'data'),
     ###
 
     State('task_id', 'data'),
@@ -1293,8 +1295,12 @@ def submit(dp:DashProxy):
 
             dp['table_version_target', 'data'] = 0  # stop updator
             dp['tree_version_target', 'data'] = 0  # stop updator
-
-
+    elif ('prot-search-result', 'data') in dp.triggered:
+        cur_val = dp['uniprotAC', 'value'].strip()
+        if cur_val:
+            dp['uniprotAC', 'value'] = f"{cur_val}\n\n{dp['prot-search-result', 'data']}"
+        else:
+            dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
 
 
 @dash_app.server.route('/files/<task_id>/<name>')

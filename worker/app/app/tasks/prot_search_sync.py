@@ -25,8 +25,13 @@ def search_for_prot(taxid, prot_codes:str):
         if res.get('notfound'):
             result.append(f"# {res['query']} - {name}: not found")
             continue
-
-        up = res['uniprot']
+        try:
+            up = res['uniprot']
+        except LookupError:
+            print("*** LookupError")
+            print(res)
+            result.append(f"# {res['query']} - {name}: not found")
+            continue
         ac = None
         if 'Swiss-Prot' in up:
             if isinstance(up['Swiss-Prot'], str):

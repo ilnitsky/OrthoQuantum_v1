@@ -12,7 +12,7 @@ import pandas as pd
 from aioredis.client import Pipeline
 from lxml import etree as ET
 
-from ..task_manager import DbClient, queue_manager, cancellation_manager
+from ..task_manager import get_db, queue_manager, cancellation_manager
 from ..utils import atomic_file
 from ..redis import raw_redis, enqueue
 from . import blast_sync
@@ -35,7 +35,8 @@ COLS = (
 
 @queue_manager.add_handler("/queues/blast", max_running=3)
 @cancellation_manager.wrap_handler
-async def blast(db: DbClient, blast_autoreload=False, enqueue_tree_gen=False):
+async def blast(blast_autoreload=False, enqueue_tree_gen=False):
+    db = get_db()
     @db.transaction
     async def res(pipe:Pipeline):
         pipe.multi()

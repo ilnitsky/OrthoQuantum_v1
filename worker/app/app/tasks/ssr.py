@@ -11,7 +11,7 @@ import pyppeteer.element_handle
 
 from aioredis.client import Pipeline
 
-from ..task_manager import DbClient, queue_manager, cancellation_manager
+from ..task_manager import get_db, queue_manager, cancellation_manager
 from ..utils import atomic_file
 
 
@@ -22,7 +22,8 @@ running_workers = 0
 browser = None
 browser_closer: asyncio.Task = None
 
-async def render(db: DbClient, page:pyppeteer.browser.Page):
+async def render(page:pyppeteer.browser.Page):
+    db = get_db()
     xml = (db.task_dir / "tree.xml").read_text()
     @db.transaction
     async def tx(pipe: Pipeline):
@@ -166,8 +167,9 @@ async def force_close_browser():
 
 @queue_manager.add_handler("/queues/ssr", max_running=MAX_PAGES)
 @cancellation_manager.wrap_handler
-async def handler(db: DbClient):
+async def handler():
     """tasks come here"""
+    db = get_db()
     global running_workers, browser_closer, browser
     page = None
     running_workers += 1
@@ -181,7 +183,7 @@ async def handler(db: DbClient):
                 await force_close_browser()
                 if attempt == 2:
                     raise
-        await render(db, page)
+        await render(page)
         await page.close()
     except Exception as e:
         try:

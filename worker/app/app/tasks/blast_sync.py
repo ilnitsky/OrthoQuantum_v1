@@ -110,8 +110,8 @@ def extract_table_data(raw_content: bytes) -> tuple[dict[int, pd.DataFrame], dic
     df, params = parse_page(raw_content)
     del raw_content
 
-    # Removing Evals > 0 (sanity check)
-    df.drop(df[df['evalue'] > 0.0].index, inplace=True)
+    # Removing Evals > 1 (sanity check)
+    df.drop(df[df['evalue'] > 1].index, inplace=True)
 
     # replacing 0es with a VERY small value (for log to work)
     df['evalue'].replace(0.0, 1e-300, inplace=True)

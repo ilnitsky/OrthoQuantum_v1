@@ -7,7 +7,7 @@ async def search_prot(queue_name, q_id, task_id, prot_codes, taxid):
     try:
         res = await search_for_prot(taxid, prot_codes)
     except:
-        res = "# Error whild searching for proteins"
+        res = "# Error while searching for proteins"
         raise
     finally:
         async with redis.pipeline(transaction=False) as pipe:

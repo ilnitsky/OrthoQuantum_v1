@@ -1,13 +1,16 @@
 import asyncio
 from collections.abc import Callable, Coroutine
+import contextlib
 from typing import Any, Optional
 from functools import wraps
+import contextvars
+
 
 from aioredis import WatchError
 from aioredis.client import Pipeline
 
 from .exceptions import VersionChangedException
-from ..redis import redis, GROUP
+from ..redis import redis
 from ..utils import decode_int, DATA_PATH
 
 class ProgressUpdate:
@@ -98,13 +101,20 @@ class DbClient():
             version_key = f"/tasks/{self.task_id}/stage/{self.stage}/version"
         self._verison_key = version_key
 
+    @contextlib.contextmanager
     def substage(self, stage_name):
-        return DbClient(
+        db = DbClient(
             task_id=self.task_id,
             stage=stage_name,
             version=self.version,
             version_key=self._verison_key,
         )
+        token = _db_var.set(db)
+        try:
+            yield db
+        finally:
+            _db_var.reset(token)
+
     async def check_if_cancelled(self, client=None):
         if client is None:
             client = redis
@@ -208,3 +218,9 @@ class DbClient():
             if cancel_rest:
                 pipe.incr(f"/tasks/{self.task_id}/stage/{self.stage}/version")
         await tx
+
+_db_var = contextvars.ContextVar("db")
+
+def get_db() -> DbClient:
+    return _db_var.get()
+

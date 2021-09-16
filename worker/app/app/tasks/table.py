@@ -11,7 +11,7 @@ from aioredis.client import Pipeline
 import pandas as pd
 
 from . import table_sync
-from ..task_manager import DbClient, queue_manager, cancellation_manager
+from ..task_manager import queue_manager, cancellation_manager, get_db
 from ..redis import redis, LEVELS, enqueue
 from ..utils import atomic_file
 
@@ -42,7 +42,8 @@ REQUEST_COLUMNS.append("og")
 PROTTREE_URL = re.compile(r"(.+)")
 
 
-async def fetch_proteins(db: DbClient, level:str, prots_to_fetch:list[str]):
+async def fetch_proteins(level:str, prots_to_fetch:list[str]):
+    db = get_db()
     result: dict[str, list] = {}
 
     async def progress(items_in_front):
@@ -118,7 +119,8 @@ async def fetch_proteins(db: DbClient, level:str, prots_to_fetch:list[str]):
     return result
 
 
-async def fetch_orthogroups(db: DbClient, orthogroups_to_fetch: list[str], dash_columns: list[str]):
+async def fetch_orthogroups(orthogroups_to_fetch: list[str], dash_columns: list[str]):
+    db = get_db()
     async def progress(items_in_front):
         if items_in_front > 0:
             db.report_progress(
@@ -184,7 +186,8 @@ COMMENT = re.compile(r"#.*\n")
 
 @queue_manager.add_handler("/queues/table")
 @cancellation_manager.wrap_handler
-async def table(db: DbClient):
+async def table():
+    db = get_db()
     prot_req = await redis.get(f"/tasks/{db.task_id}/request/proteins")
 
     prot_ids = list(dict.fromkeys( # removing duplicates
@@ -231,7 +234,6 @@ async def table(db: DbClient):
     if prots_to_fetch:
         res_dict.update(
             await fetch_proteins(
-                db=db,
                 level=level,
                 prots_to_fetch=prots_to_fetch,
             )
@@ -298,7 +300,6 @@ async def table(db: DbClient):
     if orthogroups_to_fetch:
         og_info.update(
             await fetch_orthogroups(
-                db=db,
                 orthogroups_to_fetch=orthogroups_to_fetch,
                 dash_columns=REQUEST_COLUMNS,
             )

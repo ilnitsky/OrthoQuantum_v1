@@ -6,7 +6,7 @@ import aioredis
 import aioredis.client
 
 from .exceptions import VersionChangedException, ReportErrorException
-from .db_client import DbClient
+from .db_client import DbClient, _db_var
 
 from ..redis import redis, GROUP
 from ..utils import decode_int, DEBUG
@@ -71,7 +71,8 @@ class CancellationManager():
                 stage=stage,
                 version=int(version),
             )
-            # async def _run_task(self, runnable: Callable[..., Coroutine], db: DbClient, *args, **kwargs):
+            _db_var.set(db)
+
             version_key = f"/tasks/{db.task_id}/stage/{db.stage}/version"
             version_sub = f"__keyspace@0__:{version_key}"
             key = (db.task_id, db.stage)
@@ -85,7 +86,7 @@ class CancellationManager():
                     # updated before we managed to launch the task
                     raise VersionChangedException()
                 self._tasks[key] = asyncio.current_task()
-                res = await func(db, **kwargs)
+                res = await func(**kwargs)
                 return res
             except VersionChangedException:
                 # cancelled by Db (version check in transaction) or just above this line
@@ -126,8 +127,10 @@ class CancellationManager():
                         pipe.xack(q_name, GROUP, q_id)
                         pipe.xdel(q_name, q_id)
                         await pipe.execute()
-                await db.flush_progress()
-
+                try:
+                    await db.flush_progress()
+                except: # ignore any exceptions or cancelation attempts if arize
+                    pass
         return wrapper
 
 cancellation_manager = CancellationManager()

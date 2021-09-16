@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+ g#squares>rect {
+  stroke: #000000;
+  stroke-width: 0.3px;
+  width: 20px;
+  height: 20px;
+ }
+ rect.a {
+  fill: #228cdb;
+ }
+ rect.b {
+  fill: #666666;
+ }
+ rect.c {
+  fill: #832fd1;
+ }
+ rect.d {
+  fill: #AA44FF;
+ }
+</style>
+</head>
+<body>
+
+ <svg width="600" height="500" style="background-color:#bff;">
+  <defs>
+    <filter id="top-label">
+      <feFlood flood-color="#FFFFFF" flood-opacity="0.5" result="bg" />
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+    <filter id="row-label">
+      <feFlood flood-color="#bff" result="bg" />
+      <feComposite in="SourceGraphic" operator="over"/>
+    </filter>
+
+  </defs>
+  <!-- <path d="M 5 60 v 30 m 0 30 v 30" stroke="black" fill="transparent"/> -->
+  <!-- <path d="M4,774 4,774 8,774"/>
+  <path d="M8,774 8,774 12,774"/>
+  <path d="M12,774 12,774 17,774"/>
+  <path d="M17,774 17,774 21,774"/>
+  <path d="M21,774 21,774 25,774"/>
+  <path d="M25,774 25,774 29,774"/>
+  <path d="M29,774 29,774 34,774"/>
+  <path d="M34,774 34,774 38,774"/>
+  <path d="M38,774 38,774 42,774"/>
+  <path d="M42,774 42,774 46,774"/>
+  <path d="M46,774 46,20 119,20"/>
+  <path d="M46,774 46,1529 51,1529"/>
+  <path d="M119,20 119,10 123,10"/>
+  <path d="M119,20 119,30 136,30"/>
+  <path d="M123,10 123,10 128,10"/> -->
+
+  <!--
+    add to labels
+    style="filter: url(#top-label);"
+   -->
+   <!--  translate(100) -->
+  <g id="col_label_offset" transform="translate(0,0)">  <!-- Y label adjustment -->
+    <g id="tree" transform="translate(0,15)">
+      <path d="M 0 0 h 120" stroke="red" fill="transparent" />
+      <path d="M 0 20 h 120" stroke="red" fill="transparent" />
+    </g>
+    <g transform="translate(30)"> <!-- tree adjustment -->
+      <g id="row_label_offset" transform="translate(0,0)"> <!-- X label adjustment -->
+        <g id="row_labels" dominant-baseline="central" transform="translate(15,0) rotate(-90)"> <!-- 10 (1/2 step), -5 is the margin -->
+          <text y="0">123</text>
+          <text y="20">223</text>
+          <text y="40">323</text>
+          <text y="60">23qweqw</text>
+        </g>
+        <g id="col_labels" dominant-baseline="central" text-anchor="end" transform="translate(0,15)" > <!-- 10 (1/2 step), -5 is the margin -->
+          <g id="text_bg" fill="#bff"></g>
+          <text y="0">blablaqwdfjn</text>
+          <text y="20">qwe</text>
+          <text y="40">323</text>
+          <text y="60">23qweqw</text>
+        </g>
+        <script>
+          var text_bg = document.getElementById("text_bg");
+          var max_width = 0;
+          document.querySelectorAll("#col_labels text").forEach(
+            (el) => {
+              var bbox = el.getBBox();
+              var rect = document.createElementNS("http://www.w3.org/2000/svg", 'rect');
+              rect.setAttributeNS(null, 'x', bbox.x-5);
+              rect.setAttributeNS(null, 'y', bbox.y);
+              rect.setAttributeNS(null, 'width', bbox.width+5);
+              rect.setAttributeNS(null, 'height', bbox.height);
+              if (bbox.width > max_width){
+                max_width = bbox.width;
+              }
+              text_bg.appendChild(rect);
+            }
+          );
+          document.getElementById("row_label_offset").setAttributeNS(null, 'transform', "translate("+(Math.round(max_width)+11)+",0)");
+
+          max_width = 0;
+          document.querySelectorAll("#row_labels text").forEach(
+            (el) => {
+              var width = el.getBBox().width;
+              if (width > max_width){
+                max_width = width;
+              }
+            }
+          );
+          document.getElementById("col_label_offset").setAttributeNS(null, 'transform', "translate(0,"+(Math.round(max_width)+11)+")");
+        </script>
+        <g id="squares" transform="translate(5,5)">
+          <rect class="a" x="0" y="0">
+            <title>Astyanax mexicanus : ANP32E</title>
+          </rect>
+          <rect class="a" x="20" y="0">
+            <title>Astyanax mexicanus : ANP32E</title>
+          </rect>
+          <rect class="b" x="40" y="0">
+            <title>Astyanax mexicanus : EXOSC6</title>
+          </rect>
+          <rect class="c" x="60" y="0">
+            <title>Astyanax mexicanus : CTCFL</title>
+          </rect>
+          <rect class="d" x="80" y="0">
+            <title>Astyanax mexicanus : ATF7IP</title>
+          </rect>
+          <rect class="a" x="100" y="0">
+            <title>Astyanax mexicanus : APOBEC1</title>
+          </rect>
+          <rect class="b" x="120" y="0">
+            <title>Astyanax mexicanus : E2F6</title>
+          </rect>
+          <rect class="c" x="140" y="0">
+            <title>Astyanax mexicanus : ATN1</title>
+          </rect>
+          <rect class="d" x="160" y="0">
+            <title>Astyanax mexicanus : DNTTIP2</title>
+          </rect>
+          <!-- ... -->
+          <rect class="a" x="0" y="20">
+            <title>Astyanax mexicanus : ANP32E</title>
+          </rect>
+          <rect class="a" x="20" y="20">
+            <title>Astyanax mexicanus : ANP32E</title>
+          </rect>
+          <rect class="b" x="40" y="20">
+            <title>Astyanax mexicanus : EXOSC6</title>
+          </rect>
+          <rect class="c" x="60" y="20">
+            <title>Astyanax mexicanus : CTCFL</title>
+          </rect>
+          <rect class="d" x="80" y="20">
+            <title>Astyanax mexicanus : ATF7IP</title>
+          </rect>
+          <rect class="a" x="100" y="20">
+            <title>Astyanax mexicanus : APOBEC1</title>
+          </rect>
+          <rect class="b" x="120" y="20">
+            <title>Astyanax mexicanus : E2F6</title>
+          </rect>
+          <rect class="c" x="140" y="20">
+            <title>Astyanax mexicanus : ATN1</title>
+          </rect>
+          <rect class="d" x="160" y="20">
+            <title>Astyanax mexicanus : DNTTIP2</title>
+          </rect>
+        </g>
+      </g>
+    </g>
+  </g>
+
+ </svg>
+</body>
+</html>

@@ -3,7 +3,7 @@ import asyncio
 from aioredis.client import Pipeline
 from . import vis_sync
 
-from ..task_manager import DbClient, queue_manager, cancellation_manager
+from ..task_manager import get_db, queue_manager, cancellation_manager
 from ..redis import redis, LEVELS, enqueue
 
 from .tree_heatmap import tree, heatmap
@@ -15,7 +15,8 @@ import numpy as np
 
 @queue_manager.add_handler("/queues/vis")
 @cancellation_manager.wrap_handler
-async def vis(db: DbClient):
+async def vis():
+    db = get_db()
     @db.transaction
     async def res(pipe: Pipeline):
         pipe.multi()
@@ -140,7 +141,6 @@ async def vis(db: DbClient):
     tasks.append(
         asyncio.create_task(
             heatmap(
-                db=db.substage("heatmap"),
                 organism_count=len(organisms),
                 df=df_for_heatmap,
             )
@@ -151,8 +151,6 @@ async def vis(db: DbClient):
     tasks.append(
         asyncio.create_task(
             tree(
-                db=db.substage("tree"),
-
                 phyloxml_file=phyloxml_file,
                 OG_names=csv_data['Name'],
                 df=df,

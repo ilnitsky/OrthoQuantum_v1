@@ -169,7 +169,7 @@ async def do_blast_request(sess:httpx.Client, prot_list, organisms):
         request_data[f"EQ_MENU{i}"] = org_name
 
     request_data["QUERY"] = '\n'.join(prot_list)
-    request_data["JOB_TITLE"] = "My title5"
+    request_data["JOB_TITLE"] = f"Blast search job for {';'.join(prot_list)}"
 
     # request continuation mechanism:
     req_hash = hashlib.sha256(json.dumps(request_data, sort_keys=True).encode()).hexdigest()
@@ -376,7 +376,7 @@ async def get_ncbi_taxids_from_cache(taxids_to_get):
 async def blast_request_task(sess:httpx.AsyncClient, prot_chunk:list[str], taxids_to_request:set[int], organisms_to_request:list[str], prots_to_get:dict[str, set[int]]):
     if not (prot_chunk and taxids_to_request):
         return {}
-
+    prot_chunk.sort()
     res, deleter = await do_blast_request(
         sess, prot_chunk,
         organisms_to_request,
@@ -646,6 +646,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
             return
 
         prots_to_request = list(prots_to_get.keys())
+        prots_to_request.sort()
 
         MIN_PROT_PER_REQ = 1
         MAX_PROT_PER_REQ = 5

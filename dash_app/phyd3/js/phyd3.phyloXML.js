@@ -408,7 +408,10 @@
             var values = nodes[i].getElementsByTagName("value");
             data[id] = [];
             for (var j = 0; j < values.length; j++) {
-                data[id].push(parseFloat(values[j].textContent));
+                data[id].push({
+                    value: parseFloat(values[j].textContent),
+                    label: values[j].getAttribute('label') || "",
+                });
             }
         }
         return data;

@@ -13,9 +13,6 @@ from ..utils import open_existing
 def orthodb_get(level:str, prot_ids:list) -> defaultdict[str, list]:
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
-    # TODO: think about possible injection here (filter by letters and numbers only?)
-    # using INVALID_PROT_IDS to filter all of the nasty possible chars.
-    # which are allowed symblos for `level`?
     endpoint.setQuery(f"""
     prefix : <http://purl.orthodb.org/>
     select ?og ?og_description ?gene_name ?xref

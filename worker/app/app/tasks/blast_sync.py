@@ -58,6 +58,7 @@ COLS = {
     'evalue': np.float64,
     'pident': np.float64,
     'qcov'  : np.float64,
+    'id'    : pd.StringDtype(),
 }
 DF_COLS = tuple(COLS.keys())[1:]
 def parse_page(raw_content: bytes):
@@ -74,6 +75,7 @@ def parse_page(raw_content: bytes):
         "E value": None,
         "Per. Ident": None,
         "Query Cover": None,
+        "Accession": None,
     }
 
     table = soup.find("table", id="dscTable")
@@ -97,9 +99,12 @@ def parse_page(raw_content: bytes):
             float(tds[columns_to_extract[1]].text.strip("\n ")),
             float(tds[columns_to_extract[2]].text.strip("\n %")),
             float(tds[columns_to_extract[3]].text.strip("\n %")),
+            tds[columns_to_extract[4]].text.strip(),
         ))
         row = row.find_next_sibling("tr")
     df = pd.DataFrame(data, columns=COLS.keys())
+    for col, dtype in COLS.items():
+        df[col] = df[col].astype(dtype=dtype, copy=False)
     return df, params
 
 #in_proces
@@ -127,16 +132,16 @@ def extract_table_data(raw_content: bytes) -> tuple[dict[int, pd.DataFrame], dic
     for taxid, group in df.groupby('taxid', sort=False):
         group: pd.DataFrame
 
-        points = group[group.columns.difference(['taxid'])].to_numpy()
+        # points = group[group.columns.difference(['taxid', 'id'])].to_numpy()
+        points = group[['evalue','pident','qcov']]
+        points = points.reindex(group.index[np.argsort(-np.linalg.norm(points, axis=1))], copy=False)
         # optimizing the number of stored points (since our filters are all >=)
-        pts_to_keep = np.empty((0, points.shape[1]))
-        points = points[np.argsort(-np.linalg.norm(points, axis=1))]
-        while points.size:
-            point = points[0,]
-            pts_to_keep = np.append(pts_to_keep, [point], axis=0)
-            points = points[(points>point).any(axis=1)]
+        pts_to_keep = []
 
-        result[taxid] = pd.DataFrame(pts_to_keep, columns=DF_COLS)
+        while points.size:
+            pts_to_keep.append(points.index[0])
+            points = points[(points>points.iloc[0]).any(axis=1)]
+        result[taxid] = group[['evalue','pident','qcov','id']].loc[pts_to_keep]
 
     return result, params
 

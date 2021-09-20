@@ -44,11 +44,14 @@ PROT_CODE_RE = re.compile(r'sp\|([A-Z0-9]+)')
 MAX_ATTEMPTS = 12
 MAX_ELAPSED = "00:30:00" # max time a request can chill in NCBI waitng screen
 MAX_NCBI_STATUS_REFRESHES = 1000
-COLS = (
-    'evalue',
-    'pident',
-    'qcov'  ,
-)
+
+COLS = {
+    'evalue': np.float64,
+    'pident': np.float64,
+    'qcov'  : np.float64,
+    'id'    : pd.StringDtype(),
+}
+USER_REQ_COLS = list(COLS.keys())[:-1]
 
 class RequestTooLargeException(Exception): pass
 
@@ -175,6 +178,7 @@ async def do_blast_request(sess:httpx.Client, prot_list, organisms):
     req_hash = hashlib.sha256(json.dumps(request_data, sort_keys=True).encode()).hexdigest()
 
     from_cache = False
+    deleter = None
     try:
         ncbi_request_id = await redis.get(f"/cache/ongoing_blast_requests/{req_hash}")
 
@@ -188,6 +192,7 @@ async def do_blast_request(sess:httpx.Client, prot_list, organisms):
                 }
             )
             from_cache = True
+            deleter = ncbi_delete_req(None, ncbi_request_id, req_hash)
             print(f"Request continuation on {ncbi_request_id}")
         else:
             # Send request
@@ -237,6 +242,7 @@ async def do_blast_request(sess:httpx.Client, prot_list, organisms):
 
             if not from_cache and req_no == 0:
                 ncbi_request_id = params["RID"].strip()
+                deleter = ncbi_delete_req(sess, ncbi_request_id, req_hash)
                 await redis.set(
                     f"/cache/ongoing_blast_requests/{req_hash}",
                     ncbi_request_id,
@@ -322,16 +328,9 @@ async def do_blast_request(sess:httpx.Client, prot_list, organisms):
                 prot_2_data[prot] = {}
 
     except Exception:
-        if from_cache:
-            # we don't have the cookies to delete this request
-            sess = None
-        await ncbi_delete_req(sess, ncbi_request_id, req_hash)
+        await deleter
         raise
-
-    if from_cache:
-        # we don't have the cookies to delete this request
-        sess = None
-    return prot_2_data, ncbi_delete_req(sess, ncbi_request_id, req_hash)
+    return prot_2_data, deleter
 
 
 
@@ -391,10 +390,7 @@ async def blast_request_task(sess:httpx.AsyncClient, prot_chunk:list[str], taxid
                     df = taxid_data.get(tax_id)
                     blasted[prot][tax_id] = df
                     if df is not None:
-                        np.save(memfile, df.to_numpy())
-                        memfile.seek(0)
-                        store_bytes = memfile.read()
-                        memfile.seek(0)
+                        store_bytes = df.to_csv(header=False, index=False)[:-1].encode()
                     else:
                         store_bytes = b''
                     pipe.mset(
@@ -449,13 +445,23 @@ class TreeRenderer():
             for tax_id in taxids:
                 df = self.current_data[prot_id].get(tax_id)
                 el = heatmap_data.xpath(f"(./pxml:values[@for='{tax_id}']/pxml:value)[{idx}]", namespaces=NS_XPATH)[0]
+                if df is not None:
+                    df = df[
+                        (df[USER_REQ_COLS]>=self.user_cond).all(axis=1)
+                    ]
+                    if df.empty:
+                        df = None
+                if df is not None:
+                    # TODO: add protein/species name to the tooltip
+                    # (used to do it in JS, no longer sensible)
 
-                if df is not None and (df>=self.user_cond).all(axis=1).any():
                     # at least one thing found, report pos
                     el.text = "62" # 50+12
+                    el.attrib['label'] = "BLAST discovered: "+(df["id"].str.cat(sep=";"))
                 else:
                     # no blast matches, confirm not found
                     el.text = "37" # 25+12
+                    el.attrib['label'] = "No BLAST results"
             await asyncio.sleep(0)
         with atomic_file(self.db.task_dir / "tree.xml") as tmp_name:
             await blast_sync.write_tree(tmp_name, self.tree)
@@ -519,11 +525,14 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
     data = (await res)[-1]
 
     user_cond = pd.Series(
-        {
-            COLS[0]: -float(data[0]),
-            COLS[1]: float(data[1]),
-            COLS[2]: float(data[2]),
-        },
+        dict(zip(
+            USER_REQ_COLS,
+            (
+                -float(data[0]),
+                float(data[1]),
+                float(data[2]),
+            )
+        )),
         dtype=np.float64
     )
 
@@ -575,16 +584,17 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
             for tax_id in blast_request[name]:
                 cache_data = raw_cache[prot][tax_id]
                 if cache_data is None:
+                    # Nothing in cache
                     taxids_to_get.add(tax_id)
                     prots_to_get[name_to_prot[name]].add(tax_id)
                 elif not cache_data:
-                    parsed_cache[prot][tax_id] = None # blast did not find anything at all last time
+                    # blast did not find anything (cache of "empty result")
+                    parsed_cache[prot][tax_id] = None
                 else:
                     # got a saved numpy array, parse as a df
-                    memfile = io.BytesIO(cache_data)
-                    parsed_cache[prot][tax_id] = pd.DataFrame(
-                        np.load(memfile),
-                        columns=COLS,
+                    parsed_cache[prot][tax_id] = pd.read_csv(
+                        io.BytesIO(cache_data),
+                        header=None, names=COLS.keys(), engine="c", dtype=COLS,
                     )
             await asyncio.sleep(0)
 

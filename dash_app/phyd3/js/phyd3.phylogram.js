@@ -1555,11 +1555,6 @@ window.requestAnimFrame = (function(){
                         max = t.length;
                         longestNode = d.id;
                     }
-                    // set tooltip text
-                    d3.select(this.parentNode).selectAll("rect.heatmap>title").text(
-                        function(d, i){
-                            return t + ": " + legendRef.fields[i].name;
-                    });
                     return t;
                });
             vis.selectAll("g.node.inner")
@@ -2059,7 +2054,8 @@ window.requestAnimFrame = (function(){
                                     if (graph.data[cid][i] != undefined)
                                     data.push({
                                         i: i,
-                                        value: graph.data[cid][i]
+                                        value: graph.data[cid][i].value,
+                                        label: graph.data[cid][i].label,
                                     });
                                 }
                                 var path = clade.selectAll("rect.heatmap.gid"+graph.id)
@@ -2075,7 +2071,10 @@ window.requestAnimFrame = (function(){
                                         }
                                     })
                                     .attr("stroke-width", options.outline + "px")
-                                    .append("title");
+                                    .append("title")
+                                    .text(function(d, i) {
+                                        return d.label
+                                    });
 
 
                             }

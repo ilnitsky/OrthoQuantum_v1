@@ -54,18 +54,25 @@ async def vis():
 
     corr_info_to_fetch = {}
     corr_info = {}
+    prot_ids = {}
 
     cur_time = int(time.time())
     async with redis.pipeline(transaction=False) as pipe:
         for _, data in csv_data.iterrows():
             label=data['label']
             pipe.hgetall(f"/cache/corr/{level}/{label}/data")
+            pipe.hgetall(f"/cache/corr/{level}/{label}/gene_names")
+
             pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time, xx=True)
-        res = (await pipe.execute())[::2]
-        for (_, data), cache in zip(csv_data.iterrows(), res):
+        res = iter(await pipe.execute())
+        for _, data in csv_data.iterrows():
             og_name=data['Name']
-            if cache:
-                corr_info[og_name] = cache
+            ortho_counts = next(res)
+            gene_names = next(res)
+            _ = next(res)
+            if ortho_counts:
+                corr_info[og_name] = ortho_counts
+                prot_ids[og_name] = gene_names
                 db.report_progress(current_delta=1)
             else:
                 corr_info_to_fetch[og_name] = data['label']
@@ -96,17 +103,19 @@ async def vis():
         try:
             async with redis.pipeline(transaction=False) as pipe:
                 for f in asyncio.as_completed(tasks):
-                    og_name, data = await f
+                    og_name, ortho_counts, gene_names = await f
                     og_name: str
-                    data: dict
+                    ortho_counts: dict
 
                     cur_time = int(time.time())
                     label = corr_info_to_fetch[og_name]
-                    pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=data)
+                    pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=ortho_counts)
+                    pipe.hset(f"/cache/corr/{level}/{label}/gene_names", mapping=gene_names)
                     pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
                     pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
 
-                    corr_info[og_name] = data
+                    corr_info[og_name] = ortho_counts
+                    prot_ids[og_name] = gene_names
                     db.report_progress(current_delta=1)
 
                 await pipe.execute()
@@ -118,16 +127,16 @@ async def vis():
     df = pd.DataFrame(
         data={
             col_name: pd.Series(
-                data=data.values(),
-                index=np.fromiter(data.keys(), count=len(data), dtype=np.int64),
+                data=ortho_counts.values(),
+                index=np.fromiter(ortho_counts.keys(), count=len(ortho_counts), dtype=np.int64),
                 name=col_name,
             )
-            for col_name, data in corr_info.items()
+            for col_name, ortho_counts in corr_info.items()
         },
         index=organisms,
     )
     df.fillna(0, inplace=True)
-    df = df.astype(np.int8, copy=False)
+    df = df.astype(np.int16, copy=False)
     db.report_progress(message="Processing correlation data")
 
 
@@ -155,6 +164,7 @@ async def vis():
                 OG_names=csv_data['Name'],
                 df=df,
                 organisms=organisms,
+                prot_ids=prot_ids,
 
                 do_blast=blast_enable,
             )

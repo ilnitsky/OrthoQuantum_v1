@@ -36,10 +36,12 @@ def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
     try:
-        endpoint.setQuery(f"""prefix : <http://purl.orthodb.org/>
+        endpoint.setQuery(
+            f"""prefix : <http://purl.orthodb.org/>
             select
             ?taxon
-            (count(?gene) as ?count_orthologs)
+            (count(DISTINCT ?Gene_name) as ?count_orthologs)
+            (group_concat(DISTINCT ?Gene_name;separator=";") as ?Gene_names)
             where {{
             ?gene a :Gene.
             ?gene :name ?Gene_name.
@@ -58,7 +60,11 @@ def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
     except Exception:
         data = ()
 
-    return name, {
-        int(taxid.rsplit('/', maxsplit=1)[-1].strip()): int(orthologs_count)
-        for taxid, orthologs_count in data
-    }
+    ortho_counts = {}
+    gene_names = {}
+    for taxid, orthologs_count, row_gene_names in data:
+        taxid = taxid.rsplit('/', maxsplit=1)[-1].strip()
+        ortho_counts[taxid] = int(orthologs_count)
+        gene_names[taxid] = row_gene_names
+
+    return name, ortho_counts, gene_names

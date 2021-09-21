@@ -20,7 +20,7 @@ NS = {
 }
 
 @async_pool.in_process()
-def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool):
+def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool, prot_ids):
     df = df[OG_names]
 
     df.clip(upper=1, inplace=True)
@@ -53,7 +53,13 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
     for index, row in df.iterrows():
         values = ET.SubElement(data, "values", {"for":str(index)})
         for col_idx in reordered_ind:
-            ET.SubElement(values, "value").text = f"{row[df.columns[col_idx]] * 100:.0f}"
+            el = ET.SubElement(values, "value")
+            if row[df.columns[col_idx]]:
+                el.text = "100"
+                el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(str(index), "Not Found")
+            else:
+                el.text = "0"
+
 
     with open_existing(output_file, 'wb') as f:
         tree.write(f, xml_declaration=True)

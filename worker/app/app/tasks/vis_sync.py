@@ -1,6 +1,8 @@
 import csv
+from logging import exception
 import SPARQLWrapper
 import pandas as pd
+import traceback
 from lxml import etree as ET
 
 from ..async_executor import async_pool
@@ -46,7 +48,7 @@ def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
             select
             ?taxon
             (count(DISTINCT ?Gene_name) as ?count_orthologs)
-            (group_concat(DISTINCT ?Gene_name;separator=";") as ?Gene_names)
+            (group_concat(DISTINCT ?Gene_name; separator=";") as ?Gene_names)
             where {{
             ?gene a :Gene.
             ?gene :name ?Gene_name.
@@ -62,17 +64,50 @@ def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
         endpoint.setReturnFormat(SPARQLWrapper.CSV)
 
         data = csv.reader(endpoint.query().convert().decode().strip().split("\n")[1:])
+
+
+        ortho_counts = {}
+        gene_names = {}
+        for taxid, orthologs_count, row_gene_names in data:
+            taxid = taxid.rsplit('/', maxsplit=1)[-1].strip()
+            ortho_counts[taxid] = int(orthologs_count)
+            gene_names[taxid] = row_gene_names
+
+        return name, ortho_counts, gene_names
     except Exception:
-        data = ()
+        try:
+            endpoint.setQuery(
+                f"""prefix : <http://purl.orthodb.org/>
+                select
+                ?taxon
+                (count(DISTINCT ?Gene_name) as ?count_orthologs)
+                where {{
+                ?gene a :Gene.
+                ?gene :name ?Gene_name.
+                ?gene up:organism/a ?taxon.
+                ?gene :memberOf odbgroup:{label}.
+                ?gene :memberOf ?og.
+                ?taxon up:scientificName ?org_name.
+                ?og :ogBuiltAt [up:scientificName "{level}"].
+                }}
+                GROUP BY ?taxon
+                ORDER BY ?taxon
+            """)
+            endpoint.setReturnFormat(SPARQLWrapper.CSV)
 
-    ortho_counts = {}
-    gene_names = {}
-    for taxid, orthologs_count, row_gene_names in data:
-        taxid = taxid.rsplit('/', maxsplit=1)[-1].strip()
-        ortho_counts[taxid] = int(orthologs_count)
-        gene_names[taxid] = row_gene_names
+            data = csv.reader(endpoint.query().convert().decode().strip().split("\n")[1:])
 
-    return name, ortho_counts, gene_names
+            ortho_counts = {}
+            gene_names = {}
+            for taxid, orthologs_count in data:
+                taxid = taxid.rsplit('/', maxsplit=1)[-1].strip()
+                ortho_counts[taxid] = int(orthologs_count)
+                gene_names[taxid] = "<sparql error>"
+
+            return name, ortho_counts, gene_names
+        except Exception:
+            traceback.print_exc()
+            return name, None, None
 
 
 @async_pool.in_process()

@@ -3,7 +3,7 @@ import asyncio
 from aioredis.client import Pipeline
 from . import vis_sync
 
-from ..task_manager import get_db, queue_manager, cancellation_manager
+from ..task_manager import get_db, queue_manager, cancellation_manager, ReportErrorException
 from ..redis import redis, LEVELS, enqueue
 from ..utils import atomic_file
 from .tree_heatmap import tree, heatmap
@@ -89,7 +89,7 @@ async def vis():
                     message="Requesting correlation data",
                     total=len(corr_info_to_fetch)
                 )
-
+        corr_info_to_retry = {}
         tasks = [
             vis_sync.get_corr_data(
                 name=name,
@@ -102,22 +102,42 @@ async def vis():
 
         try:
             async with redis.pipeline(transaction=False) as pipe:
-                for f in asyncio.as_completed(tasks):
-                    og_name, ortho_counts, gene_names = await f
-                    og_name: str
-                    ortho_counts: dict
+                for _ in range(3):
+                    for f in asyncio.as_completed(tasks):
+                        og_name, ortho_counts, gene_names = await f
+                        if ortho_counts is None:
+                            corr_info_to_retry[og_name] = corr_info_to_fetch[og_name]
+                            continue
+                        og_name: str
+                        ortho_counts: dict
 
-                    cur_time = int(time.time())
-                    label = corr_info_to_fetch[og_name]
-                    pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=ortho_counts)
-                    pipe.hset(f"/cache/corr/{level}/{label}/gene_names", mapping=gene_names)
-                    pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
-                    pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
+                        cur_time = int(time.time())
+                        label = corr_info_to_fetch[og_name]
+                        pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=ortho_counts)
+                        pipe.hset(f"/cache/corr/{level}/{label}/gene_names", mapping=gene_names)
+                        pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
+                        pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
 
-                    corr_info[og_name] = ortho_counts
-                    prot_ids[og_name] = gene_names
-                    db.report_progress(current_delta=1)
-
+                        corr_info[og_name] = ortho_counts
+                        prot_ids[og_name] = gene_names
+                        db.report_progress(current_delta=1)
+                    if corr_info_to_retry:
+                        corr_info_to_fetch, corr_info_to_retry = corr_info_to_retry, corr_info_to_fetch
+                        corr_info_to_retry.clear()
+                        await asyncio.sleep(5)
+                        tasks = [
+                            vis_sync.get_corr_data(
+                                name=name,
+                                label=label,
+                                level=level,
+                            )
+                            for name, label in corr_info_to_fetch.items()
+                        ]
+                    else:
+                        break
+                else:
+                    await pipe.execute()
+                    raise ReportErrorException(f"Can't fetch correlation info for {';'.join(corr_info_to_fetch.keys())}")
                 await pipe.execute()
         except:
             for t in tasks:

@@ -172,6 +172,13 @@ export default class PhydthreeComponent extends Component {
 
   render() {
     const myScale = `scale(${this.state.zoomLevel})`;
+    var csvurl;
+    if (this.props.taskid === ""){
+      csvurl = "";
+    } else {
+      csvurl = `/csvdownload?task_id=${this.props.taskid}`;
+    }
+
     return <>
       <Nav tabs>
         <NavItem>
@@ -198,6 +205,14 @@ export default class PhydthreeComponent extends Component {
             Download image
           </NavLink>
         </NavItem>
+        {
+          csvurl !== "" &&
+          <NavItem>
+            <NavLink href={csvurl} target="_blank">
+              Download csv
+            </NavLink>
+          </NavItem>
+        }
       </Nav>
 
 
@@ -270,13 +285,16 @@ export default class PhydthreeComponent extends Component {
 
 }
 
-PhydthreeComponent.defaultProps = {};
+PhydthreeComponent.defaultProps = {
+  taskid: "",
+};
 
 PhydthreeComponent.propTypes = {
   /**
    * A label that will be printed when this component is rendered.
    */
   url: PropTypes.string.isRequired,
+  taskid: PropTypes.string,
   height: PropTypes.number.isRequired,
   leafCount: PropTypes.number.isRequired,
   version: PropTypes.number.isRequired,

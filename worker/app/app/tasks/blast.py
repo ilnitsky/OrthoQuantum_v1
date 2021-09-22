@@ -457,11 +457,14 @@ class TreeRenderer():
 
                     # at least one thing found, report pos
                     el.text = "62" # 50+12
-                    el.attrib['label'] = "BLAST discovered: "+(df["id"].str.cat(sep=";"))
+                    el.attrib['label'] = "BLAST: "+(df["id"].str.cat(sep=";"))
                 else:
                     # no blast matches, confirm not found
                     el.text = "37" # 25+12
-                    el.attrib['label'] = "No BLAST results"
+                    try:
+                        del el.attrib['label']
+                    except KeyError:
+                        pass
             await asyncio.sleep(0)
         with atomic_file(self.db.task_dir / "tree.xml") as tmp_name:
             await blast_sync.write_tree(tmp_name, self.tree)

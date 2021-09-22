@@ -1555,6 +1555,12 @@ window.requestAnimFrame = (function(){
                         max = t.length;
                         longestNode = d.id;
                     }
+                    // set tooltip text
+                    d3.select(this.parentNode).selectAll("rect.heatmap>title").text(
+                        function(d, i){
+                            return t.trimEnd() + ": " + d.label;
+                    });
+
                     return t;
                });
             vis.selectAll("g.node.inner")

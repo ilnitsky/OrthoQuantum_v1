@@ -59,6 +59,8 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
                 el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(str(index), "Not Found")
             else:
                 el.text = "0"
+                if do_blast:
+                    el.attrib["label"] = "Not BLASTed"
 
 
     with open_existing(output_file, 'wb') as f:

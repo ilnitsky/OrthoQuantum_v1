@@ -610,3 +610,21 @@ def prottree(prot_id):
             )
         ),
     ])
+
+def csvdownload(task_id):
+    return html.Div([
+        dcc.Store(id='task_id', data=task_id),
+        dcc.Store(id='csvdownload_done', data=False),
+        dcc.Location(id="csv_redirect", refresh=True),
+        dcc.Interval(
+            id='csvdownload_progress_updater',
+            interval=500, # in milliseconds
+            disabled=False,
+        ),
+        dbc.Row(
+            dbc.Col(
+                id='csvdownload_container',
+                className="mx-5 mt-3",
+            )
+        ),
+    ])

@@ -30,6 +30,7 @@ app.config["COMPRESS_REGISTER"] = False
 app.config["COMPRESS_MIMETYPES"] = [
     'image/svg+xml',
     'text/html',
+    'text/csv',
     'text/css',
     'text/xml',
     'application/json',
@@ -156,11 +157,150 @@ def router_page(href):
         if did_schedule:
             user.db.hset(f"/prottree_tasks/{prot_id}/progress", "q_id", res[0])
         return layout.prottree(prot_id), search
+    if pathname == '/csvdownload':
+        args = urlparse.parse_qs(url.query, keep_blank_values=True)
+        task_id = args.get('task_id', (None,))[0]
+
+        if task_id is None or not get_task(task_id):
+            return dcc.Location(pathname="/", id="some_id3", hash="1", refresh=True), ""
+        return layout.csvdownload(task_id), search
     if pathname == '/reports':
         return layout.reports, search
     if pathname == '/blast':
         return layout.blast, search
     return '404', search
+
+
+# csvdownload page
+dash_app.clientside_callback(
+    """
+    function(data) {
+        if(data){
+            window.location = data;
+            setTimeout(function() { window.close(); }, 5000);
+        }
+    }
+    """,
+    Output('csvdownload_progress_updater', 'interval'),
+    Input("csvdownload_done", "data"),
+)
+
+
+
+@dash_proxy.callback(
+    Output('csvdownload_container', 'children'),
+    Output('csvdownload_progress_updater', 'disabled'),
+    Output('csv_redirect', 'pathname'),
+    Output('csvdownload_done', 'data'),
+
+    Input('csvdownload_progress_updater', 'n_intervals'),
+
+    State('task_id', 'data'),
+)
+def csvdownload(dp: DashProxy):
+    task_id = dp['task_id', 'data']
+    while True:
+        try:
+            with user.db.pipeline(transaction=True) as pipe:
+                pipe.watch(
+                    f"/tasks/{task_id}/stage/tree/version",
+                    f"/tasks/{task_id}/stage/tree_csv/version",
+                    f"/tasks/{task_id}/progress/tree_csv",
+                )
+                tree_ver, tree_csv_ver = pipe.mget(
+                    f"/tasks/{task_id}/stage/tree/version",
+                    f"/tasks/{task_id}/stage/tree_csv/version",
+                )
+                if tree_ver != tree_csv_ver:
+                    pipe.multi()
+                    user.enqueue(
+                        version_key=f"/tasks/{task_id}/stage/tree_csv/version",
+                        queue_key='/queues/tree_csv',
+                        queue_id_dest=f"/tasks/{task_id}/progress/tree_csv",
+                        queue_hash_key="q_id",
+                        redis_client=pipe,
+
+                        task_id=task_id,
+                        stage="tree",
+                    )
+                    _, q_id = pipe.execute()[-1]
+                    data = {
+                        "status": 'Enqueued',
+                        "message": 'CSV generation',
+                        "q_id": q_id,
+                    }
+                    pipe.hset(f"/tasks/{task_id}/progress/tree_csv",
+                        mapping=data,
+                    )
+                    break
+                else:
+                    data = pipe.hgetall(f"/tasks/{task_id}/progress/tree_csv")
+                    if data['status'] == "Done":
+                        dp['csvdownload_done', 'data'] = f'/files/{task_id}/tree.csv'
+                        dp['csvdownload_progress_updater', 'disabled'] = True
+                        dp['csvdownload_container', 'children'] = dbc.Card(
+                            [
+                                dbc.CardBody(
+                                    [
+                                        html.H4("Downloading csv", className="card-title"),
+                                        html.P([
+                                            html.A(
+                                                "Click the link",
+                                                href=dp['csvdownload_done', 'data']
+                                            ),
+                                            " to download file manually. This window will be closed in 5 seconds.",
+                                        ], className="card-text"),
+                                    ]
+                                ),
+                            ],
+                            style={"width": "24rem"},
+                            className="mx-auto",
+                        )
+                        return
+                    else:
+                        break
+        except Exception:
+            continue
+
+    msg = data['message']
+    pbar = {
+        "style": {"height": "30px"},
+        'color': 'info',
+        'max': 100,
+        'value': 100,
+        'animated': True,
+        'striped': True,
+    }
+    if data['status'] == "Enqueued":
+        # show_q_pos
+        gueue_len = user.get_queue_length(
+            queue_key='/queues/prottree',
+            worker_group_name=GROUP,
+            task_q_id=data['q_id'],
+        )
+
+        if gueue_len > 0:
+            msg = f"{msg}: {gueue_len} task{'s' if gueue_len>1 else ''} before yours"
+        else:
+            msg = f"{msg}: starting"
+    elif data['status'] == "Error":
+        dp['csvdownload_progress_updater', 'disabled'] = True
+        pbar['color'] = 'danger'
+        pbar['animated'] = False
+        pbar['striped'] = False
+    # elif data['status'] == "Executing":
+        # Nothing to do, defaults are fine
+
+    dp['csvdownload_container', 'children'] = dbc.Progress(
+        children=html.Span(
+            msg,
+            className="justify-content-center d-flex position-absolute w-100",
+            style={"color": "black"},
+            key="csvdownload_progress_text"
+        ),
+        key="csvdownload_progress_bar",
+        **pbar,
+    )
 
 
 # prottree page
@@ -1001,6 +1141,7 @@ def progress_updater(dp: DashProxy):
                     height=2000,
                     leafCount=tree_info['shape'][0],
                     version=version,
+                    taskid=task_id,
                 )
             else:
                 assert tree_kind in ('svg', 'png')
@@ -1314,6 +1455,9 @@ def serve_user_file(task_id, name):
         response.mimetype = "text/xml"
     elif name.lower().endswith(".svg"):
         response.mimetype = "image/svg+xml"
+    elif name.lower().endswith(".csv"):
+        response.mimetype = "text/csv"
+        response.headers["Content-Disposition"] = f'attachment; filename="{name}"'
     return response
 
 

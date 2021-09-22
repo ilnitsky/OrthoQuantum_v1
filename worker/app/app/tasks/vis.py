@@ -5,7 +5,7 @@ from . import vis_sync
 
 from ..task_manager import get_db, queue_manager, cancellation_manager
 from ..redis import redis, LEVELS, enqueue
-
+from ..utils import atomic_file
 from .tree_heatmap import tree, heatmap
 
 import time
@@ -210,3 +210,41 @@ async def vis():
         await res
 
     await db.flush_progress(status="Done", version=db.version)
+
+
+@queue_manager.add_handler("/queues/tree_csv")
+@cancellation_manager.wrap_handler
+async def build_tree_csv():
+    with get_db().substage("tree_csv") as db:
+        @db.transaction
+        async def res(pipe: Pipeline):
+            pipe.multi()
+            db.report_progress(
+                message="Generating CSV",
+                status="Executing",
+                pipe=pipe,
+            )
+        await res
+
+        try:
+            with atomic_file(db.task_dir/'tree.csv') as tmp_path:
+                await vis_sync.csv_generator(
+                    str((db.task_dir/'tree.xml').absolute()),
+                    tmp_path,
+                )
+            error_msg = ""
+        except:
+            error_msg = "Error while building the csv"
+            raise
+        finally:
+            @db.transaction
+            async def res(pipe: Pipeline):
+                pipe.multi()
+                db.report_progress(
+                    status='Error' if error_msg else 'Done',
+                    version=db.version,
+                    message=error_msg,
+                    pipe=pipe,
+                )
+            await res
+

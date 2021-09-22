@@ -11,6 +11,11 @@ NS = {
     "": "http://www.phyloxml.org"
 }
 
+NS_XPATH = {
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "pxml": "http://www.phyloxml.org",
+}
+
 @async_pool.in_thread()
 def read_org_info(phyloxml_file:str, og_csv_path:str):
     parser = ET.XMLParser(remove_blank_text=True)
@@ -68,3 +73,34 @@ def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
         gene_names[taxid] = row_gene_names
 
     return name, ortho_counts, gene_names
+
+
+@async_pool.in_process()
+def csv_generator(phyloxml_file:str, csv_file:str):
+    parser = ET.XMLParser(remove_blank_text=True)
+    tree = ET.parse(phyloxml_file, parser)
+    root = tree.getroot()
+    heatmap_data = root.find('.//graphs/graph/data', NS)
+
+    orgs_xml = root.xpath("//pxml:id/..", namespaces={'pxml':"http://www.phyloxml.org"})
+    # Assuming only children have IDs
+    orgs = []
+    for org_xml in orgs_xml:
+        try:
+            orgs.append((int(org_xml.find("id", NS).text), org_xml.find("name", NS).text))
+        except Exception:
+            # org_id contains letters, this could happen for missing organism
+            pass
+
+    with open(csv_file, 'w', newline='') as csvfile:
+        spamwriter = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
+        row = [""]
+        for el in tree.getroot().findall('.//graphs/graph/legend/field/name', NS):
+            row.append(el.text)
+        spamwriter.writerow(row)
+        for tax_id, org_name in orgs:
+            row[0] = org_name
+            for i, el in enumerate(heatmap_data.xpath(f"(./pxml:values[@for='{tax_id}']/pxml:value)", namespaces=NS_XPATH), 1):
+                row[i] = el.attrib.get('label', '-')
+            spamwriter.writerow(row)
+

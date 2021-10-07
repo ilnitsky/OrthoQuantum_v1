@@ -1228,10 +1228,12 @@ def submit(dp:DashProxy):
                 return
             # performing server validation
             try:
-                pident = float(dp["pident-output-val", "data"])
-                qcovs = float(dp["qcovs-output-val", "data"])
-                evalue = dp["evalue", "value"]
-                if evalue not in ('-5', '-6', '-7', '-8'):
+                pident = dp["pident-output-val", "data"].strip()
+                _ = float(pident)
+                qcovs = dp["qcovs-output-val", "data"].strip()
+                _ = float(qcovs)
+                evalue = dp["evalue", "value"].strip()
+                if float(evalue) <= 0:
                     raise ValueError()
             except Exception:
                 # client validation succeeded, server validation failed

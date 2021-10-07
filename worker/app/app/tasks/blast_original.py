@@ -54,7 +54,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
         )
 
     evalue, pident, qcovs = (await res)[-1]
-    evalue = -float(evalue)
+    evalue = -np.log10(float(evalue))
     pident = float(pident)
     qcovs = float(qcovs)
 

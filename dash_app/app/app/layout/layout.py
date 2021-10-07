@@ -225,15 +225,9 @@ og_from_input = html.Div(children=[
                         dbc.Card(dbc.CardBody([
                             dbc.FormGroup([
                                 dbc.Label("EValue", html_for="evalue"),
-                                dbc.Select(
+                                dbc.Input(
                                     id="evalue",
-                                    options=[
-                                        {"label": "10⁻⁵", "value": "-5"},
-                                        {"label": "10⁻⁶", "value": "-6"},
-                                        {"label": "10⁻⁷", "value": "-7"},
-                                        {"label": "10⁻⁸", "value": "-8"},
-                                    ],
-                                    value="-5",
+                                    value="1e-5",
                                 ),
                             ]),
                             dbc.FormGroup([

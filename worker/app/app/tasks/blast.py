@@ -531,7 +531,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
         dict(zip(
             USER_REQ_COLS,
             (
-                -float(data[0]),
+                -np.log10(float(data[0])),
                 float(data[1]),
                 float(data[2]),
             )

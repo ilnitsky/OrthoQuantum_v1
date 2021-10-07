@@ -36,6 +36,7 @@ def prottree_generator(prot_id:str, prottree_file:str):
 
     if panther_df.empty:
         return "No matches found for this protein"
+    family = data[0][2].strip("'\" \n\t")
 
     value_count = panther_df['Subfamily'].value_counts().sort_index(ascending=True)
     value_count = value_count.where(value_count > 8).dropna()
@@ -56,6 +57,10 @@ def prottree_generator(prot_id:str, prottree_file:str):
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(str(PANTHER_PATH / "PANTHER.xml"), parser)
     root = tree.getroot()
+    # t = root.find("./phylogeny", NS)
+    # t.find("./name", NS).text =
+    root.find("./phylogeny/description", NS).text = f'Family: "{family}"'
+
     graphs = ET.SubElement(root, "graphs")
     graph = ET.SubElement(graphs, "graph", type="heatmap")
     ET.SubElement(graph, "name").text = "Presense"

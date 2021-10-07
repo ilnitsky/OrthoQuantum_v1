@@ -413,7 +413,7 @@ def new_task():
                 break
             except redis.WatchError:
                 pass
-        user.db.set(f"/tasks/{task_id}/name", f"Request #{task_num}")
+        user.db.set(f"/tasks/{task_id}/name", f"Query #{task_num}")
     return task_id
 
 
@@ -1439,7 +1439,7 @@ def submit(dp:DashProxy):
     elif ('prot-search-result', 'data') in dp.triggered:
         cur_val = dp['uniprotAC', 'value'].strip()
         if cur_val:
-            dp['uniprotAC', 'value'] = f"{cur_val}\n\n{dp['prot-search-result', 'data']}"
+            dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n\n{cur_val}"
         else:
             dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
 

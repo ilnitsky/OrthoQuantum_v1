@@ -67,57 +67,65 @@ navbar = dbc.NavbarSimple(
     sticky="top",
 )
 
-body = dbc.Container(
+body = html.Div(
     [
         dbc.Row([
             dbc.Col([
-                html.H2("OrthoQuantum v1.0"),
-            ], md=4),
+                html.H2("OrthoQuantum v1.0", style={"white-space": "nowrap"}),
+            ], md=4, lg=3),
             dbc.Col([
                 html.Hr(style={
                     "margin-top": "2rem",
                     "margin-bottom": "0",
                 }),
-            ], md=8),
-        ]),
-        dbc.Row([
-            dbc.Col(
-                [
-                    html.P("""Download presence and study orthology group presence.
-                            Use UniProt Accesion Codes of your proteins to create a list with corresponding
-                            Orthology groups"""),
-                    dbc.InputGroup([
-                        # dbc.Button("View tutorial", color="secondary", href="/blast"),
-                        html.Div([
-                            dbc.Checkbox(id="tutorial_checkbox"),
-                            dbc.Label(
-                                "Show tutorial",
-                                html_for="tutorial_checkbox",
-                                className="form-check-label",
-                                style={"margin-left": "0.5em"},
+                ], md=5, lg=4, className="d-none d-md-block ml-md-5"),
+            ],
+            justify='center',
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.P("""Download presence and study orthology group presence.
+                                Use UniProt Accesion Codes of your proteins to create a list with corresponding
+                                Orthology groups"""),
+                        dbc.InputGroup([
+                            # dbc.Button("View tutorial", color="secondary", href="/blast"),
+                            html.Div([
+                                dbc.Checkbox(id="tutorial_checkbox"),
+                                dbc.Label(
+                                    "Show tutorial",
+                                    html_for="tutorial_checkbox",
+                                    className="form-check-label",
+                                    style={"margin-left": "0.5em"},
+                                ),
+                            ],
+                            # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
+                            className="input-group-text important-btn-secondary mr-2 mt-2", id="tutorial-checkbox-div"),
+                            dbc.Button("Open demo data", id="demo-btn", color="secondary", className="mt-2"),
+                            dbc.Tooltip(
+                                "Information would be displayed while hovering over an element",
+                                # id="tooltip-edit-title",
+                                target="tutorial-checkbox-div",
+                                placement="bottom"
                             ),
-                        ],
-                        # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
-                        className="input-group-text important-btn-secondary", id="tutorial-checkbox-div"),
-                        dbc.Button("Open demo data", id="demo-btn", color="secondary", className="ml-2",),
-                        dbc.Tooltip(
-                            "Information would be displayed while hovering over an element",
-                            # id="tooltip-edit-title",
-                            target="tutorial-checkbox-div",
-                            placement="bottom"
-                        ),
-                    ]),
-                ],
-                md=4,
-            ),
-            html.Br(),
-            html.Br(),
-            dbc.Col([
-                    html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
-                ],
-                md=8,
-            ),
-        ])
+                        ]),
+                    ],
+                    md=4,
+                    lg=3,
+                ),
+                html.Br(),
+                html.Br(),
+                dbc.Col([
+                        html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
+                    ],
+                    md=5,
+                    lg=4,
+                    className="ml-md-5",
+                ),
+            ],
+            justify='center',
+        )
     ],
     className="mt-4",
 )

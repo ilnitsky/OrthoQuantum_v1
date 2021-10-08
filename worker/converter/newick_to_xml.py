@@ -1,4 +1,5 @@
 import csv
+import json
 import re
 from pathlib import Path
 from lxml import etree as ET
@@ -10,7 +11,43 @@ import csv
 
 tokens = re.compile(r"[^(),;]+|\(|\)|,|;")
 
+def convert_to_new(old_dict):
+    for k in list(old_dict.keys()):
+        old_dict[k] = old_dict[k]["color"]
+    print(json.dumps(old_dict, indent=4))
+
+def process_colors(colors):
+    res = {}
+    codes = set()
+    for name, color in colors.items():
+        try:
+            if isinstance(color, str):
+                color = int(color, 16)
+            elif not isinstance(color, int):
+                raise ValueError("Color must be int or str")
+            assert 0 < color < 0xFFFFFF, "Color is out of range"
+
+            code = name[:3].lower()
+            if code in codes:
+                i = 0
+                code_cand = f"{code}_{i}"
+                while code_cand in codes:
+                    i+=1
+                    code_cand = f"{code}_{i}"
+                code = code_cand
+            codes.add(code)
+            res[name] = {
+                "code": code,
+                "color": f"0x{color:06X}",
+            }
+
+        except Exception as e:
+            raise RuntimeError(f"Error while processing {name}") from e
+    return res
+
+
 def convert(newick_file, phyloxml_file, level, taxa_colors={}):
+    taxa_colors = process_colors(taxa_colors)
     endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
 
     endpoint.setQuery(f"""
@@ -135,6 +172,7 @@ def convert(newick_file, phyloxml_file, level, taxa_colors={}):
 
 
 def convert_panther(newick_file, phyloxml_file, prot_tree_file, colors):
+    colors = process_colors(colors)
     with open(newick_file) as f:
         newick = f.read().strip()
 
@@ -244,108 +282,35 @@ def main():
         str(panther/'panther'/"PANTHER.xml"),
         str(panther/'panther'/"prottree_id_converter.csv"),
         colors={
-            "Bacteria": {
-                "code": "bac",
-                "color": "0xc6b1b2",
-            },
-            "Mammalia": {
-                "code": "mam",
-                "color": "0x06d6a0",
-            },
-            "Sauropsida": {
-                "code": "ave",
-                "color": "0xb98b73",
-            },
-
-            "Cnidaria": {
-                "code": "cni",
-                "color": "0xb8f2e6",
-            },
-
-            "Actinopterygii": {
-                "code": "act",
-                "color": "0x118ab2",
-            },
-
-            "Nematoda": {
-                "code": "nmt",
-                "color": "0xaed9eo",
-            },
-
-            "Arthropoda": {
-                "code": "art",
-                "color": "0xee6c4d",
-            },
-            "Insecta": {
-                "code": "ins",
-                "color": "0xee6c4d",
-            },
-
-            "Arachnida": {
-                "code": "arc",
-                "color": "0xf5a693",
-            },
-
-            "Basidiomycota": {
-                "code": "bsd",
-                "color": "0x8342ao",
-            },
-            "Ascomycota": {
-                "code": "asc",
-                "color": "0x6c3dbe",
-            },
-
-            "Chlorophyta": {
-                "code": "clp",
-                "color": "0x4dedd5",
-            },
-            "asterids": {
-                "code": "ast",
-                "color": "0x32e875",
-            },
-            "rosids": {
-                "code": "ros",
-                "color": "0x32e875",
-            },
-            "Liliopsida": {
-                "code": "lil",
-                "color": "0x32e875",
-            },
-            "Discoba": {
-                "code": "dcb",
-                "color": "0x8d99ae",
-            },
-
-            "Sar": {
-                "code": "sar",
-                "color": "0x7e220c",
-            },
-
-            "Metamonada": {
-                "code": "met",
-                "color": "0xb7b7a4",
-            },
-            "Amoebozoa": {
-                "code": "amb",
-                "color": "0x9c6644",
-            },
-            "Archaea": {
-                "code": "arh",
-                "color": "0x493657",
-            },
+            "Bacteria": 0xc6b1b2,
+            "Mammalia": 0x06d6a0,
+            "Sauropsida": 0xb98b73,
+            "Cnidaria": 0xb8f2e6,
+            "Actinopterygii": 0x118ab2,
+            "Nematoda": 0xaed9e0,
+            "Arthropoda": 0xee6c4d,
+            "Insecta": 0xee6c4d,
+            "Arachnida": 0xf5a693,
+            "Basidiomycota": 0x8342a0,
+            "Ascomycota": 0x6c3dbe,
+            "Chlorophyta": 0x4dedd5,
+            "asterids": 0x32e875,
+            "rosids": 0x32e875,
+            "Liliopsida": 0x32e875,
+            "Discoba": 0x8d99ae,
+            "Sar": 0x7e220c,
+            "Metamonada": 0xb7b7a4,
+            "Amoebozoa": 0x9c6644,
+            "Archaea": 0x493657,
         }
 
     )
-
     convert(
         str(newick/"phyloT_vertebrata_newick.txt"),
         str(data/"4_Vertebrata.xml"),
         "Vertebrata",
         taxa_colors={
-            "Mammalia": {
-                "code": "mam",
-                "color": "0x40FF00",
-            }
+            "Mammalia": 0x40FF00,
         }
     )
     convert(
@@ -353,114 +318,26 @@ def main():
         str(data/"2_Eukaryota_Eukaryota (all species).xml"),
         "Eukaryota",
         taxa_colors={
-            "Mammalia": {
-                "code": "mam",
-                "color": "0x06d6a0",
-            },
-            "Nematoda": {
-                "code": "nmt",
-                "color": "0xaed9eo",
-            },
-
-            "Arthropoda": {
-                "code": "ecd",
-                "color": "0xee6c4d",
-            },
-
-            "Protista": {
-                "code": "pro",
-                "color": "0x073b4c",
-            },
-            "Actinopterygii": {
-                "code": "act",
-                "color": "0x118ab2",
-            },
-            "Sauropsida": {
-                "code": "sau",
-                "color": "0xb98b73",
-            },
-            "Apicomplexa": {
-                "code": "api",
-                "color": "0xcb997e",
-            },
-            "Ciliophora": {
-                "code": "cil",
-                "color": "0xddbea9",
-            },
-
-            "Stramenopiles": {
-                "code": "str",
-                "color": "0x6b705c",
-            },
-
-
-            "Cnidaria": {
-                "code": "cni",
-                "color": "0xb8f2e6",
-            },
-
-
-            "Lophotrochozoa": {
-                "code": "lop",
-                "color": "0xaed9eo",
-            },
-
-
-            "Metamonada": {
-                "code": "met",
-                "color": "0xb7b7a4",
-            },
-
-
-            "Amoebozoa": {
-                "code": "amb",
-                "color": "0x9c6644",
-            },
-
-
-            "Basidiomycota": {
-                "code": "bsd",
-                "color": "0x8342ao",
-            },
-            "Ascomycota": {
-                "code": "asc",
-                "color": "0x6c3dbe",
-            },
-
-
-            "Chlorophyta": {
-                "code": "clp",
-                "color": "0x4dedd5",
-            },
-
-
-            "Streptophyta": {
-                "code": "srp",
-                "color": "0x32e875",
-            },
-
-            "Rhodophyta": {
-                "code": "rhd",
-                "color": "0x006d77",
-            },
-
-
-            "Discoba": {
-                "code": "dcb",
-                "color": "0x8d99ae",
-            },
-
-            "Fungi incertae sedis": {
-                "code": "fsd",
-                "color": "0xb5838d",
-            },
-
-
-
-
-
-
-
+            "Mammalia": 0x06d6a0,
+            "Nematoda": 0xaed9e0,
+            "Arthropoda": 0xee6c4d,
+            "Protista": 0x073b4c,
+            "Actinopterygii": 0x118ab2,
+            "Sauropsida": 0xb98b73,
+            "Apicomplexa": 0xcb997e,
+            "Ciliophora": 0xddbea9,
+            "Stramenopiles": 0x6b705c,
+            "Cnidaria": 0xb8f2e6,
+            "Lophotrochozoa": 0xaed9e0,
+            "Metamonada": 0xb7b7a4,
+            "Amoebozoa": 0x9c6644,
+            "Basidiomycota": 0x8342a0,
+            "Ascomycota": 0x6c3dbe,
+            "Chlorophyta": 0x4dedd5,
+            "Streptophyta": 0x32e875,
+            "Rhodophyta": 0x006d77,
+            "Discoba": 0x8d99ae,
+            "Fungi incertae sedis": 0xb5838d,
         }
     )
     convert(
@@ -468,69 +345,19 @@ def main():
         str(data/"1_Eukaryota_Eukaryota (compact).xml"),
         "Eukaryota",
         taxa_colors={
-            "Mammalia": {
-                "code": "mam",
-                "color": "0x06d6a0",
-            },
-            "Aves": {
-                "code": "ave",
-                "color": "0xb98b73",
-            },
-
-            "Cnidaria": {
-                "code": "cni",
-                "color": "0xb8f2e6",
-            },
-
-            "Actinopterygii": {
-                "code": "act",
-                "color": "0x118ab2",
-            },
-            "Basidiomycota": {
-                "code": "bsd",
-                "color": "0x8342ao",
-            },
-            "Ascomycota": {
-                "code": "asc",
-                "color": "0x6c3dbe",
-            },
-            "Chlorophyta": {
-                "code": "clp",
-                "color": "0x4dedd5",
-            },
-
-
-            "Streptophyta": {
-                "code": "srp",
-                "color": "0x32e875",
-            },
-
-            "Rhodophyta": {
-                "code": "rhd",
-                "color": "0x006d77",
-            },
-
-            "Nematoda": {
-                "code": "nmt",
-                "color": "0xaed9eo",
-            },
-
-            "Insecta": {
-                "code": "ins",
-                "color": "0xee6c4d",
-            },
-
-            "Arachnida": {
-                "code": "arc",
-                "color": "0xf5a693",
-            },
-            "Sar": {
-                "code": "sar",
-                "color": "0x7e220c",
-            },
-
-
-
+            "Mammalia": 0x06d6a0,
+            "Aves": 0xb98b73,
+            "Cnidaria": 0xb8f2e6,
+            "Actinopterygii": 0x118ab2,
+            "Basidiomycota": 0x8342a0,
+            "Ascomycota": 0x6c3dbe,
+            "Chlorophyta": 0x4dedd5,
+            "Streptophyta": 0x32e875,
+            "Rhodophyta": 0x006d77,
+            "Nematoda": 0xaed9e0,
+            "Insecta": 0xee6c4d,
+            "Arachnida": 0xf5a693,
+            "Sar": 0x7e220c,
         }
     )
     convert(

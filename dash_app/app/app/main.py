@@ -166,8 +166,8 @@ def router_page(href):
         return layout.csvdownload(task_id), search
     if pathname == '/reports':
         return layout.reports, search
-    if pathname == '/blast':
-        return layout.blast, search
+    if pathname == '/about':
+        return layout.about, search
     return '404', search
 
 

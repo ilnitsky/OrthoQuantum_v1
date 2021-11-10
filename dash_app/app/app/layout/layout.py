@@ -116,7 +116,13 @@ body = html.Div(
                 html.Br(),
                 html.Br(),
                 dbc.Col([
-                        html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
+                        html.P("To perform a query:"),
+                        html.P(html.Ol([
+                            html.Li("Select clades for which to display the correlation matrix and the phylogenetic profile"),
+                            html.Li("Input a list of query genes. Choose organism scientific name or NCBI taxid to convert gene names into corresponding Uniprot IDs."),
+                            html.Li("To perform BLAST search click on the ‘Enable BLAST’ button. The default parameters for blastp search (sequence identity and E-value threshold) can be modified."),
+                        ])),
+                        html.P("""Click "Submit" to see your results."""),
                     ],
                     md=4,
                     lg=3,
@@ -570,21 +576,23 @@ reports = html.Div([
     ])
 ])
 
-# TODO: tutorial here
-about = dbc.Row(
-    dbc.Col([
-        html.H2("OrthoQuantum v1.0", className="text-center mt-5 mb-3"),
+def sized_img(img_src, href=None):
+    if href is None:
+        href = img_src
+    return html.A(
+            html.Img(
+                src=img_src,
+                style={
+                    'width': '100%',
+                    'max-width': '1100px',
+                },
+                className="mx-auto",
+            ),
+            href=href,
+            target="_blank",
+            className="mx-auto",
+        )
 
-        html.P(
-            "The user can submit the query in the front page by either listing the Uniprot identifiers in the input field or by uploading .txt file. Taxonomic orthology levels include Eukaryota, Metazoa, Viridiplantae, Vertebrata, Aves, Actinopterygii, Fungi, Protista. For large taxonomic groups there is an option to continue with a compact set of species with a good quality of genome assembly, or with a full set of species from OrthoDB that may provide better resolution for conservation patterns (for example, the choice between 120 or 1100 species in Metazoa). After entering the query, a table of information related to each orthogroup is loaded. It collates query protein names with OrthoDB orthogroups identifiers, it also contains some other information about orthogroups already described in the previous section. The user can choose clades for which to display the correlation matrix and the presence heatmap with phylogenetic tree. Blast search can be performed to complement OrthoDB presence data. The user can change the default parameters for blastp search: sequence identity and E-value threshold.",
-        ),
-        html.P(
-            "The graphic representation of the results is a correlation matrix: the colors on the matrix reflect the values of the Pearson correlation coefficient, on both axes a color bar is added corresponding to the percentage of homologs presence in species: a high percentage corresponds to black, a low one is colored bright red. On the bottom of the page presence heatmap is constructed (). The columns show the orthogroups, with the same name as the query protein name. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors.  The front page also includes the link to a brief tutorial on using the tool."
-        ),
-
-    ], md=8, lg=6),
-    justify='center',
-),
 
 
 index = html.Div([
@@ -633,3 +641,132 @@ def csvdownload(task_id):
             )
         ),
     ])
+
+
+
+def about(app):
+    items = [
+        html.H3("About", className="mb-3", ),
+        html.P(
+            [
+                html.I("OrthoQuantum"),
+                html.Span("""is a web-based tool for visualizing and studying phylogenetic presence/absence patterns of proteins and corresponding orthologous groups."""),
+            ],
+        ),
+        html.P("""OrthoQuantum allows the user to submit protein queries, inspect the output in graphic format and download the output in .csv format. The tool visualizes phylogenetic profiles utilizing a set of databases with orthology predictions.  The webserver mainly relies on orthology predictions from the OrthoDB database, which  is leading in coverage of eukaryotic species, with 1,300 species that have a complete or nearly complete genome assembly and 37 million genes/proteins in the most recent update. Clustering of homologous sequences in OrthoDB occurs at the specified taxonomic level.  Multiple researchers can easily access the tool, which can display data from the set of over 1000 fully sequenced eukaryotic genomes and predicted orthologs at any given time.
+        """),
+        html.P("""A BLAST search can be performed to complement the orthology data. The user can submit the query in the front page by listing the UniProt identifiers or gene IDs in the input field."""),
+        sized_img(app.get_asset_url('tutorial/1.png')),
+
+        html.H3("How to run a basic job", className="mb-3"),
+        html.P(html.U("To perform a query:")),
+        html.P(html.Ol([
+            html.Li("Select clades for which to display the correlation matrix and the phylogenetic profile"),
+            html.Li("Input a list of query genes. Choose organism scientific name or NCBI taxid to convert gene names into corresponding Uniprot IDs."),
+            html.Li("To perform BLAST search click on the ‘Enable BLAST’ button. The default parameters for blastp search (sequence identity and E-value threshold) can be modified."),
+        ])),
+
+
+        html.P("""Click "Submit" to see your results."""),
+        html.P("""For brief descriptions, you can hover your mouse on fields to see the tooltip info messages."""),
+        html.H3("Input query details", className="mb-3"),
+        html.H5("""Step 1. Selection of Target Species"""),
+        dbc.Row([
+            dbc.Col(sized_img(app.get_asset_url('tutorial/2.png')), sm=6),
+            dbc.Col(sized_img(app.get_asset_url('tutorial/3.png')), sm=6),
+        ]),
+        html.P("""Available eukaryotic species are divided into taxonomic categories based on levels of orthology in OrthoDB: Eukaryota, Metazoa, Viridiplantae, Vertebrata, Aves, Actinopterygii, Fungi, Protista. Users can select sets of target species by using the series of presented drop down menus. For large taxonomic groups there is an option to continue with a compact set of species with a good quality of genome assembly, or with a full set of species from OrthoDB that may provide better resolution for conservation patterns (for example, the choice between 120 or 1100 species in Eukaryota). Once the target species have been selected, the user can input the sequence IDs."""),
+
+        html.H5("Step 2. Query Sequences"),
+        sized_img(app.get_asset_url('tutorial/4.png')),
+        html.P("""The user is presented with a window, with radio buttons to indicate the sources (species) of the query sequences and two text boxes in which to enter sequence IDs: """),
+        html.Ul([
+            html.Li("Gene Symbol: official gene names are converted into UniprotKB accesions by clicking ‘Find Uniprot ACs’. "),
+            html.Li("GeIf the user has Uniprot ACs  (the UniProtKB accession number) they can be pasted straightaway in the text box on the right."),
+        ]),
+        html.P("""Note there is an upper limit of 1000 query sequences for compact Eukaryota set and 100 species for full (all 1100 species available on OrthoDB)."""),
+
+        html.H5("Step 3. Selection of BLAST Options"),
+        html.P("""For orthogroups that have missing elements, a search for potential homologs was conducted against the NCBI nonredundant protein sequence database (nr) using the blastp algorithm. In this step, users can choose two parameters, the Similarity Metric and the Clustering Method."""),
+        sized_img(app.get_asset_url('tutorial/5.png')),
+        html.P("""The Similarity Metric option refers to how similarity (or alternatively, distance) between phylogenetic profiles is measured. Cluster3.0 features eight options. The basic idea of hierarchical clustering is to assemble a set of items into a tree, where items are joined by very short branches if they are very similar to each other, and by increasingly longer branches as their similarity decreases (Eisen, et al., 1998) . Cluster3.0 performs four types of binary, agglomerative, hierarchical clustering: centroid, single, complete or average linkages. Different methods refer to different ways to join branches and can result in different clustered outputs. More details of clustering options can be found in (Eisen, et al., 1998) ."""),
+
+        html.H5("Step 4. Execute the Query"),
+        html.P("""By clicking the 'Search' button, users then proceed to the visualization page. The query can be cancelled by clicking 'Cancel'."""),
+
+        html.H3("Results: Phylogenetic Profiles Visualization", className="mb-3"),
+        html.P("""At this stage users are presented with a visualization of their results which features an interactive heatmap of orthology relationships. The graphic representation of the results is a correlation matrix: the colors on the matrix reflect the values of the Pearson correlation coefficient, on both axes a color bar is added corresponding to the percentage of homologs presence in species: a high percentage corresponds to black, a low one is colored bright red."""),
+        sized_img(app.get_asset_url('tutorial/6.png')),
+        html.P("""On the bottom of the page phylogenetic profile heatmap is constructed. The columns show the orthogroups, with the same name as the query protein name. The order of query sequences is defined by the hierarchical clustering. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors. Mousing over an individual tile in the heatmap reveals the query species, gene names of both the query and orthologous genes."""),
+        sized_img(app.get_asset_url('tutorial/7.png')),
+        sized_img(app.get_asset_url('tutorial/8.png')),
+
+        html.P("""The heatmap figure can be downloaded as a PNG file by selecting 'Download Image' button. In addition, ‘Download csv’ button provides links to download data associated with the heatmap. """),
+        html.P("""Caveats"""),
+        html.P("""It should be noted that there are a number of caveats associated with orthology detection (Kuzniar, et al., 2008; Rano-Rubio et al. 2009). Firstly, in the absence of detailed phylogenetic analyses, domain gains, losses and shuffling events can significantly complicate orthology assignments. Secondly, horizontal gene transfer introduces an additional problem of xenologs which can lead to confounding outcomes. Thirdly, the quality and coverage of genome annotation varies significantly between genome projects. Genomes or lower quality or with lower fold coverage may be associated with incomplete proteomes, giving rise to apparently missing orthologs. Here we have attempted to use published genomes that provide a good compromise between phylogenetic coverage and what we consider are useful genome assemblies. As more genomes are sequenced, there is an increasing recognition for a set of 'industry' standards to be defined (Chain et al., 2009)."""),
+        html.H3("References", className="mb-3"),
+        html.P([
+            """Chain PS et al Genome project standards in a new era of sequencing. Science. 2009 Oct 9;326(5950):236-7)""", html.Br(),
+            """Eisen, M.B., et al. (1998) Cluster analysis and display of genome-wide expression patterns, Proc Natl Acad Sci U S A, 95, 14863-14868.""", html.Br(),
+            """Hulsen, T., et al. (2009) PhyloPat: an updated version of the phylogenetic pattern database contains gene neighborhood, Nucleic Acids Res, 37, D731-737.""", html.Br(),
+            """Kuzniar, A., et al. (2008) The quest for orthologs: finding the corresponding gene across genomes, Trends Genet, 24, 539-551.""", html.Br(),
+            """Pellegrini, M., et al. (1999) Assigning protein functions by comparative genome analysis: protein phylogenetic profiles, Proceedings of the National Academy of Sciences of the United States of America, 96, 4285-4288.""", html.Br(),
+            """Ruano-Rubio, V., Poch, O. and Thompson, J. (2009) Comparison of eukaryotic phylogenetic profiling approaches using species tree aware methods, BMC bioinformatics, 10, 383.""", html.Br(),
+            """Schneider, A., Dessimoz, C. and Gonnet, GH. (2007): OMA Browser - Exploring Orthologous Relations across 352 Complete Genomes, Bioinformatics 23(16), pages 2180-2182.""", html.Br(),
+            """von Mering, C., et al. (2003) STRING: a database of predicted functional associations between proteins, Nucleic Acids Res, 31, 258 - 261.""",
+        ]),
+        html.P("""Quick Links to Databases"""),
+        html.Ul([
+            html.Li(html.A("OrthoDB", href="http://www.utoronto.ca/")),
+            html.Li(html.A("PANTHER", href="http://llama.mshri.on.ca/synergizer/translate/")),
+            html.Li(html.A("NCBI", href="http://inparanoid.sbc.su.se/cgi-bin/index.cgi")),
+        ]),
+        # html.P(""""""),
+
+        ###
+        # html.P(
+        #     "The user can submit the query in the front page by either listing the Uniprot identifiers in the input field or by uploading .txt file. Taxonomic orthology levels include Eukaryota, Metazoa, Viridiplantae, Vertebrata, Aves, Actinopterygii, Fungi, Protista. For large taxonomic groups there is an option to continue with a compact set of species with a good quality of genome assembly, or with a full set of species from OrthoDB that may provide better resolution for conservation patterns (for example, the choice between 120 or 1100 species in Metazoa). After entering the query, a table of information related to each orthogroup is loaded. It collates query protein names with OrthoDB orthogroups identifiers, it also contains some other information about orthogroups already described in the previous section. The user can choose clades for which to display the correlation matrix and the presence heatmap with phylogenetic tree. Blast search can be performed to complement OrthoDB presence data. The user can change the default parameters for blastp search: sequence identity and E-value threshold.",
+        # ),
+        # html.P(
+        #     "The graphic representation of the results is a correlation matrix: the colors on the matrix reflect the values of the Pearson correlation coefficient, on both axes a color bar is added corresponding to the percentage of homologs presence in species: a high percentage corresponds to black, a low one is colored bright red. On the bottom of the page presence heatmap is constructed (). The columns show the orthogroups, with the same name as the query protein name. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors.  The front page also includes the link to a brief tutorial on using the tool."
+        # ),
+    ]
+    # H3 h5
+    counter = 1
+    contents = html.Ul([], style={
+        "padding-left": "20px",
+    })
+    i = 0
+    while i < len(items):
+        item = items[i]
+        if not isinstance(item, (html.H3, html.H5)):
+            i += 1
+            continue
+        # <a class="anchor" id="top"></a>
+        _id = f"item_{counter}"
+        counter+=1
+        items.insert(i, html.A(className="anchor", id=_id))
+        i += 2
+        if isinstance(item, html.H5):
+            if not isinstance(contents.children[-1], html.Ul):
+                contents.children.append(html.Ul([]))
+            arr = contents.children[-1].children
+        else:
+            arr = contents.children
+
+        arr.append(
+            html.Li(html.A(item.children, href=f"#{_id}"))
+        )
+
+    return dbc.Row(
+        dbc.Col([
+            html.H2("OrthoQuantum v1.0", className="text-center mt-5 mb-5"),
+            dbc.Card(
+                dbc.CardBody(contents),
+                style={"width": "26rem"},
+                className="mb-4",
+            ),
+            *items,
+        ], md=8, lg=6),
+        justify='center',
+    )

@@ -167,7 +167,7 @@ def router_page(href):
     if pathname == '/reports':
         return layout.reports, search
     if pathname == '/about':
-        return layout.about, search
+        return layout.about(dash_app), search
     return '404', search
 
 
@@ -1100,18 +1100,9 @@ def progress_updater(dp: DashProxy):
 
         elif stage == 'heatmap':
             dp[f"{stage}_title_row", "style"] = {}
-            dp[f"{stage}_container", "children"] = html.A(
-                html.Img(
-                    src=f'/files/{task_id}/Correlation_preview.png?version={version}',
-                    style={
-                        'width': '100%',
-                        'max-width': '1100px',
-                    },
-                    className="mx-auto",
-                ),
+            dp[f"{stage}_container", "children"] = layout.sized_img(
+                img_src=f'/files/{task_id}/Correlation_preview.png?version={version}',
                 href=f'/files/{task_id}/Correlation.png?version={version}',
-                target="_blank",
-                className="mx-auto",
             )
 
             dp["corr_table_container", "children"] = None
@@ -1228,10 +1219,12 @@ def submit(dp:DashProxy):
                 return
             # performing server validation
             try:
-                pident = dp["pident-output-val", "data"].strip()
-                _ = float(pident)
-                qcovs = dp["qcovs-output-val", "data"].strip()
-                _ = float(qcovs)
+                pident = float(dp["pident-output-val", "data"])
+                if not (0<pident<=100):
+                    raise ValueError()
+                qcovs = float(dp["qcovs-output-val", "data"])
+                if not (0<qcovs<=100):
+                    raise ValueError()
                 evalue = dp["evalue", "value"].strip()
                 if float(evalue) <= 0:
                     raise ValueError()

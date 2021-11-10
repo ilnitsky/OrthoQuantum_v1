@@ -34,19 +34,12 @@ COLS = (
 )
 
 @queue_manager.add_handler("/queues/blast", max_running=3)
-@cancellation_manager.wrap_handler
 async def blast(blast_autoreload=False, enqueue_tree_gen=False):
     db = get_db()
+    db.msg = "Getting blast data"
     @db.transaction
     async def res(pipe:Pipeline):
         pipe.multi()
-        db.report_progress(
-            current=0,
-            total=-1,
-            message="Getting blast data",
-            status="Executing",
-            pipe=pipe,
-        )
         pipe.mget(
             f"/tasks/{db.task_id}/request/blast_evalue",
             f"/tasks/{db.task_id}/request/blast_pident",
@@ -131,12 +124,9 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
     prots_to_fetch = {
         name_2_prot[name] for name in to_blast
     }
-
-    db.report_progress(
-        current=0,
-        total=len(prots_to_fetch),
-        message="Getting sequences",
-    )
+    db.current = 0
+    db.total = len(prots_to_fetch)
+    db.msg = "Getting sequences"
 
     prot_seq: dict[str, str] = {} # UniProt_AC -> fasta data
 
@@ -146,7 +136,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
             prot = prots_to_fetch.pop()
             async with session.get(f"http://www.uniprot.org/uniprot/{prot}.fasta") as resp:
                 prot_seq[prot] = await resp.text()
-                db.report_progress(current_delta=1)
+                db.current += 1
 
     max_parallel_fetches = 4
 
@@ -161,11 +151,10 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
             for task in tasks:
                 task.cancel()
 
-    db.report_progress(
-        current=0,
-        total=len(to_blast),
-        message="BLASTing",
-    )
+    db.current = 0
+    db.total = len(to_blast)
+    db.msg = "BLASTing"
+
 
     render_cond = asyncio.Condition()
     to_blast_iter = iter(to_blast)
@@ -233,7 +222,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
             async with render_cond:
                 blasted[name] = cur_blasted
                 render_cond.notify_all()
-            db.report_progress(current_delta=1)
+            db.current += 1
 
     max_running_blasts = 2
     blast_tasks = [
@@ -318,8 +307,3 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
             task.cancel()
         render_task.cancel()
         raise
-
-    db.report_progress(
-        status="Done",
-        version=db.version,
-    )

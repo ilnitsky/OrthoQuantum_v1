@@ -1,27 +1,23 @@
+from functools import partial
 import os
 import os.path
 import time
 import json
 import secrets
 import shutil
-from contextlib import suppress
 
 import urllib.parse as urlparse
-from dash import Dash
+from dash import Dash, no_update, dcc, html
 from dash.dependencies import Input, Output, State
-import dash_table
-import dash_core_components as dcc
-import dash_html_components as html
 import dash_bootstrap_components as dbc
 import flask
 from flask_compress import Compress
-import redis
 
 from phydthree_component import PhydthreeComponent
 
 from . import layout
 from . import user
-from .utils import DashProxy, DashProxyCreator, GROUP, decode_int, PBState, DEBUG
+from .utils import DashProxy, DashProxyCreator, GROUP, decode_int, DEBUG
 
 
 app = flask.Flask(__name__)
@@ -273,7 +269,7 @@ def csvdownload(dp: DashProxy):
     }
     if data['status'] == "Enqueued":
         # show_q_pos
-        gueue_len = user.get_queue_length(
+        gueue_len = user.get_queue_pos(
             queue_key='/queues/prottree',
             worker_group_name=GROUP,
             task_q_id=data['q_id'],
@@ -337,7 +333,7 @@ def prottree(dp: DashProxy):
     }
     if data['status'] == "Enqueued":
         # show_q_pos
-        gueue_len = user.get_queue_length(
+        gueue_len = user.get_queue_pos(
             queue_key='/queues/prottree',
             worker_group_name=GROUP,
             task_q_id=data['q_id'],
@@ -402,18 +398,11 @@ def new_task():
         raise RuntimeError("Failed to create a unique task_id")
 
     with user.db.pipeline(transaction=True) as pipe:
-        while True:
-            try:
-                pipe.watch(f"/users/{user_id}/task_counter")
-                pipe.multi()
-                pipe.incr(f"/users/{user_id}/task_counter")
-                pipe.execute_command("COPY",f"/users/{user_id}/task_counter", f"/tasks/{task_id}/name", "REPLACE")
-                pipe.rpush(f"/users/{user_id}/tasks", task_id)
-                task_num = pipe.execute()[0]
-                break
-            except redis.WatchError:
-                pass
-        user.db.set(f"/tasks/{task_id}/name", f"Query #{task_num}")
+        pipe.incr(f"/users/{user_id}/task_counter")
+        pipe.rpush(f"/users/{user_id}/tasks", task_id)
+        user.update(task_id, title="New query", redis_pipe=pipe)
+        task_num = pipe.execute()[0]
+    user.update(task_id, title=f"Query #{task_num}")
     return task_id
 
 
@@ -487,41 +476,30 @@ def request_list(dp: DashProxy):
     }
     with user.db.pipeline(transaction=False) as pipe:
         for task_id in task_ids:
-            pipe.get(f"/tasks/{task_id}/name")
-            for stage in stages:
-                pipe.hget(f"/tasks/{task_id}/progress/{stage}", "status")
+            pipe.hget(f"/tasks/{task_id}/state", "title")
+            pipe.hgetall(f"/tasks/{task_id}/enqueued")
+            pipe.hgetall(f"/tasks/{task_id}/running")
         data = pipe.execute()
 
     data_it = iter(data)
     for task_id in task_ids:
         name = next(data_it)
+        enqueued:dict = next(data_it)
+        running:dict = next(data_it)
 
-        not_started = True
-        spinner = False
-        message = None
-        for stage, status in tuple(zip(stages, data_it)):
-            # statuses: ("Enqueued", "Executing", "Waiting", "Done", "Error")
-            if status == "Waiting":
-                continue
-            elif status is None:
-                continue
-            elif status == "Done":
-                not_started = False
-                continue
-            elif status == "Enqueued":
+        for stage in stages:
+            if stage in enqueued:
                 message = f"{stages[stage]} enqueued"
                 spinner = True
-            elif status == "Executing":
+                break
+            elif stage in running:
                 message = f"{stages[stage]} in progress"
                 spinner = True
-            elif status == "Error":
-                message = f"{stages[stage]} error"
-            break
+                break
         else:
-            if not_started:
-                message = "No tasks were started"
-            else:
-                message = "All tasks are done"
+            message = "Ready"
+            spinner = False
+
         child_contents = [
             html.Strong(name),
             html.Br(),
@@ -555,6 +533,7 @@ def request_list(dp: DashProxy):
     Output('tooltip-table', 'className'),
     Output('tooltip-heatmap', 'className'),
     Output('tooltip-tree', 'className'),
+    Output('tooltip-max-prot-group', 'className'),
 
     Input('tutorial_enabled', 'data'),
 )
@@ -625,16 +604,20 @@ def demo_data(dp: DashProxy):
     Input('edit-request-title', 'n_clicks'),
     Input('request-input', 'n_blur'),
     Input('request-input', 'n_submit'),
+    Input('request_title_update', 'data'),
 
     State('request-input', 'value'),
+    State('connection_id', 'data'),
     State('request-title', 'children'),
     State('task_id', 'data'),
 )
 def request_title(dp: DashProxy):
-    task_id = dp['task_id', 'data']
     if dp.first_load:
+        return
+    if ('request_title_update', 'data') in dp.triggered:
         # set from db
-        dp['request-title', 'children'] = user.db.get(f"/tasks/{task_id}/name")
+        if dp['request-title', 'children'] != dp['request_title_update', 'data']:
+            dp['request-title', 'children'] = dp['request_title_update', 'data']
     elif dp.triggered.intersection((('request-input', 'n_blur'), ('request-input', 'n_submit'))):
         # set in db, update and show the text
         dp['edit-request-title', 'className'] = "text-decoration-none"
@@ -643,7 +626,12 @@ def request_title(dp: DashProxy):
         if new_name:
             # Only if new name is not empty
             dp['request-title', 'children'] = new_name
-            user.db.set(f"/tasks/{task_id}/name", new_name)
+            user.update(
+                dp['task_id', 'data'],
+                dp['connection_id', 'data'],
+                title=new_name
+            )
+
     else:
         # show editing interface
         dp['edit-request-title', 'className'] = "text-decoration-none d-none"
@@ -746,7 +734,7 @@ dash_app.clientside_callback(
             if (trigger == "blast-button.n_clicks"){
                 cur_state = !cur_state;
             } else if (trigger == "blast-button-input-value.data") {
-                cur_state = blast_value > 0
+                cur_state = blast_value
             }
         }
         if (cur_state){
@@ -835,46 +823,6 @@ for name in ("pident", "qcovs"):
         Input("blast-options", "is_open"),
     )
 
-
-
-@dash_proxy.callback(
-    Output('cancel-button', 'className'),
-    Output('progress_updater', 'disabled'),
-    Input('table_version', 'data'),
-    Input('input1_version', 'data'),
-    Input('table_version_target', 'data'),
-    Input('tree_version_target', 'data'),
-
-    Input('vis_version', 'data'),
-    Input('heatmap_version', 'data'),
-    Input('tree_version', 'data'),
-    Input('blast_version', 'data'),
-
-)
-def progress_updater_running(dp: DashProxy):
-    if dp.first_load:
-        dp['progress_updater', 'disabled'] = True
-        return
-    versions = (
-        'table_version',
-        'vis_version',
-        'heatmap_version',
-        'tree_version',
-        'blast_version',
-    )
-    if any(dp[key, 'data']< DO_NOT_REFRESH for key in versions):
-        dp['progress_updater', 'disabled'] = False
-        dp['cancel-button', 'className'] = "float-right"
-    elif (dp['table_version_target', 'data'] > dp['table_version', 'data']) or \
-        (dp['tree_version_target', 'data'] > dp['tree_version', 'data']):
-        dp['progress_updater', 'disabled'] = False
-        dp['cancel-button', 'className'] = "float-right d-none"
-    else:
-        dp['progress_updater', 'disabled'] = True
-        dp['cancel-button', 'className'] = "float-right d-none"
-
-
-
 dash_app.clientside_callback(
     """
     function(zoomVal) {
@@ -905,292 +853,417 @@ dash_app.clientside_callback(
 )
 
 
+DB_2_DASH = {}
 
-DO_REFRESH_NO_PROGRESS = -2
-DO_REFRESH = -1
-DO_NOT_REFRESH = 0
-VISUAL_COMPONENTS = {'table', 'heatmap', 'tree'}
+
+def add_processor(func=None, /, **from_to):
+    if not func:
+        return partial(add_processor, **from_to)
+    for k, v in from_to.items():
+        if isinstance(v[0], str):
+            v = (v,)
+        DB_2_DASH[k] = (v, func)
+    return func
+
+
+_no_val = object()
+def _basic_assign(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    for dash_key in dash_keys:
+        dp[dash_key] = upd[db_key]
+def simple_processor(func=None, default=_no_val, exceptions=(Exception)):
+    if func:
+        if default is not _no_val:
+            def assign(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+                for dash_key in dash_keys:
+                    try:
+                        dp[dash_key] = func(upd[db_key])
+                    except exceptions:
+                        dp[dash_key] = default
+        else:
+            def assign(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+                for dash_key in dash_keys:
+                    dp[dash_key] = func(upd[db_key])
+    else:
+        assign = _basic_assign
+    return assign
+
+
+add_processor(
+    simple_processor(),
+    # db_key = dash_key,
+    input_proteins = ('uniprotAC_update', 'data'),
+)
+
+add_processor(
+    simple_processor(str.strip),
+
+    title = ('request_title_update', 'data'),
+    input_tax_level = ('tax-level-dropdown', 'value'),
+)
+
+add_processor(
+    simple_processor(bool),
+
+    input_blast_enabled = ('blast-button-input-value', 'data')
+)
+
+def float_preserve_str(val:str):
+    val = val.strip()
+    _ = float(val)
+    return val
+
+add_processor(
+    simple_processor(func=float_preserve_str, default="1e-5"),
+
+    input_blast_evalue=("evalue", "value")
+)
+
+
+add_processor(
+    simple_processor(func=float, default=70.0),
+
+    input_blast_pident=("pident-input-val", "data"),
+    input_blast_qcovs=("qcovs-input-val", "data"),
+)
+
+
+add_processor(
+    simple_processor(func=int, default=600),
+
+    input_max_proteins=("max-proteins", "value"),
+)
+
+@add_processor(
+    missing_prots = (
+        ('missing_prot_alert', 'children'),
+        ('missing_prot_alert', 'is_open'),
+    )
+)
+def missing_prot(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    # TODO: move missing_prot_alert into state hash
+    missing_prot_msg = upd.get(db_key)
+    print(f"{missing_prot_msg=}")
+    if missing_prot_msg:
+        dp['missing_prot_alert', 'children'] = f"Unknown proteins: {missing_prot_msg}"
+        dp['missing_prot_alert', 'is_open'] = True
+    else:
+        dp['missing_prot_alert', 'children'] = None
+        dp['missing_prot_alert', 'is_open'] = False
+
+
+@add_processor(
+    table = (
+        ('data_table', 'data'),
+        ('data_table', 'columns'),
+        ('table_container', 'style'),
+    ),
+)
+def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    try:
+        with open(user.DATA_PATH/dp['task_id', 'data']/"Info_table.json", "r") as f:
+            tbl_data = json.load(f)
+        for k, v in dash_keys:
+            if k != 'data_table':
+                continue
+            dp[k, v] = tbl_data[v]
+        dp['table_container', 'style'] = layout.SHOW
+
+    except Exception:
+        # TODO: report exception
+        pass
+
+@add_processor(
+    heatmap = (
+        ("heatmap_img", "src"),
+        ("heatmap_link", "href"),
+        ("heatmap_container", "style"),
+
+        ("corr_table", "data"),
+        ("corr_table", "columns"),
+    ),
+)
+def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    task_id = dp['task_id', 'data']
+    heatmap_version = upd[db_key]
+
+    dp["heatmap_img", "src"] = f'/files/{task_id}/Correlation_preview.png?version={heatmap_version}'
+    dp["heatmap_link", "href"] = f'/files/{task_id}/Correlation.png?version={heatmap_version}'
+
+    dp["heatmap_container", "style"] = layout.SHOW
+
+    try:
+        with open(user.DATA_PATH/task_id/"Correlation_table.json", "r") as f:
+            tbl_data = json.load(f)
+
+        for k, v in dash_keys:
+            if k != 'corr_table':
+                continue
+            dp[k, v] = tbl_data[v]
+
+    except Exception:
+        # TODO: report exception
+        pass
+
+
+@add_processor(
+    tree = (
+        ('tree_header', 'style'),
+        ("ssr_tree_block", "style"),
+
+        ('tree_container', 'children'),
+        ("ssr_tree_img", "src"),
+    ),
+)
+def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    task_id = dp['task_id', 'data']
+    tree_info = upd[db_key]
+    blast_ver = upd.get("tree_blast_ver", 0)
+
+    dp['tree_header', 'style'] = layout.SHOW
+
+    kind = tree_info['kind']
+    version = tree_info['version']
+    shape = tree_info['shape']
+
+    if kind == 'interactive':
+        dp["ssr_tree_img", "src"] = ""
+        dp["ssr_tree_block", "style"] = layout.HIDE
+        dp["tree_container", "children"] = PhydthreeComponent(
+            url=f'/files/{task_id}/tree.xml?version={version}_{blast_ver}',
+            height=2000,
+            leafCount=shape[0],
+            version=version,
+            taskid=task_id,
+        )
+    else:
+        assert kind in ('svg', 'png')
+        dp["tree_container", "children"] = None
+        dp["ssr_tree_block", "style"] = layout.SHOW
+        dp["ssr_tree_img", "src"] = f'/files/{task_id}/ssr_img.{kind}?version={version}_{blast_ver}'
+
+# SSR
+# @add_processor(
+#     tree_opts = (
+#         ('show_groups', 'checked'),
+#         ('show_species', 'checked'),
+#     ),
+# )
+# def tree_opts(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+#     opts = upd[db_key]
+#     showNodesType = opts.get("showNodesType", "only leaf")
+#     showNodeNames = opts.get("showNodeNames", True)
+#     dp['show_groups', 'checked'] = showNodeNames and showNodesType != "only leaf"
+#     dp['show_species', 'checked'] = showNodeNames and showNodesType != "only inner"
+
+def gen_progress_keys(stage):
+    return (
+        (f'{stage}_progress_text', 'children'), #text
+
+        (f'{stage}_progress_bar', 'max'),
+        (f'{stage}_progress_bar', 'value'),
+        (f'{stage}_progress_bar', 'animated'),
+        (f'{stage}_progress_bar', 'striped'),
+        (f'{stage}_progress_bar', 'color'),
+
+        (f'{stage}_progress_container', 'style'),
+    )
+
+
+@add_processor(
+    progress_table = gen_progress_keys("table"),
+    progress_vis = gen_progress_keys("vis"),
+    progress_heatmap = (
+        *gen_progress_keys("heatmap"),
+        ('heatmap_header', 'style')
+    ),
+    progress_tree = (
+        *gen_progress_keys("tree"),
+        ('tree_header', 'style')
+    ),
+    # todo: add all progress bars here
+)
+def progress(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    pbdata = upd[db_key]
+    stage = db_key.rsplit("_", maxsplit=1)[-1]
+    pb = f'{stage}_progress_bar'
+    reveal = {
+        'heatmap': ('heatmap_header', 'heatmap_progress_container'),
+        'tree': ('tree_header', 'tree_progress_container'),
+    }
+    # pbdata structure: {
+    #     'style': "progress"|"error"|"",
+    #     'max': 100,
+    #     'value': 100,
+    #     'msg': ""
+    # }
+    style = pbdata.get('style')
+
+    if not style:
+        dp[f'{stage}_progress_container', 'style'] = layout.HIDE
+        dp[f'{stage}_progress_text', 'children'] = None
+        return
+
+    msg = pbdata.get('msg', '')
+
+    for comp in reveal.get(stage, (f'{stage}_progress_container',)):
+        dp[comp, 'style'] = layout.SHOW
+
+    if style == 'progress':
+        dp[pb, 'color'] = 'info'
+
+        if pbdata.get('max'):
+            # todo: accomodate empty strings
+            total = pbdata['max']
+            value = pbdata.get('value', 0)
+            dp[pb, 'max'] = total
+            dp[pb, 'value'] = value
+            dp[pb, 'animated'] = False
+            dp[pb, 'striped'] = False
+            if msg:
+                msg = f"{msg} ({value}/{total})"
+            else:
+                msg = f"{value}/{total}"
+        else:
+            dp[pb, 'max'] = 100
+            dp[pb, 'value'] = 100
+            dp[pb, 'animated'] = True
+            dp[pb, 'striped'] = True
+    elif style == 'error':
+        dp[pb, 'color'] = 'danger'
+
+        dp[pb, 'max'] = 100
+        dp[pb, 'value'] = 100
+        dp[pb, 'animated'] = False
+        dp[pb, 'striped'] = False
+        if not msg:
+            msg = "Unknown error"
+    else:
+        assert False, f'unknown pb style {style}'
+
+    dp[f'{stage}_progress_text', 'children'] = msg
+
+
+
+def create_outputs():
+    outputs = set()
+    print("\n".join(DB_2_DASH.keys()))
+    for dash_keys, _ in DB_2_DASH.values():
+        for dash_key in dash_keys:
+            outputs.add(dash_key)
+    for id, prop in sorted(outputs):
+        yield Output(id, prop)
+
 
 @dash_proxy.callback(
-    Output('progress_updater', 'interval'),
+    # Output('progress_updater', 'interval'),
+    Output('progress_updater', 'disabled'),
+    Output('cancel-button', 'className'),
+    Output('version', 'data'),
+    Output('connection_id', 'data'),
 
-    Output('table_progress_container', 'children'),
-    Output('table_version', 'data'),
-    Output('table_container', 'children'),
-    Output('missing_prot_alert', 'is_open'),
-    Output('missing_prot_alert', 'children'),
-
-    Output('vis_progress_container', 'children'),
-    Output('vis_version', 'data'),
-
-    Output('heatmap_title_row', 'style'),
-    Output('heatmap_progress_container', 'children'),
-    Output('heatmap_version', 'data'),
-    Output('heatmap_container', 'children'),
-    Output("corr_table_container", "children"),
-
-    Output('tree_title_row', 'style'),
-    Output('tree_progress_container', 'children'),
-    Output('tree_version', 'data'),
-    Output('tree_container', 'children'),
-    Output('ssr_tree_block', 'style'),
-    Output('ssr_tree_img', 'src'),
-    Output("show_groups", "checked"),
-    Output("show_species", "checked"),
-
-    Output('blast_version', 'data'),
-    Output('blast_progress_container', 'children'),
-
-    Output('input1_refresh', 'data'),
+    *create_outputs(),
 
     Input('progress_updater', 'n_intervals'),
-
-    State('input1_version', 'data'),
-
-    State('table_version', 'data'),
-    State('vis_version', 'data'),
-    State('heatmap_version', 'data'),
-    State('tree_version', 'data'),
-    State('blast_version', 'data'),
+    Input('force_updates', 'data'),
+    Input('prot-search-result', 'data'),
 
     State('task_id', 'data'),
-    State('input1_refresh', 'data'),
+    State('connection_id', 'data'),
+    State('version', 'data'),
+
+    State('blast-button-input-value', 'data'),
 )
-def progress_updater(dp: DashProxy):
+def update_everything(dp: DashProxy):
     task_id = dp['task_id', 'data']
-    stages = ('table', 'vis', 'tree', 'heatmap', 'blast')
 
-    show_component = {}
+    update_needed = (
+        dp.first_load or
+        {
+            ('progress_updater', 'n_intervals'),
+            ('force_updates', 'data')
+        }.intersection(dp.triggered)
+    )
 
-    with user.db.pipeline(transaction=True) as pipe:
-        for stage in stages:
-            pipe.hgetall(f"/tasks/{task_id}/progress/{stage}")
-        pipe.mget(
-            f"/tasks/{task_id}/stage/table/input_version",
-            f"/tasks/{task_id}/stage/tree/info",
-            f"/tasks/{task_id}/stage/tree/opts",
-        )
-        res = pipe.execute()
-    res_it = iter(res)
-    info = dict(zip(stages, res_it))
-    input1_version, tree_info, tree_opts = next(res_it)
-    input1_version = decode_int(input1_version)
-    if tree_info:
-        tree_info = json.loads(tree_info)
-    else:
-        tree_info = None
-    if tree_opts:
-        tree_opts = json.loads(tree_opts)
-    else:
-        tree_opts = {}
+    while update_needed:
+        # initial load
+        with user.db.pipeline(transaction=True) as pipe:
+            pipe.hgetall(f"/tasks/{task_id}/enqueued") # stage: qid
+            pipe.hlen(f"/tasks/{task_id}/running") # stage: qid
+            user.get_updates(task_id, dp['version', 'data'], dp['connection_id', 'data'], redis_client=pipe)
 
-
-    refresh_interval = float('+inf')
-
-    for stage, data in info.items():
-        data: dict
-        print(stage, data)
-        data.setdefault('status', None)
-
-        if data['status'] is None or data['status'] == "Error":
-            tgt_ver = DO_NOT_REFRESH
-        elif data['status'] == "Done":
-            tgt_ver = int(data['version'])
+            enqueued, running, updates = pipe.execute()
+        updates = user.decode_updates_resp(updates)
+        if len(updates) == 2:
+            dp['version', 'data'], updates = updates
         else:
-            tgt_ver = DO_REFRESH_NO_PROGRESS if data['status'] == 'Waiting' else DO_REFRESH
-            if data['status'] == 'Waiting' or stage == 'blast':
-                refresh_interval = min(refresh_interval, 5000)
+            dp['version', 'data'], dp['connection_id', 'data'], updates = updates
+        updates: dict[str, str]
+        if updates:
+            print(f"<- update {dp['version', 'data']}:", updates)
+        JSON_ENCODED_DATA = {"tree", "tree_opts"}
+
+        for k in JSON_ENCODED_DATA.intersection(updates.keys()):
+            if updates[k]:
+                updates[k] = json.loads(updates[k])
             else:
-                refresh_interval = min(refresh_interval, 2500)
+                updates[k] = {}
 
-        render_pbar = tgt_ver == DO_REFRESH
-        if dp[f"{stage}_version", "data"] != tgt_ver:
-            dp[f"{stage}_version", "data"] = tgt_ver
-            if stage in VISUAL_COMPONENTS:
-                show_component[stage] = data['status'] == 'Done'
-            render_pbar = render_pbar or data['status'] == 'Error'
-            if not render_pbar:
-                dp[f"{stage}_progress_container", "children"] = None
+        if enqueued:
+            with user.db.pipeline(transaction=True) as pipe:
+                for stage, qid in enqueued.items():
+                    user.get_queue_pos(
+                        queue_key=f"/queues/{stage}",
+                        worker_group_name=GROUP,
+                        task_q_id=qid,
+                        redis_client=pipe,
+                    )
+                    pipe.hget(f"/tasks/{task_id}/state", f"progress_{stage}_msg")
 
-        if render_pbar:
-            if stage in ('tree', 'heatmap'):
-                # show the title if rendering progress bars
-                dp[f"{stage}_title_row", "style"] = {}
-            pbar = {
-                "style": {"height": "30px"},
-                'color': 'danger' if data['status'] == "Error" else 'info'
-            }
-            data['total'] = decode_int(data['total'])
-            msg = data['message']
-            if data['total'] < 0:
-                pbar['max'] = 100
-                pbar['value'] = 100
-                animate = data['total'] != -2 # not static message
-                pbar['animated'] = animate
-                pbar['striped'] = animate
-            else:
-                data['current'] = decode_int(data['current'])
-                pbar['max'] = data['total']
-                pbar['value'] = data['current']
-                pbar['animated'] = False
-                pbar['striped'] = False
-                msg = f"{msg} ({data['current']}/{data['total']})"
-
-            if data['status'] == 'Enqueued':
-                # HACK: queue for SSR is called /ssr, but it uses stage name "tree"
-                # There is no queue called "tree", since tree xml generation is a
-                # subtask of the "vis" task (which has its own queue)
-                if stage == "tree":
-                    queue_key=f"/queues/ssr"
-                else:
-                    queue_key=f"/queues/{stage}"
-
-
-                gueue_len = user.get_queue_length(
-                    queue_key=queue_key,
-                    worker_group_name=GROUP,
-                    task_q_id=data['q_id'],
-                )
-
-                if gueue_len > 0:
-                    msg = f"{msg}: {gueue_len} task{'s' if gueue_len>1 else ''} before yours"
+                res = pipe.execute()
+            res_it = iter(res)
+            for stage in enqueued:
+                pos = next(res_it)
+                msg = next(res_it) or stage
+                if pos > 0:
+                    msg = f"{msg}: {pos} task{'s' if pos>1 else ''} before yours"
                 else:
                     msg = f"{msg}: starting"
-            dp[f"{stage}_progress_container", "children"] = dbc.Progress(
-                children=html.Span(
-                    msg,
-                    className="justify-content-center d-flex position-absolute w-100",
-                    style={"color": "black"},
-                    key=f"{stage}_progress_text",
-                ),
-                key=f"{stage}_progress_bar",
-                **pbar,
-            )
 
-    for stage, do_show in show_component.items():
-        if not do_show:
-            dp[f"{stage}_container", "children"] = None
-            if stage == "heatmap":
-                dp["corr_table_container", "children"] = None
-                dp[f"{stage}_title_row", "style"] = {'display': 'none'}
-            elif stage == "tree":
-                dp[f"{stage}_title_row", "style"] = {'display': 'none'}
-                dp["ssr_tree_block", "style"] = {"display": "none"}
-                dp["ssr_tree_img", "src"] = ""
+                updates[f"progress_{stage}_style"] = "progress"
+                updates[f"progress_{stage}_msg"] = msg
 
-            continue
-        version = dp[f"{stage}_version", "data"]
-        if stage == 'table':
-            dp[f"table_container", "children"] = None
-            try:
-                with open(user.DATA_PATH/task_id/"Info_table.json", "r") as f:
-                    tbl_data = json.load(f)
+        dp['progress_updater', 'disabled'] = not (
+            enqueued or
+            running or
+            dp['force_updates', 'data'] > time.time()
+        )
 
-                if tbl_data['version'] == version:
-                    dp[f"table_container", "children"] = dash_table.DataTable(
-                        **tbl_data['data'],
-                        filter_action="native",
-                        page_size=40,
-                    )
-                else:
-                    # table updated between requests, ensure to make a request soon
-                    refresh_interval = min(refresh_interval, 300)
-            except Exception:
-                pass
+        # group progress_{stage}_{msg/max/value/style} as
+        # dict progress_{stage} with keys {msg/max/value/style}
+        for db_key in tuple(filter(lambda x: x.startswith("progress_"), updates.keys())):
+            key, subkey = db_key.rsplit("_", maxsplit=1)
+            updates.setdefault(key, {})[subkey] = updates.pop(db_key)
 
-        elif stage == 'heatmap':
-            dp[f"{stage}_title_row", "style"] = {}
-            dp[f"{stage}_container", "children"] = html.A(
-                html.Img(
-                    src=f'/files/{task_id}/Correlation_preview.png?version={version}',
-                    style={
-                        'width': '100%',
-                        'max-width': '1100px',
-                    },
-                    className="mx-auto",
-                ),
-                href=f'/files/{task_id}/Correlation.png?version={version}',
-                target="_blank",
-                className="mx-auto",
-            )
+        update_needed = False
+        for db_key in updates:
+            dash_keys, func = DB_2_DASH[db_key]
+            update_needed = func(dp, updates, db_key, dash_keys) or update_needed
 
-            dp["corr_table_container", "children"] = None
-            try:
-                with open(user.DATA_PATH/task_id/"Correlation_table.json", "r") as f:
-                    tbl_data = json.load(f)
-
-                if tbl_data['version'] == version:
-                    dp["corr_table_container", "children"] = dash_table.DataTable(
-                        **tbl_data['data'],
-                        filter_action="native",
-                        page_size=20,
-                    )
-                else:
-                    # table updated between requests, ensure to make a request soon
-                    refresh_interval = min(refresh_interval, 300)
-            except Exception:
-                pass
-        elif stage == 'tree':
-            dp[f"{stage}_title_row", "style"] = {}
-            dp["ssr_tree_block", "style"] = {"display": "none"}
-            dp["ssr_tree_img", "src"] = ""
-            tree_kind = tree_info['kind']
-            if tree_kind == 'interactive':
-                dp[f"{stage}_container", "children"] = PhydthreeComponent(
-                    url=f'/files/{task_id}/tree.xml?nocache={version}',
-                    height=2000,
-                    leafCount=tree_info['shape'][0],
-                    version=version,
-                    taskid=task_id,
-                )
-            else:
-                assert tree_kind in ('svg', 'png')
-                dp[f"{stage}_container", "children"] = None
-                dp["ssr_tree_block", "style"] = {}
-                dp["ssr_tree_img", "src"] = f"/files/{task_id}/ssr_img.{tree_kind}?version={version}"
-                showNodesType = tree_opts.get("showNodesType", "only leaf")
-                showNodeNames = tree_opts.get("showNodeNames", True)
-                dp['show_groups', 'checked'] = showNodeNames and showNodesType != "only leaf"
-                dp['show_species', 'checked'] = showNodeNames and showNodesType != "only inner"
-
-    if input1_version > dp['input1_version', 'data']:
-        # db has newer data, update output values
-        dp['input1_refresh', 'data'] += 1
-
-    if info['table'].get('status') == 'Executing' or 'table' in show_component:
-        missing_prot_msg = user.db.get(f"/tasks/{task_id}/stage/table/missing_msg")
-        dp['missing_prot_alert', 'is_open'] = bool(missing_prot_msg)
-        if dp['missing_prot_alert', 'is_open']:
-            dp['missing_prot_alert', 'children'] = f"Unknown proteins: {missing_prot_msg[:-2]}"
-        else:
-            # table updated between requests, ensure to make a request soon
-            refresh_interval = min(refresh_interval, 300)
-
-
-    if refresh_interval != float('+inf'):
-        dp['progress_updater', 'interval'] = refresh_interval
-
+    # /stage/tree/info
+    # /stage/tree/opts
 
 @dash_proxy.callback(
-    Output("wrong-input-2", "is_open"),
-    Output("blast-button-input-value", "data"),
+    Output("wrong-input-msg", "is_open"),
+    # Output("blast-button-input-value", "data"),
 
-    Output("pident-input-val", "data"),
-    Output("qcovs-input-val", "data"),
-    Output("evalue", "value"),
-
-    ###
     Output('uniprotAC', 'value'),
-    Output('tax-level-dropdown', 'value'),
-    Output('input1_version', 'data'),
-    Output('table_version_target', 'data'),
-    Output('tree_version_target', 'data'),
-    ###
+    Output('force_updates', 'data'),
+
 
     ###
+    Input('uniprotAC_update', 'data'),
     Input('submit-button', 'n_clicks'),
     Input('rerenderSSR_button', 'n_clicks'),
-    Input('input1_refresh', 'data'),
     Input('cancel-button', 'n_clicks'),
     Input('prot-search-result', 'data'),
     ###
@@ -1208,242 +1281,187 @@ def progress_updater(dp: DashProxy):
     State("show_species", "checked"),
 
     State("evalue", "value"),
+    State("max-proteins", "value"),
     State("submit-button", "children"),
 
     ###
-    State('input1_version', 'data'),
     State('uniprotAC', 'value'),
     State('tax-level-dropdown', 'value'),
+
+    State('connection_id', 'data'),
     ###
 )
 def submit(dp:DashProxy):
     task_id = dp['task_id', 'data']
+    # append prot search result last!
+    upd_priority = {
+        ('prot-search-result', 'data'): 100
+    }
+    triggers = sorted(dp.triggered, key=lambda x: upd_priority.get(x, 0))
+    print("submit_trig", triggers)
+    for cause in triggers:
+        if cause == ('uniprotAC_update', 'data'):
+            if dp['uniprotAC_update', 'data'] is not None:
+                dp['uniprotAC', 'value'] = dp['uniprotAC_update', 'data']
+        elif cause == ('submit-button', 'n_clicks'):
+            # button press triggered
+            if dp["blast-options", "is_open"]:
+                if dp["pident-input", "invalid"] or dp["qcovs-input", "invalid"]:
+                    # client validation failed
+                    dp["wrong-input-msg", "is_open"] = True
+                    continue
+                # performing server validation
+                try:
+                    pident = float(dp["pident-output-val", "data"])
+                    if not (0 < pident <= 100):
+                        raise ValueError()
+                    qcovs = float(dp["qcovs-output-val", "data"])
+                    if not (0 < qcovs <= 100):
+                        raise ValueError()
+                    evalue = dp["evalue", "value"].strip()
+                    if float(evalue) <= 0:
+                        raise ValueError()
+                except Exception:
+                    # client validation succeeded, server validation failed
+                    dp["wrong-input-msg", "is_open"] = True
+                    continue
 
-    if ('submit-button', 'n_clicks') in dp.triggered:
-        # button press triggered
-        if dp["blast-options", "is_open"]:
-            if dp["pident-input", "invalid"] or dp["qcovs-input", "invalid"]:
-                # client validation failed
-                dp["wrong-input-2", "is_open"] = True
-                return
-            # performing server validation
-            try:
-                pident = dp["pident-output-val", "data"].strip()
-                _ = float(pident)
-                qcovs = dp["qcovs-output-val", "data"].strip()
-                _ = float(qcovs)
-                evalue = dp["evalue", "value"].strip()
-                if float(evalue) <= 0:
-                    raise ValueError()
-            except Exception:
-                # client validation succeeded, server validation failed
-                dp["wrong-input-2", "is_open"] = True
-                return
+                # validation succeeded
+                dp["wrong-input-msg", "is_open"] = False
+            else:
+                # no blast options, set to default ('') for redis request
+                qcovs = ''
+                pident = ''
+                evalue = ''
 
-            # validation succeeded
-            dp["wrong-input-2", "is_open"] = False
-        else:
-            # no blast options, set to default ('') for redis request
-            qcovs = ''
-            pident = ''
-            evalue = ''
+            assert dp['connection_id', 'data'], "Connection id should be set on page load"
 
+            with user.db.pipeline(transaction=True) as pipe:
+                user.enqueue(
+                    task_id=task_id,
+                    stage="table",
+                    redis_client=pipe,
+                )
+                user.cancel(
+                    task_id=task_id,
+                    stage="vis",
 
-        with user.db.pipeline(transaction=True) as pipe:
-            user.enqueue(
-                version_key=f"/tasks/{task_id}/stage/table/version",
-                queue_key='/queues/table',
-                queue_id_dest=f"/tasks/{task_id}/progress/table",
-                queue_hash_key="q_id",
-                redis_client=pipe,
+                    redis_client=pipe,
+                )
+                user.cancel(
+                    task_id=task_id,
+                    stage="blast",
 
-                task_id=task_id,
-                stage="table",
-            )
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/vis/version",
-                queue_key="/queues/vis",
-                queue_id_dest=f"/tasks/{task_id}/progress/vis",
-                queue_hash_key="q_id",
+                    redis_client=pipe,
+                )
+                user.cancel(
+                    task_id=task_id,
+                    stage="ssr",
 
-                redis_client=pipe,
-            )
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/blast/version",
-                queue_key="/queues/blast",
-                queue_id_dest=f"/tasks/{task_id}/progress/blast",
-                queue_hash_key="q_id",
+                    redis_client=pipe,
+                )
+                user.update(
+                    task_id, connection_id=dp['connection_id', 'data'], redis_pipe=pipe,
 
-                redis_client=pipe,
-            )
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/tree/version",
-                queue_key="/queues/ssr",
-                queue_id_dest=f"/tasks/{task_id}/progress/tree",
-                queue_hash_key="q_id",
+                    input_proteins=dp['uniprotAC', 'value'],
+                    input_tax_level=dp['tax-level-dropdown', 'value'],
+                    input_blast_enabled="1" if dp["blast-options", "is_open"] else "",
+                    input_blast_evalue=evalue,
+                    input_blast_pident=pident,
+                    input_blast_qcovs=qcovs,
+                    input_max_proteins=dp["max-proteins", "value"],
+                )
+                user.update(
+                    task_id, redis_pipe=pipe,
 
-                redis_client=pipe,
-            )
-            pipe.delete(
-                f"/tasks/{task_id}/stage/table/missing_msg",
-                f"/tasks/{task_id}/progress/heatmap",
-                f"/tasks/{task_id}/progress/tree",
-            )
+                    progress_table_style='',
+                    progress_table_max=0,
+                    progress_table_value=0,
+                    progress_table_msg="Building table",
+                    progress_vis_style='',
+                    progress_heatmap_style='',
+                    progress_tree_style='',
+                )
+                res = pipe.execute()
+                dp['force_updates', 'data'] = time.time()+3
 
-            pipe.mset({
-                f"/tasks/{task_id}/request/proteins": dp['uniprotAC', 'value'],
-                f"/tasks/{task_id}/request/tax-level": dp['tax-level-dropdown', 'value'],
+        elif cause == ('rerenderSSR_button', 'n_clicks'):
+            raise NotImplementedError("SSR needs to be updated")
+            showGroups = dp['show_groups', 'checked']
+            showSpecies = dp['show_species', 'checked']
+            opts = {}
+            if showGroups and showSpecies:
+                opts["showNodesType"] = "all"
+            elif showGroups:
+                opts["showNodesType"] = "only inner"
+            else:
+                opts["showNodesType"] = "only leaf"
+            opts["showNodeNames"] = showGroups or showSpecies
 
-                f"/tasks/{task_id}/request/blast_enable": "1" if dp["blast-options", "is_open"] else "",
-                f"/tasks/{task_id}/request/blast_evalue": evalue,
-                f"/tasks/{task_id}/request/blast_pident": pident,
-                f"/tasks/{task_id}/request/blast_qcovs": qcovs,
+            with user.db.pipeline(transaction=True) as pipe:
+                user.enqueue(
+                    version_key=f"/tasks/{task_id}/stage/tree/version",
+                    queue_key="/queues/ssr",
+                    queue_id_dest=f"/tasks/{task_id}/progress/tree",
+                    queue_hash_key="q_id",
+                    redis_client=pipe,
 
-            })
-            pipe.hset(f"/tasks/{task_id}/progress/table",
-                mapping={
-                    "status": 'Enqueued',
-                    'total': PBState.UNKNOWN_LEN,
-                    "message": "Building table",
-                }
-            )
-            pipe.execute_command(
-                "COPY",
-                f"/tasks/{task_id}/stage/table/version",
-                f"/tasks/{task_id}/stage/table/input_version",
-                "REPLACE",
-            )
-            res = pipe.execute()
+                    task_id=task_id,
+                    stage="tree",
+                )
+                pipe.set(
+                    f"/tasks/{task_id}/stage/tree/opts",
+                    json.dumps(opts),
+                )
+                pipe.hset(f"/tasks/{task_id}/progress/tree",
+                    mapping={
+                        "status": 'Enqueued',
+                        'total': -2,
+                        "message": "Rerendering",
+                    }
+                )
+                res = pipe.execute()
+            dp['tree_version_target', 'data'] = decode_int(res[0][0])
 
-        dp['input1_version', 'data'] = decode_int(res[0][0])
-        dp['table_version_target', 'data'] = dp['input1_version', 'data']
+        elif cause == ('cancel-button', 'n_clicks'):
+            with user.db.pipeline(transaction=True) as pipe:
+                user.cancel(
+                    task_id=task_id,
+                    stage="table",
+                    redis_client=pipe,
+                )
+                user.cancel(
+                    task_id=task_id,
+                    stage="vis",
+                    redis_client=pipe,
+                )
+                user.cancel(
+                    task_id=task_id,
+                    stage="blast",
+                    redis_client=pipe,
+                )
+                user.cancel(
+                    task_id=task_id,
+                    stage="ssr",
+                    redis_client=pipe,
+                )
+                user.update(
+                    task_id, redis_pipe=pipe,
 
-    elif ('rerenderSSR_button', 'n_clicks') in dp.triggered:
-        showGroups = dp['show_groups', 'checked']
-        showSpecies = dp['show_species', 'checked']
-        opts = {}
-        if showGroups and showSpecies:
-            opts["showNodesType"] = "all"
-        elif showGroups:
-            opts["showNodesType"] = "only inner"
-        else:
-            opts["showNodesType"] = "only leaf"
-        opts["showNodeNames"] = showGroups or showSpecies
+                    progress_table_style='',
+                    progress_vis_style='',
+                    progress_heatmap_style='',
+                    progress_tree_style='',
+                )
 
-        with user.db.pipeline(transaction=True) as pipe:
-            user.enqueue(
-                version_key=f"/tasks/{task_id}/stage/tree/version",
-                queue_key="/queues/ssr",
-                queue_id_dest=f"/tasks/{task_id}/progress/tree",
-                queue_hash_key="q_id",
-                redis_client=pipe,
+                res = pipe.execute()
 
-                task_id=task_id,
-                stage="tree",
-            )
-            pipe.set(
-                f"/tasks/{task_id}/stage/tree/opts",
-                json.dumps(opts),
-            )
-            pipe.hset(f"/tasks/{task_id}/progress/tree",
-                mapping={
-                    "status": 'Enqueued',
-                    'total': PBState.UNKNOWN_LEN,
-                    "message": "Rerendering",
-                }
-            )
-            res = pipe.execute()
-        dp['tree_version_target', 'data'] = decode_int(res[0][0])
-
-    elif ('input1_refresh', 'data') in dp.triggered or dp.first_load:
-        # Server has newer data than we have, update dropdown value
-        data = user.db.mget(
-            f"/tasks/{task_id}/request/proteins",
-            f"/tasks/{task_id}/request/tax-level",
-
-            f"/tasks/{task_id}/request/blast_enable",
-            f"/tasks/{task_id}/request/blast_evalue",
-            f"/tasks/{task_id}/request/blast_pident",
-            f"/tasks/{task_id}/request/blast_qcovs",
-
-            f"/tasks/{task_id}/stage/table/input_version"
-        )
-        if not any(data):
-            return
-        (
-            dp['uniprotAC', 'value'],
-            dp['tax-level-dropdown', 'value'],
-
-            blast_enable,
-            evalue,
-            pident,
-            qcovs,
-
-            input1_version,
-        ) = data
-        if evalue:
-            dp["evalue", "value"] = evalue
-        if pident:
-            with suppress(ValueError):
-                dp["pident-input-val", "data"] = float(pident)
-        if qcovs:
-            with suppress(ValueError):
-                dp["qcovs-input-val", "data"] = float(qcovs)
-
-        dp['input1_version', 'data'] = decode_int(input1_version)
-
-        dp["blast-button-input-value", "data"] = abs(dp["blast-button-input-value", "data"]) + 1
-        if not blast_enable:
-            dp["blast-button-input-value", "data"] *= -1
-    elif ('cancel-button', 'n_clicks') in dp.triggered:
-        with user.db.pipeline(transaction=True) as pipe:
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/table/version",
-                queue_key='/queues/table',
-                queue_id_dest=f"/tasks/{task_id}/progress/table",
-                queue_hash_key="q_id",
-
-                redis_client=pipe,
-            )
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/vis/version",
-                queue_key="/queues/vis",
-                queue_id_dest=f"/tasks/{task_id}/progress/vis",
-                queue_hash_key="q_id",
-
-                redis_client=pipe,
-            )
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/blast/version",
-                queue_key="/queues/blast",
-                queue_id_dest=f"/tasks/{task_id}/progress/blast",
-                queue_hash_key="q_id",
-
-                redis_client=pipe,
-            )
-            user.cancel(
-                version_key=f"/tasks/{task_id}/stage/tree/version",
-                queue_key="/queues/ssr",
-                queue_id_dest=f"/tasks/{task_id}/progress/tree",
-                queue_hash_key="q_id",
-
-                redis_client=pipe,
-            )
-            pipe.delete(
-                f"/tasks/{task_id}/progress/heatmap",
-                f"/tasks/{task_id}/progress/tree",
-            )
-
-            res = pipe.execute()
-
-            dp['table_version_target', 'data'] = 0  # stop updator
-            dp['tree_version_target', 'data'] = 0  # stop updator
-    elif ('prot-search-result', 'data') in dp.triggered:
-        cur_val = dp['uniprotAC', 'value'].strip()
-        if cur_val:
-            dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n\n{cur_val}"
-        else:
-            dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
+        elif cause == ('prot-search-result', 'data'):
+            cur_val = dp['uniprotAC', 'value'].strip()
+            if cur_val:
+                dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n\n{cur_val}"
+            else:
+                dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
 
 
 @dash_app.server.route('/files/<task_id>/<name>')
@@ -1475,6 +1493,6 @@ def serve_prottree(name):
 
 
 
-@dash_app.server.route('/some_non_public_ssr_path')
-def serve_ssr():
-    return flask.send_file(f"/app/ssr/index.html")
+# @dash_app.server.route('/some_non_public_ssr_path')
+# def serve_ssr():
+#     return flask.send_file(f"/app/ssr/index.html")

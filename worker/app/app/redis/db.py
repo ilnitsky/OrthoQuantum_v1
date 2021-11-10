@@ -4,7 +4,11 @@ from pathlib import Path
 import json
 from itertools import chain
 from typing import Optional, Any
+from aioredis.client import Pipeline
 from lxml import etree as ET
+
+GROUP = "worker_group"
+CONSUMER = "worker_group_consumer"
 
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 NS = {
@@ -23,75 +27,151 @@ raw_redis = aioredis.from_url(f"redis://{HOST}", decode_responses=False)
 
 LEVELS = {}
 TAXID_TO_NAME = {}
+_scripts = None
 
-
-_enqueue_script = redis.register_script("""
-    -- KEYS[1] - version
-    -- KEYS[2] - queue
-    -- KEYS[3] - queue_id_dest (empty string to skip)
-
-    -- ARGV - kv pairs to add to the queue (leave empty to only cancel)
-
-    local version = redis.call('incr', KEYS[1])
-    local hkey = table.remove(ARGV)
-    local queue_id = nil
-    if (KEYS[3] ~= '!') then
-        if (hkey == '!') then
-            queue_id = redis.call('get', KEYS[3])
-        else
-            queue_id = redis.call('hget', KEYS[3], hkey)
-        end
-        redis.call('del', KEYS[3])
-    end
-
-    if (queue_id and queue_id ~= '') then
-        redis.call('xdel', KEYS[2], queue_id)
-    end
-
-    -- enqueue
-    if #ARGV ~= 0 then
-        queue_id = redis.call('xadd', KEYS[2], '*', 'version', version, unpack(ARGV))
-        if (KEYS[3] ~= '!') then
-            if (hkey == '!') then
-                redis.call('set', KEYS[3], queue_id)
-            else
-                redis.call('hset', KEYS[3], hkey, queue_id)
-            end
-        end
-    end
-    return {version, queue_id}
-
-""")
-
-def enqueue(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, params: Optional[dict[str, Any]]=None, redis_client=None, **kwargs):
+def enqueue(task_id:str, stage:str, params: Optional[dict[str, Any]]=None, redis_client=None, **kwargs):
     if params:
         kwargs.update(params)
-    args = list(chain.from_iterable(kwargs.items()))
-    if not args:
+    kwargs.setdefault('task_id', task_id)
+    kwargs.setdefault('stage', stage)
+
+    if not kwargs:
         raise RuntimeError("empty queue data")
-    args.append(queue_hash_key or '!')
-    return _enqueue_script(
-        keys=(
-            version_key,
-            queue_key,
-            queue_id_dest or '!',
-        ),
-        args=args,
-        client=redis_client,
+
+    return _enqueue(
+        task_id=task_id,
+        stage=stage,
+        params=kwargs,
+        redis_client=redis_client
+    )
+
+def cancel(task_id:str, stage:str, redis_client=None):
+    return _enqueue(
+        task_id=task_id,
+        stage=stage,
+        params={},
+        redis_client=redis_client
+    )
+
+def _enqueue(task_id:str, stage:str, params: dict[str, Any], redis_client=None):
+    if redis_client is None:
+        redis_client = redis
+
+    return redis_client.evalsha(
+        _scripts['enqueue'],
+        4,
+        f"/queues/{stage}",
+        f"/tasks/{task_id}/enqueued",
+        f"/tasks/{task_id}/running",
+        "/canceled_jobs",
+
+        *chain.from_iterable(params.items()),
+        stage
     )
 
 
+def report_updates(task_id:str, *updated_keys, redis_client=None):
+    if redis_client is None:
+        redis_client = redis
+    return redis_client.evalsha(
+        _scripts['send_updates'],
+        2,
+        f'/tasks/{task_id}/state/cur_version',
+        f'/tasks/{task_id}/state/key_versions',
+
+        *updated_keys
+    )
+
+
+def update(task_id:str, redis_pipe, updates=None, **update):
+    """
+    performs hset and report_updates
+    """
+    if updates is not None:
+        update.update(updates)
+    redis_pipe.hset(f'/tasks/{task_id}/state', mapping=update)
+    return report_updates(task_id, *update.keys(), redis_client=redis_pipe)
+
+def happend(key, field, value, separator=None, redis_client=None):
+    if redis_client is None:
+        redis_client = redis
+
+    if separator is None:
+        separator = ()
+    else:
+        separator = (separator,)
+
+    return redis_client.evalsha(
+        _scripts['happend'],
+        1,
+        key,
+
+        field,
+        value,
+        *separator
+    )
+
+def launch(task_id, stage, q_id, redis_client=None):
+    if redis_client is None:
+        redis_client = redis
+
+    # -- KEYS[1] - enqueued hash f"/tasks/{task_id}/enqueued"
+    # -- KEYS[2] - running hash f"/tasks/{task_id}/running"
+
+    # -- ARGV[1] = stage name
+    # -- ARGV[2] = q_id
+
+    return redis_client.evalsha(
+        _scripts['launch'],
+        2,
+        f"/tasks/{task_id}/enqueued",
+        f"/tasks/{task_id}/running",
+
+        stage,
+        q_id
+    )
+
+def finish(task_id, stage, q_id, redis_client=None):
+    if redis_client is None:
+        redis_client = redis
+
+    # -- KEYS[1] - enqueued hash f"/tasks/{task_id}/enqueued"
+    # -- KEYS[2] - running hash f"/tasks/{task_id}/running"
+
+    # -- ARGV[1] = stage name
+    # -- ARGV[2] = q_id
+
+    return redis_client.evalsha(
+        _scripts['finish'],
+        2,
+        f"/tasks/{task_id}/enqueued",
+        f"/tasks/{task_id}/running",
+
+        stage,
+        q_id
+    )
+
+def ack(q_name, q_id, redis_pipe: Pipeline):
+    redis_pipe.xack(q_name, GROUP, q_id)
+    redis_pipe.xdel(q_name, q_id)
+
+
 async def init_db():
-    for i in range(10):
+    global _scripts
+    for i in range(30):
         try:
             await redis.ping()
             await raw_redis.ping()
             await redis.delete("/worker_initialied")
+            _scripts = await redis.hgetall("/scripts")
             break
         except Exception:
             if i == 9:
                 raise
             await asyncio.sleep(1)
+    required_scripts = ('enqueue', 'send_updates', 'happend', 'launch', 'finish')
+    assert all(s in _scripts for s in required_scripts), 'some script is missing!'
+
     await init_availible_levels()
 
 

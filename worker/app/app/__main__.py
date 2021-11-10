@@ -2,21 +2,21 @@ import asyncio
 from time import time
 from datetime import timedelta
 import aioredis
+import anyio
 from . import tasks as _
+
 
 from .async_executor import async_pool
 from .task_manager import queue_manager
-from .redis import redis, GROUP, init_db
+from .redis import redis, init_db
 from .utils import decode_int
 
 
-@queue_manager.add_handler("/queues/flush_cache")
-async def flush_cache(queue_name, q_id, **queue_params):
+@queue_manager.add_handler("/queues/flush_cache", raw_data=True)
+async def flush_cache(*_, **__):
     async with redis.pipeline(transaction=False) as pipe:
         async for item in redis.scan_iter(match="/cache/*"):
             pipe.delete(item)
-        pipe.xack(queue_name, GROUP, q_id)
-        pipe.xdel(queue_name, q_id)
         await pipe.execute()
     print("Cache flushed")
 
@@ -62,7 +62,7 @@ async def delete_if_needed(accessed_key:str):
     return True
 
 
-async def clean_cache():
+async def bg_sevice_worker():
     while True:
         count = 0
         async for item in redis.scan_iter(match="/cache/*/accessed"):
@@ -72,20 +72,26 @@ async def clean_cache():
             print(f"Deleted {count} old cache records")
         # compact the DB every so often
         await redis.bgrewriteaof()
-        await asyncio.sleep(timedelta(hours=2).total_seconds()) # run every 2 hours
 
+        await asyncio.sleep(timedelta(hours=2).total_seconds())
+
+
+
+async def main_worker():
+    async with async_pool:
+        await queue_manager.listen()
 
 
 async def main():
-    await init_db()
-    await redis.rpush("/worker_initialied", int(time()))
-    cache_cleaner = asyncio.create_task(clean_cache())
     try:
-        async with async_pool, queue_manager:
-            await queue_manager()
+        await init_db()
+        await redis.rpush("/worker_initialied", int(time()))
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(bg_sevice_worker)
+            tg.start_soon(main_worker)
     finally:
-        cache_cleaner.cancel()
-        await redis.delete("/worker_initialied")
+        await asyncio.shield(redis.delete("/worker_initialied"))
 
 
 if __name__ == "__main__":

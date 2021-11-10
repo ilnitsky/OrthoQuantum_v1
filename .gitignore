@@ -283,3 +283,4 @@ dash_app/ssr
 blast_data
 pantherdb
 worker/converter/panther/panther
+user_data_old/

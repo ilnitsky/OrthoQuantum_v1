@@ -25,14 +25,11 @@ browser_closer: asyncio.Task = None
 async def render(page:pyppeteer.browser.Page):
     db = get_db()
     xml = (db.task_dir / "tree.xml").read_text()
+    db.msg = "Performing server-side render"
+    db.total = None
     @db.transaction
     async def tx(pipe: Pipeline):
         pipe.multi()
-        db.report_progress(
-            status="Executing",
-            message="Performing server-side render",
-            total=-1,
-        )
         pipe.get(f"/tasks/{db.task_id}/stage/{db.stage}/info")
         pipe.get(f"/tasks/{db.task_id}/stage/{db.stage}/opts")
     data = await tx
@@ -101,10 +98,6 @@ async def render(page:pyppeteer.browser.Page):
         with atomic_file(db.task_dir / "ssr_img.png") as tmp_file:
             with open(tmp_file, "wb") as f:
                 f.write(res)
-            await db.flush_progress(
-                status="Done",
-                version=db.version
-            )
         print("ssr png done: ", res[:10])
     elif info["kind"] == "svg":
         ttv = time.time()
@@ -116,10 +109,6 @@ async def render(page:pyppeteer.browser.Page):
         with atomic_file(db.task_dir / "ssr_img.svg") as tmp_file:
             with open(tmp_file, "w") as f:
                 f.write(svg)
-            await db.flush_progress(
-                status="Done",
-                version=db.version
-            )
         print("ssr svg done: ", svg[:10])
 
 async def get_browser():
@@ -166,7 +155,6 @@ async def force_close_browser():
 
 
 @queue_manager.add_handler("/queues/ssr", max_running=MAX_PAGES)
-@cancellation_manager.wrap_handler
 async def handler():
     """tasks come here"""
     db = get_db()

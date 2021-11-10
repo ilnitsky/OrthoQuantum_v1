@@ -8,11 +8,12 @@ from typing import Optional
 import itertools
 
 from aioredis.client import Pipeline
+import anyio
 import pandas as pd
 
 from . import table_sync
-from ..task_manager import queue_manager, cancellation_manager, get_db
-from ..redis import redis, LEVELS, enqueue
+from ..task_manager import queue_manager, get_db
+from ..redis import redis, LEVELS, enqueue, update, happend, report_updates
 from ..utils import atomic_file
 
 
@@ -48,13 +49,10 @@ async def fetch_proteins(level:str, prots_to_fetch:list[str]):
 
     async def progress(items_in_front):
         if items_in_front > 0:
-            db.report_progress(
-                message=f"In queue to request proteins ({items_in_front} tasks in front)",
-            )
+            db.msg = f"In queue to request proteins ({items_in_front} tasks in front)"
         elif items_in_front == 0:
-            await db.flush_progress(
-                message="Getting proteins",
-            )
+            db.msg = "Getting proteins"
+
 
     async def fetch_prot_chunk(chunk:list[str], first_chunk: bool):
         task = table_sync.orthodb_get(level, chunk)
@@ -62,7 +60,7 @@ async def fetch_proteins(level:str, prots_to_fetch:list[str]):
             task.set_progress_callback(progress)
         prots = await task
         prots : defaultdict[str, list]
-        db.report_progress(current_delta=len(prots))
+        db.current += len(prots)
         uniprot_reqs = [
             table_sync.uniprot_get(missing_id)
             for missing_id in set(chunk) - prots.keys()
@@ -72,10 +70,13 @@ async def fetch_proteins(level:str, prots_to_fetch:list[str]):
             prot_id, data = await f
             if data:
                 prots[prot_id].append(data)
-                db.report_progress(current_delta=1)
+                db.current += 1
             else:
-                db.report_progress(total_delta=-1)
-                await redis.append(f"/tasks/{db.task_id}/stage/{db.stage}/missing_msg", f"{prot_id}, ")
+                db.total -= 1
+                async with redis.pipeline(transaction=True) as pipe:
+                    happend(db.state_key, "missing_prots", prot_id, separator=", ", redis_client=pipe)
+                    report_updates(db.task_id, "missing_prots", redis_client=pipe)
+                    await pipe.execute()
 
         result.update(prots)
 
@@ -88,21 +89,14 @@ async def fetch_proteins(level:str, prots_to_fetch:list[str]):
         math.ceil(len(prots_to_fetch) / max_items_per_chunk), # minimal num of requests
     )
     chunk_length = math.ceil(len(prots_to_fetch)/chunk_count)
-    tasks = [
-        asyncio.create_task(fetch_prot_chunk(
-            # chunk
-            prots_to_fetch[i*chunk_length:(i+1)*chunk_length],
-            first_chunk=i==0,
-        ))
-        for i in range(chunk_count)
-    ]
 
-    try:
-        await asyncio.gather(*tasks)
-    except:
-        for t in tasks:
-            t.cancel()
-        raise
+    async with anyio.create_task_group() as tg:
+        for i in range(chunk_count):
+            tg.start_soon(
+                fetch_prot_chunk,
+                prots_to_fetch[i*chunk_length:(i+1)*chunk_length],
+                i==0, # first_chunk
+            )
 
     cur_time = int(time())
     async with redis.pipeline(transaction=False) as pipe:
@@ -123,13 +117,10 @@ async def fetch_orthogroups(orthogroups_to_fetch: list[str], dash_columns: list[
     db = get_db()
     async def progress(items_in_front):
         if items_in_front > 0:
-            db.report_progress(
-                message=f"In queue to request orthogroup info ({items_in_front} tasks in front)",
-            )
+            db.msg = f"In queue to request orthogroup info ({items_in_front} tasks in front)"
         elif items_in_front == 0:
-            await db.flush_progress(
-                message="Requesting orthogroup info",
-            )
+            db.msg = "Requesting orthogroup info"
+            await db.sync()
 
     min_items_per_chunk = 10
     max_items_per_chunk = 50
@@ -160,10 +151,10 @@ async def fetch_orthogroups(orthogroups_to_fetch: list[str], dash_columns: list[
 
             for og, data in og_info_part.items():
                 if data:
-                    db.report_progress(current_delta=1)
+                    db.current += 1
                     og_info[og] = data
                 else:
-                    db.report_progress(total_delta=-1)
+                    db.total -= 1
     except:
         for t in tasks:
             t.cancel()
@@ -185,28 +176,22 @@ COMMENT = re.compile(r"#.*\n")
 
 
 @queue_manager.add_handler("/queues/table")
-@cancellation_manager.wrap_handler
 async def table():
     db = get_db()
-    prot_req = await redis.get(f"/tasks/{db.task_id}/request/proteins")
+    # read request outside of the transaction
+    # but we will check the validity very soon after
+    prot_req = await db["input_proteins"]
 
     prot_ids = list(dict.fromkeys( # removing duplicates
         m.group(0)
         for m in VALID_PROT_IDS.finditer(COMMENT.sub("", prot_req).upper())
     ))
-    @db.transaction
-    async def res(pipe:Pipeline):
-        pipe.multi()
-        db.report_progress(
-            current=0,
-            total=len(prot_ids),
-            message="Getting proteins",
-            status="Executing",
-            pipe=pipe,
-        )
-        pipe.get(f"/tasks/{db.task_id}/request/tax-level")
+    db.current = 0
+    db.total = len(prot_ids)
+    db.msg = "Getting proteins"
+    db["missing_prots"] = None
 
-    level_id = int((await res)[-1])
+    level_id = int(await db["input_tax_level"])
     level, _ = LEVELS[level_id]
 
     # Filter out already cached proteins
@@ -226,7 +211,7 @@ async def table():
             res_dict[prot_id] = json.loads(cache)
         await pipe.execute()
 
-    await db.flush_progress(current=len(res_dict))
+    db.current=len(res_dict)
     prots_to_fetch = list(
         set(prot_ids) - res_dict.keys()
     )
@@ -238,8 +223,9 @@ async def table():
                 prots_to_fetch=prots_to_fetch,
             )
         )
-
-    db.report_progress(current=0, total=-1, message="Getting orthogroup info")
+    db.current = 0
+    db.total = None
+    db.msg = "Getting orthogroup info"
 
     with atomic_file(db.task_dir / "OG.csv") as tmp_file:
         uniprot_df = await table_sync.process_prot_data(
@@ -248,34 +234,33 @@ async def table():
             )),
             tmp_file,
         )
+        await db.check_if_cancelled()
 
     # Can start visualization right now
-    @db.transaction
-    async def res(pipe: Pipeline):
-        pipe.multi()
-        await enqueue(
-            version_key=f"/tasks/{db.task_id}/stage/vis/version",
-            queue_key="/queues/vis",
-            queue_id_dest=f"/tasks/{db.task_id}/progress/vis",
-            queue_hash_key="q_id",
-            redis_client=pipe,
-
-            task_id=db.task_id,
-            stage="vis",
-        )
-        pipe.hset(f"/tasks/{db.task_id}/progress/vis",
-            mapping={
-                "status": 'Enqueued',
-                'total': -1,
-                "message": "Building visualization",
-            }
-        )
-    await res
+    try:
+        @db.transaction
+        async def res(pipe: Pipeline):
+            pipe.multi()
+            await enqueue(
+                task_id=db.task_id,
+                stage="vis",
+                redis_client=pipe,
+            )
+            update(
+                db.task_id, pipe,
+                progress_vis_msg='Building visualization',
+            )
+        await res
+    except BaseException as e:
+        print(repr(e), e, type(e))
+        __import__("traceback").print_exc()
+        raise
+    print("vis")
 
     uniprot_df: pd.DataFrame
 
     og_list = uniprot_df['label']
-    db.report_progress(total=len(og_list))
+    db.total = len(og_list)
 
     orthogroups_to_fetch = []
 
@@ -294,7 +279,7 @@ async def table():
             continue
         og_info[og] = dict(zip(REQUEST_COLUMNS, data))
 
-    db.report_progress(current_delta=len(og_info))
+    db.current = len(og_info)
     orthogroups_to_fetch = list(set(og_list)-og_info.keys())
 
     if orthogroups_to_fetch:
@@ -333,16 +318,11 @@ async def table():
 
 
     table_data = {
-        "version": db.version,
-        "data": {
-            "data": og_info_df.to_dict('records'),
-            "columns": columns
-        }
+        "data": og_info_df.to_dict('records'),
+        "columns": columns
     }
+
     await table_sync.save_table(db.task_dir / "Info_table.json", table_data)
+    db["table"] = db.q_id
 
 
-    db.report_progress(
-        status="Done",
-        version=db.version,
-    )

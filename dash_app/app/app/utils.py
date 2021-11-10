@@ -42,7 +42,11 @@ class DashProxy():
     def __getitem__(self, key):
         if key in self._outputs:
             return self._outputs[key]
-        return self._data[key]
+        try:
+            return self._data[key]
+        except KeyError as e:
+            raise RuntimeError("Key not found, missing dash input/state?") from e
+
 
     def __setitem__(self, key, value):
         self._outputs[key] = value
@@ -88,9 +92,5 @@ class DashProxyCreator():
                 return dp._exit()
             return self.dash_app.callback(*args, **kwargs)(wrapper)
         return deco
-
-class PBState():
-    UNKNOWN_LEN = -1
-    STATIC_MESSAGE = -2
 
 DEBUG = bool(os.environ.get('DEBUG', '').strip())

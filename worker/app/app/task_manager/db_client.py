@@ -1,225 +1,352 @@
 import asyncio
 from collections.abc import Callable, Coroutine
 import contextlib
-from typing import Any, Optional
-from functools import wraps
+from typing import Any, Awaitable
 import contextvars
-
-
+import anyio
 from aioredis import WatchError
 from aioredis.client import Pipeline
 
-from .exceptions import VersionChangedException
-from ..redis import redis
-from ..utils import decode_int, DATA_PATH
 
-class ProgressUpdate:
-    def __init__(self) -> None:
-        self._current : Optional[int] = None
-        self._current_delta : int = 0
-        self._total : Optional[int] = None
-        self._total_delta : int = 0
-        self.other = {}
+from .exceptions import ReportErrorException, VersionChangedException, HandledReportErrorException
+from ..redis import redis, cancel, report_updates, happend
+from ..utils import DATA_PATH, DEBUG
 
-    def reset(self):
-        res = dict()
-        default_vals = {
-            'current': None,
-            'current_delta': 0,
-            'total': None,
-            'total_delta': 0,
-        }
-        for k, default_val in default_vals.items():
-            val = getattr(self, k)
-            if val != default_val:
-                res[k] = val
-                setattr(self, f'_{k}', default_val)
-        res.update(self.other)
-        self.other.clear()
-        return res
 
-    @property
-    def current_delta(self):
-        return self._current_delta
+_db_var = contextvars.ContextVar("db")
 
-    @current_delta.setter
-    def current_delta(self, val: int):
-        if val is None:
-            return
-        if self._current is not None:
-            self._current += val
+@contextlib.asynccontextmanager
+async def _create_db_client(task_id, stage, q_id, stage_for_progress=None):
+    db = DbClient(
+        task_id=task_id,
+        stage=stage,
+        q_id=q_id,
+        stage_for_progress=stage_for_progress,
+    )
+    token = _db_var.set(db)
+    try:
+        yield db
+    except (VersionChangedException, KeyboardInterrupt, HandledReportErrorException):
+        raise
+    except ReportErrorException as e:
+        with anyio.CancelScope(shield=True):
+            await db.report_error(e.args[0])
+        raise HandledReportErrorException() from e
+    except Exception as e:
+        if DEBUG:
+            msg = f"Internal server error: {repr(e)}"
         else:
-            self._current_delta += val
+            msg = "Internal server error"
+        with anyio.CancelScope(shield=True):
+            await db.report_error(msg)
+        raise
+    finally:
+        _db_var.reset(token)
+        if not (db.is_error is True):
+            db.pb_hide()
+        try:
+            with anyio.move_on_after(60, shield=True):
+                await db.sync()
+        finally:
+            db._flush_task.cancel()
 
-    @property
-    def total_delta(self):
-        return self._total_delta
 
-    @total_delta.setter
-    def total_delta(self, val: int):
-        if val is None:
-            return
-        if self._total is not None:
-            self._total += val
+
+class PBProps():
+    def __init__(self, db_key):
+        self._db_key = db_key
+        self._name = None
+        if self._db_key == 'style':
+            self._style_translate_table = {
+                True: "error",
+                False: "progress",
+                None: None,
+            }
         else:
-            self._total_delta += val
+            self._style_translate_table = None
 
-    @property
-    def total(self):
-        return self._total
+    def __set_name__(self, owner, name):
+        self._name = name
 
-    @total.setter
-    def total(self, val:int):
-        if val is not None:
-            self._total = val
-            self._total_delta = 0
+    def __get__(self, instance: "DbClient", owner=None):
+        return instance._pb_vals.get(self._name)
 
-    @property
-    def current(self):
-        return self._current
+    def __set__(self, instance: "DbClient", value):
+        instance._pb_vals[self._name] = value
+        is_style = self._style_translate_table is not None
+        if is_style:
+            try:
+                value = self._style_translate_table[value]
+            except KeyError as e:
+                raise TypeError("Incorrect type") from e
+        instance._enqueued_update[f"progress_{instance.stage_for_progress}_{self._db_key}"] = value #value
 
-    @current.setter
-    def current(self, val:int):
-        if val is not None:
-            self._current = val
-            self._current_delta = 0
+        if (not is_style) and (instance.is_error is None):
+            instance.is_error = False
+        instance._schedule_update(immediatly=is_style)
+
+    def __delete__(self, instance: "DbClient"):
+        self.__set__(instance, None)
+
+
+
+
 
 class DbClient():
-    FLUSH_DELAY = 0.3
+    FLUSH_DELAY = 0.5
 
-    def __init__(self, task_id: str, stage: str, version: int, version_key: str = None):
+    current = PBProps("value")
+    total = PBProps("max")
+    msg = PBProps("msg")
+    is_error = PBProps("style")
+
+    def __init__(self, task_id: str, stage: str, q_id: str, stage_for_progress: str = None):
         self.task_id: str = task_id
         self.stage: str = stage
-        self.version: int = version
+        self.stage_for_progress = stage_for_progress or stage
+        self.q_id: str = q_id
         self.task_dir = DATA_PATH / task_id
-        self._progress_task: Optional[asyncio.Task] = None
-        self._report_flush: Optional[asyncio.Future] = None
-        self._report_send_lock = asyncio.Lock()
-        self._progress = ProgressUpdate()
-        if version_key is None:
-            self.task_dir.mkdir(exist_ok=True)
-            version_key = f"/tasks/{self.task_id}/stage/{self.stage}/version"
-        self._verison_key = version_key
+        self.state_key = f"/tasks/{self.task_id}/state"
 
-    @contextlib.contextmanager
-    def substage(self, stage_name):
-        db = DbClient(
-            task_id=self.task_id,
-            stage=stage_name,
-            version=self.version,
-            version_key=self._verison_key,
+        self._pb_vals = {}
+
+        self._enqueued_update = {}
+        self._update_counter = 0
+        self._flushed_update = 0
+
+        self._update_flushed = asyncio.Condition()
+        self._flush_task: asyncio.Task = asyncio.create_task(self._flush())
+        self._flush_timer: asyncio.TimerHandle = None
+        self._flush_event = asyncio.Event()
+
+        self.task_dir.mkdir(exist_ok=True)
+
+
+    def _schedule_update(self, immediatly=False):
+        self._update_counter += 1
+        if immediatly:
+            self._flush_event.set()
+        else:
+            if not self._flush_timer:
+                self._flush_timer = asyncio.get_running_loop().call_later(
+                    self.FLUSH_DELAY,
+                    self._flush_event.set
+                )
+
+    def __setitem__(self, key:str, value):
+        if key.startswith("progress_"):
+            raise ValueError("Should set progress only via properties")
+        self._enqueued_update[key] = value
+        self._schedule_update()
+
+    async def __getitem__(self, key):
+        if self._enqueued_update:
+            # using transaction to flush updates and get cancelation status
+            @self._transaction_after_flush
+            async def tx(pipe:Pipeline):
+                if isinstance(key, str):
+                    pipe.hget(self.state_key, key)
+                else:
+                    pipe.hmget(self.state_key, *key)
+            return (await tx)[-1]
+        else:
+            # no updated to flush, read operation doesn't require a transaction
+            if isinstance(key, str):
+                return await redis.hget(self.state_key, key)
+            else:
+                return await redis.hmget(self.state_key, *key)
+
+    async def _wait_for_flush(self, tgt_upd):
+        async with self._update_flushed:
+            await self._update_flushed.wait_for(
+                lambda: tgt_upd <= self._flushed_update
+            )
+
+    def pb_hide(self):
+        self.is_error = None
+
+    async def sync(self, flush=True):
+        if self._update_counter == self._flushed_update:
+            return
+        tgt_upd = self._update_counter
+        if flush:
+            self._flush_event.set()
+
+        done, _ = await asyncio.wait(
+            (
+                asyncio.create_task(self._wait_for_flush(tgt_upd)),
+                self._flush_task, # if flush task is cancelled and the condition will never come true
+            ),
+            return_when=asyncio.FIRST_COMPLETED,
         )
-        token = _db_var.set(db)
-        try:
-            yield db
-        finally:
-            _db_var.reset(token)
+
+        # If self._flush_task was cancelled - raise the error and unlock waiting threads
+        for t in done:
+            await t
+
+
+    def substage(self, substage_name):
+        return _create_db_client(self.task_id, self.stage, self.q_id, substage_name)
 
     async def check_if_cancelled(self, client=None):
         if client is None:
             client = redis
-        db_version = decode_int(await client.get(self._verison_key))
-        if self.version != db_version:
+        if self.q_id != await client.hget(f"/tasks/{self.task_id}/running", self.stage):
             raise VersionChangedException()
-    def transaction(self, func: Callable[[Pipeline], Coroutine[Any, Any, None]]) -> Coroutine[Any, Any, list]:
-        @wraps(func)
-        async def wrapper():
+
+    def _prepare_update(self, upd:dict):
+        to_del = []
+        progress_keys = {
+            f"progress_{self.stage_for_progress}_value",
+            f"progress_{self.stage_for_progress}_max",
+            f"progress_{self.stage_for_progress}_msg",
+            f"progress_{self.stage_for_progress}_style",
+        }
+        if any(k in upd for k in progress_keys):
+            report_upd = progress_keys
+            report_upd.update(upd.keys())
+        else:
+            report_upd = upd.keys()
+
+        for k, v in upd.items():
+            if v is None:
+                to_del.append(k)
+        for k in to_del:
+            del upd[k]
+        return upd, to_del, report_upd
+
+    async def transaction(self, func: Callable[[Pipeline], Coroutine[Any, Any, None]]) -> Awaitable[list]:
+        return await self._transaction(func)
+
+    async def _transaction_after_flush(self, func: Callable[[Pipeline], Coroutine[Any, Any, None]]) -> Awaitable[list]:
+        return await self._transaction(func, func_before_flush=False)
+
+    async def _transaction(self, func, func_before_flush=True):
+        async with self._update_flushed:
+            flushing = bool(self._enqueued_update)
+            if flushing:
+                upd_ver = self._update_counter
+                self._enqueued_update, upd = {}, self._enqueued_update
+                if upd:
+                    print("-> update", upd)
+                to_set, to_del, report_upd = self._prepare_update(upd)
+            else:
+                if func is None:
+                    return
+
             async with redis.pipeline(transaction=True) as pipe:
                 while True:
                     try:
-                        await pipe.watch(self._verison_key)
+                        await pipe.watch(f"/tasks/{self.task_id}/running")
                         await self.check_if_cancelled(client=pipe)
-                        await func(pipe)
-                        return await pipe.execute()
+                        if func_before_flush:
+                            if func is None:
+                                pipe.multi()
+                            else:
+                                await func(pipe)
+                                if not pipe.explicit_transaction:
+                                    raise RuntimeError("Transaction func didn't start the transaction")
+                        else:
+                            pipe.multi()
+
+                        if not flushing:
+                            if not func_before_flush:
+                                await func(pipe)
+                            return await pipe.execute()
+
+                        extra_commands = 0
+                        if to_del:
+                            extra_commands += 1
+                            pipe.hdel(self.state_key, *to_del)
+                        if to_set:
+                            extra_commands += 1
+                            pipe.hset(self.state_key, mapping=to_set)
+
+                        extra_commands += 1
+                        report_updates(self.task_id, *report_upd, redis_client=pipe)
+
+                        if func_before_flush:
+                            res = (await pipe.execute())[:-extra_commands]
+                        else:
+                            if func is not None:
+                                await func(pipe)
+                            res = (await pipe.execute())[extra_commands:]
+
+                        self._flushed_update = upd_ver
+                        self._update_flushed.notify_all()
+
+                        if self._flush_timer:
+                            self._flush_timer.cancel()
+                        if self._update_counter > self._flushed_update:
+                            self._flush_timer = asyncio.get_running_loop().call_later(
+                                delay=self.FLUSH_DELAY,
+                                callback=self._flush_event.set,
+                            )
+                        else:
+                            self._flush_timer = None
+
+                        return res
                     except WatchError:
                         continue
-        return wrapper()
 
-    async def _report_progress(self):
-        try:
-            await asyncio.wait_for(asyncio.shield(self._report_flush), timeout=self.FLUSH_DELAY)
-        except asyncio.CancelledError:
-            if self._report_flush.cancelled():
-                self._report_flush = None
-            if asyncio.current_task().cancelled():
-                raise
-        except asyncio.TimeoutError:
-            pass
+    async def _flush(self):
+        while True:
+            await self._flush_event.wait()
+            self._flush_event.clear()
+            if self._flush_timer:
+                self._flush_timer.cancel()
+                self._flush_timer = None
 
-        async with self._report_send_lock:
-            self._progress_task = None
-            res = self._progress.reset()
-            if res:
-                @self.transaction
-                async def send_report(pipe: Pipeline):
-                    pipe.multi()
+            if self._flushed_update==self._update_counter:
+                continue
+            await self.transaction(None)
+            if self._flushed_update==self._update_counter:
+                continue
 
-                    self._set_progress(
-                        pipe=pipe,
-                        **res,
-                    )
-                await send_report
-
-    def _set_progress(self, pipe:Pipeline, current:int=None, total:int=None, current_delta:int=None, total_delta:int=None, **other):
-        key = f"/tasks/{self.task_id}/progress/{self.stage}"
-        if current is not None:
-            other["current"] = current
-        elif current_delta:
-            pipe.hincrby(key, "current", current_delta)
-
-        if total is not None:
-            other["total"] = total
-        elif total_delta:
-            pipe.hincrby(key, "total", total_delta)
-
-        if other:
-            pipe.hset(key, mapping=other)
-
-
-    def report_progress(self, current:int=None, total:int=None, current_delta:int=None, total_delta:int=None, pipe:Pipeline=None, **other):
-        self._progress.current = current
-        self._progress.current_delta = current_delta
-        self._progress.total = total
-        self._progress.total_delta = total_delta
-        self._progress.other.update(other)
-        if pipe:
-            if res := self._progress.reset():
-                self._set_progress(
-                    pipe=pipe,
-                    **res
+            if not (self._flush_event.is_set() or self._flush_timer):
+                self._flush_timer = asyncio.get_running_loop().call_later(
+                    self.FLUSH_DELAY,
+                    self._flush_event.set
                 )
-        else:
-            if (self._progress_task is None or self._progress_task.done()):
-                self._progress_task = asyncio.create_task(self._report_progress())
-                if not self._report_flush:
-                    self._report_flush = asyncio.Future()
 
-    async def flush_progress(self, current:int=None, total:int=None, current_delta:int=None, total_delta:int=None, **other):
-        self.report_progress(current=current, total=total, current_delta=current_delta, total_delta=total_delta, **other)
-        self._report_flush.cancel()
-        await self._progress_task
 
     async def report_error(self, message, cancel_rest=True):
+        self._enqueued_update.pop(f"progress_{self.stage_for_progress}_msg", None)
+        self.is_error = True
+
         @self.transaction
         async def tx(pipe: Pipeline):
-            out_msg = message
-            key = f"/tasks/{self.task_id}/progress/{self.stage}"
-            await pipe.watch(key)
-            status = await pipe.hget(key, "status")
-            if status == "Error":
-                old_message = await pipe.hget(key, "message")
-                out_msg = f'{old_message}; {out_msg}'
+            await pipe.watch(f"/tasks/{self.task_id}/state/cur_version")
+            style = await pipe.hget(
+                self.state_key,
+                f"progress_{self.stage_for_progress}_style"
+            )
             pipe.multi()
-            pipe.hmset(key, {
-                "message": out_msg,
-                "status": "Error",
-                "total": -2,
-            })
+
+            if style == "error":
+                happend(
+                    self.state_key,
+                    f"progress_{self.stage_for_progress}_msg", message, separator="; ",
+                    redis_client=pipe
+                )
+            else:
+                pipe.hset(
+                    self.state_key,
+                    f"progress_{self.stage_for_progress}_msg",
+                    message,
+                )
+            report_updates(
+                self.task_id,
+                f"progress_{self.stage_for_progress}_value",
+                f"progress_{self.stage_for_progress}_max",
+                f"progress_{self.stage_for_progress}_msg",
+                f"progress_{self.stage_for_progress}_style",
+                redis_client=pipe,
+            )
             if cancel_rest:
-                pipe.incr(f"/tasks/{self.task_id}/stage/{self.stage}/version")
+                cancel(self.task_id, self.stage, redis_client=pipe)
         await tx
 
-_db_var = contextvars.ContextVar("db")
 
 def get_db() -> DbClient:
     return _db_var.get()

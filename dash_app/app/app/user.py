@@ -1,6 +1,6 @@
 from pathlib import Path
-from urllib.parse import quote
 from itertools import chain
+from typing import Any, Optional, Union
 
 import secrets
 
@@ -10,11 +10,12 @@ import redis
 
 import time
 
-for attempt in range(10):
+for attempt in range(30):
     try:
         db = redis.Redis("redis", encoding="utf-8", decode_responses=True)
         db.ping()
         db.brpoplpush("/worker_initialied", "/worker_initialied", timeout=0)
+        scripts = db.hgetall("/scripts")
         break
     except Exception:
         if attempt == 9:
@@ -50,131 +51,143 @@ def is_logged_in() -> bool:
     except Exception:
         return False
 
+assert 'get_updates' in scripts, 'get_updates is missing!'
+assert 'get_updates_new_connection' in scripts, 'get_updates_new_connection is missing!'
+def get_updates(task_id:str, last_version:int = None, connection_id:int = None, redis_client=None):
+    """
+    returns tuple:
+        new version
+        dict of updated keys and values
+    """
+    if last_version is None or connection_id is None:
+        args = [
+            scripts['get_updates_new_connection'],
+            4,
+            f'/tasks/{task_id}/state/cur_version',
+            f'/tasks/{task_id}/state/key_versions',
+            f'/tasks/{task_id}/state',
+            f"/tasks/{task_id}/connection_counter"
+        ]
+    else:
+        args = [
+            scripts['get_updates'],
+            5,
+            f'/tasks/{task_id}/state/cur_version',
+            f'/tasks/{task_id}/state/key_versions',
+            f'/tasks/{task_id}/state/key_versions_on_connection_{connection_id}',
+            '/scratch/zset',
+            f'/tasks/{task_id}/state',
 
-from typing import Any, Optional
+            last_version + 1
+        ]
 
-
-_get_length_script = db.register_script("""
-    -- KEYS[1] - queue_key
-
-    -- ARGV[1] - worker_group_name  //worker_group
-    -- ARGV[2] - current (used as element id source) "1622079118529-0"
-
-    -- returns: >0 if there are items in front of the current
-    -- 0 if already working
-    -- -1 on error
-
-    local info = redis.call('XINFO', 'GROUPS', KEYS[1])
-    local last_id = '-'
-    local found_name = false
-    for i = 1, #info do
-        last_id = '-'
-        found_name = false
-        for j = 1, #info[i], 2 do
-            if (info[i][j] == 'name') then
-                if (info[i][j+1] == ARGV[1]) then
-                    found_name = true
-                    if (last_id ~= '-') then
-                        break
-                    end
-                else
-                    break
-                end
-            elseif (info[i][j] == 'last-delivered-id') then
-                last_id = info[i][j+1]
-                if (found_name) then
-                    break
-                end
-            end
-        end
-        if (found_name) then
-            break
-        end
-    end
-    if (not found_name) then
-        return -1
-    end
-
-    local res = #redis.call('XRANGE', KEYS[1], last_id, ARGV[2])
-    if (res == 0) then
-        return 0
-    else
-        return res - 1
-    end
-
-""")
+    if redis_client is None:
+        return decode_updates_resp(db.evalsha(*args))
+    else:
+        return redis_client.evalsha(*args)
 
 
-def get_queue_length(queue_key, worker_group_name, task_q_id, redis_client=None):
-    return _get_length_script(
-        keys=(queue_key,),
-        args=(worker_group_name, task_q_id),
-        client=redis_client,
+def decode_updates_resp(upd):
+    if len(upd) == 3:
+        return int(upd[0]), dict(zip(upd[1], upd[2]))
+    else:
+        return int(upd[0]), int(upd[1]), dict(zip(upd[2], upd[3]))
+
+assert 'send_updates' in scripts, 'send_updates is missing!'
+def _report_updates(task_id:str, *updated_keys, connection_id:int=None, redis_client=None):
+    if redis_client is None:
+        redis_client = db
+    if connection_id is None:
+        return redis_client.evalsha(
+            scripts['send_updates'],
+            2,
+            f'/tasks/{task_id}/state/cur_version',
+            f'/tasks/{task_id}/state/key_versions',
+
+            *updated_keys
+        )
+    else:
+        return redis_client.evalsha(
+            scripts['send_updates'],
+            3,
+            f'/tasks/{task_id}/state/cur_version',
+            f'/tasks/{task_id}/state/key_versions',
+            f'/tasks/{task_id}/state/key_versions_on_connection_{connection_id}',
+
+            *updated_keys
+        )
+
+
+
+def update(task_id:str, connection_id:int=None, redis_pipe=None, update: dict=None, **updates):
+    """
+    performs hset and report_updates
+    if connection_id is provided the update would not be sent to this connection
+    """
+    if update:
+        updates.update(update)
+    if not updates:
+        raise ValueError("No update data")
+    if redis_pipe is None:
+        with db.pipeline(transaction=True) as pipe:
+            pipe.hset(f'/tasks/{task_id}/state', mapping=updates)
+            _report_updates(task_id, *updates.keys(), connection_id=connection_id, redis_client=pipe)
+            return pipe.execute()[-1]
+    else:
+        redis_pipe.hset(f'/tasks/{task_id}/state', mapping=updates)
+        return _report_updates(task_id, *updates.keys(), connection_id=connection_id, redis_client=redis_pipe)
+
+
+
+
+assert 'get_queue_pos' in scripts, 'get_queue_pos is missing!'
+def get_queue_pos(queue_key, worker_group_name, task_q_id, redis_client=None):
+    if redis_client is None:
+        redis_client = db
+    return redis_client.evalsha(
+        scripts['get_queue_pos'],
+        1, queue_key,
+        worker_group_name, task_q_id,
     )
 
-_enqueue_script = db.register_script("""
-    -- KEYS[1] - version
-    -- KEYS[2] - queue
-    -- KEYS[3] - queue_id_dest ("!" to skip)
-
-    -- ARGV - kv pairs to add to the queue (leave empty to only cancel)
-
-    local version = redis.call('incr', KEYS[1])
-    local hkey = table.remove(ARGV)
-    local queue_id = nil
-    if (KEYS[3] ~= '!') then
-        if (hkey == '!') then
-            queue_id = redis.call('get', KEYS[3])
-        else
-            queue_id = redis.call('hget', KEYS[3], hkey)
-        end
-        -- should delete this? fails for tree ssr
-        -- redis.call('del', KEYS[3])
-    end
-
-    if (queue_id and queue_id ~= '') then
-        redis.call('xdel', KEYS[2], queue_id)
-    end
-
-    -- enqueue
-    if #ARGV ~= 0 then
-        queue_id = redis.call('xadd', KEYS[2], '*', 'version', version, unpack(ARGV))
-        if (KEYS[3] ~= '!') then
-            if (hkey == '!') then
-                redis.call('set', KEYS[3], queue_id)
-            else
-                redis.call('hset', KEYS[3], hkey, queue_id)
-            end
-        end
-    end
-    return {version, queue_id}
-
-""")
-
-def enqueue(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, params: Optional[dict[str, Any]]=None, redis_client=None, **kwargs):
+assert 'enqueue' in scripts, 'enqueue is missing!'
+def enqueue(task_id:str, stage:str, params: Optional[dict[str, Any]]=None, redis_client=None, **kwargs):
     if params:
         kwargs.update(params)
-    args = list(chain.from_iterable(kwargs.items()))
-    if not args:
+    kwargs.setdefault('task_id', task_id)
+    kwargs.setdefault('stage', stage)
+    if not kwargs:
         raise RuntimeError("empty queue data")
-    args.append(queue_hash_key or '!')
-    return _enqueue_script(
-        keys=(
-            version_key,
-            queue_key,
-            queue_id_dest or '!',
-        ),
-        args=args,
-        client=redis_client,
+
+    return _enqueue(
+        task_id=task_id,
+        stage=stage,
+        params=kwargs,
+        redis_client=redis_client
     )
 
-def cancel(version_key, queue_key, queue_id_dest=None, queue_hash_key=None, redis_client=None):
-    return _enqueue_script(
-        keys=(
-            version_key,
-            queue_key,
-            queue_id_dest or '!',
-        ),
-        args=(queue_hash_key or '!',),
-        client=redis_client,
+def cancel(task_id:str, stage:str, redis_client=None):
+    return _enqueue(
+        task_id=task_id,
+        stage=stage,
+        params={},
+        redis_client=redis_client
+    )
+
+def _enqueue(task_id:str, stage:str, params: dict[str, Any], redis_client=None):
+    if redis_client is None:
+        redis_client = redis
+
+    args = list(chain.from_iterable(params.items()))
+    args.append(stage)
+
+    return redis_client.evalsha(
+        scripts['enqueue'],
+        4,
+        f"/queues/{stage}",
+        f"/tasks/{task_id}/enqueued",
+        f"/tasks/{task_id}/running",
+        "/canceled_jobs",
+
+        *args,
     )

@@ -20,9 +20,9 @@ from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 
-from ..task_manager import get_db, queue_manager, cancellation_manager, ReportErrorException
+from ..task_manager import get_db, queue_manager, ReportErrorException, DbClient
 from ..utils import atomic_file
-from ..redis import raw_redis, redis, enqueue
+from ..redis import raw_redis, redis, enqueue, report_updates
 from . import blast_sync
 
 
@@ -418,7 +418,7 @@ class TreeRenderer():
         self.name_to_idx = name_to_idx
         self.name_to_prot = name_to_prot
         self.user_cond = user_cond
-        self.db = db
+        self.db: DbClient = db
         self.blast_request = blast_request
         self.enqueue_tree_gen = enqueue_tree_gen
 
@@ -475,28 +475,8 @@ class TreeRenderer():
         @self.db.transaction
         async def res(pipe:Pipeline):
             pipe.multi()
-            if self.enqueue_tree_gen:
-                await enqueue(
-                    version_key=f"/tasks/{self.db.task_id}/stage/tree/version",
-                    queue_key="/queues/ssr",
-                    queue_id_dest=f"/tasks/{self.db.task_id}/progress/tree",
-                    queue_hash_key="q_id",
-                    redis_client=pipe,
-
-                    task_id=self.db.task_id,
-                    stage="tree",
-                )
-                pipe.hset(f"/tasks/{self.db.task_id}/progress/tree",
-                    mapping={
-                        "status": 'Enqueued',
-                        'total': -1,
-                        "message": "Re-rendering",
-                    }
-                )
-            else:
-                # trigger tree reload
-                # incr by 1_000_000 to avoid messing up with anti-cache things...
-                pipe.hincrby(f"/tasks/{self.db.task_id}/progress/tree", "version", 1_000_000)
+            pipe.hincrby(self.db.state_key, "tree_blast_ver")
+            report_updates(self.db.task_id, "tree", "tree_blast_ver", redis_client=pipe)
         await res
 
     async def flush(self):
@@ -506,27 +486,15 @@ class TreeRenderer():
 
 
 @queue_manager.add_handler("/queues/blast", max_running=3)
-@cancellation_manager.wrap_handler
 async def blast(blast_autoreload=False, enqueue_tree_gen=False):
     db = get_db()
-    @db.transaction
-    async def res(pipe:Pipeline):
-        pipe.multi()
-        db.report_progress(
-            current=0,
-            total=-1,
-            message="Getting blast data",
-            status="Executing",
-            pipe=pipe,
-        )
-        pipe.mget(
-            f"/tasks/{db.task_id}/request/blast_evalue",
-            f"/tasks/{db.task_id}/request/blast_pident",
-            f"/tasks/{db.task_id}/request/blast_qcovs",
-        )
-
-    data = (await res)[-1]
-
+    db.current = 0
+    db.msg = "Getting blast data"
+    data = await db[
+        "input_blast_evalue",
+        "input_blast_pident",
+        "input_blast_qcovs",
+    ]
     user_cond = pd.Series(
         dict(zip(
             USER_REQ_COLS,
@@ -624,11 +592,9 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
 
         if taxids_to_get:
             # get ncbi tax names from the taxid number
-            db.report_progress(
-                current=0,
-                total=len(taxids_to_get),
-                message="Getting organisms",
-            )
+            db.current = 0
+            db.total = len(taxids_to_get)
+            db.msg = "Getting organisms"
 
             async with redis.pipeline(transaction=False) as pipe:
                 for taxid in taxids_to_get:
@@ -639,9 +605,9 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
                     match = SUGGEST_RE.search(res.content)
                     if not match:
                         print(f"no result for taxid {taxid}")
-                        db.report_progress(total_delta=-1)
+                        db.total -= 1
                         continue
-                    db.report_progress(current_delta=1)
+                    db.current += 1
                     org_name = match.group(1).decode()
 
                     taxid_to_ncbi_taxid[taxid] = org_name
@@ -652,10 +618,6 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
 
         if not (taxid_to_ncbi_taxid and prots_to_get):
             await renderer.flush()
-            db.report_progress(
-                status="Done",
-                version=db.version,
-            )
             return
 
         prots_to_request = list(prots_to_get.keys())
@@ -668,11 +630,9 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
         prot_per_req = 5
         should_increase = True
 
-        db.report_progress(
-            current=0,
-            total=len(prots_to_request),
-            message="Sending blast request(s)",
-        )
+        db.current = 0
+        db.total = len(prots_to_request)
+        db.msg = "Sending blast request(s)"
 
         running_tasks: dict[asyncio.Task, list] = {}
         exception_task_count = deque(maxlen=5)
@@ -711,9 +671,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
                         subresult = done_task.result()
                         renderer.render(subresult, render_now=blast_autoreload)
                         done_prots = running_tasks.pop(done_task)
-                        db.report_progress(
-                            current_delta=len(done_prots),
-                        )
+                        db.current += len(done_prots)
 
                         if should_increase:
                             prot_per_req = min(prot_per_req + PROT_INCR, MAX_PROT_PER_REQ)
@@ -735,9 +693,3 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
                         await asyncio.sleep(2*60)
 
         await renderer.flush()
-
-
-        db.report_progress(
-            status="Done",
-            version=db.version,
-        )

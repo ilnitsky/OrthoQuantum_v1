@@ -28,6 +28,7 @@ def orthodb_get(level:str, prot_ids:list) -> defaultdict[str, list]:
     }}
     """)
     endpoint.setReturnFormat(SPARQLWrapper.JSON)
+
     n = endpoint.query().convert()
 
     # # Tuples of 'label', 'Name', 'PID'

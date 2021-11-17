@@ -297,5 +297,5 @@ PhydthreeComponent.propTypes = {
   taskid: PropTypes.string,
   height: PropTypes.number.isRequired,
   leafCount: PropTypes.number.isRequired,
-  version: PropTypes.number.isRequired,
+  version: PropTypes.string.isRequired,
 };

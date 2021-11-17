@@ -17,7 +17,7 @@ from phydthree_component import PhydthreeComponent
 
 from . import layout
 from . import user
-from .utils import DashProxy, DashProxyCreator, GROUP, decode_int, DEBUG
+from .utils import DashProxy, DashProxyCreator, decode_int, DEBUG
 
 
 app = flask.Flask(__name__)
@@ -271,7 +271,6 @@ def csvdownload(dp: DashProxy):
         # show_q_pos
         gueue_len = user.get_queue_pos(
             queue_key='/queues/prottree',
-            worker_group_name=GROUP,
             task_q_id=data['q_id'],
         )
 
@@ -335,7 +334,6 @@ def prottree(dp: DashProxy):
         # show_q_pos
         gueue_len = user.get_queue_pos(
             queue_key='/queues/prottree',
-            worker_group_name=GROUP,
             task_q_id=data['q_id'],
         )
 
@@ -854,7 +852,7 @@ dash_app.clientside_callback(
 
 
 DB_2_DASH = {}
-
+DB_2_DASH_KEYS = set()
 
 def add_processor(func=None, /, **from_to):
     if not func:
@@ -863,6 +861,7 @@ def add_processor(func=None, /, **from_to):
         if isinstance(v[0], str):
             v = (v,)
         DB_2_DASH[k] = (v, func)
+        DB_2_DASH_KEYS.add(k)
     return func
 
 
@@ -959,6 +958,10 @@ def missing_prot(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple
     ),
 )
 def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    if not upd[db_key]:
+        # empty string in update - hide table
+        dp['table_container', 'style'] = layout.HIDE
+        return
     try:
         with open(user.DATA_PATH/dp['task_id', 'data']/"Info_table.json", "r") as f:
             tbl_data = json.load(f)
@@ -970,6 +973,8 @@ def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[
 
     except Exception:
         # TODO: report exception
+        print("table_exc", flush=True)
+        __import__("traceback").print_exc()
         pass
 
 @add_processor(
@@ -1017,29 +1022,28 @@ def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tupl
 def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
     task_id = dp['task_id', 'data']
     tree_info = upd[db_key]
-    blast_ver = upd.get("tree_blast_ver", 0)
-
     dp['tree_header', 'style'] = layout.SHOW
 
     kind = tree_info['kind']
-    version = tree_info['version']
+    version = f"{tree_info['version']}_{upd.get('tree_blast_ver', 0)}"
     shape = tree_info['shape']
 
     if kind == 'interactive':
         dp["ssr_tree_img", "src"] = ""
         dp["ssr_tree_block", "style"] = layout.HIDE
         dp["tree_container", "children"] = PhydthreeComponent(
-            url=f'/files/{task_id}/tree.xml?version={version}_{blast_ver}',
+            url=f'/files/{task_id}/tree.xml?version={version}',
             height=2000,
             leafCount=shape[0],
             version=version,
             taskid=task_id,
         )
+        print(f"Rendered blast version {version}")
     else:
         assert kind in ('svg', 'png')
         dp["tree_container", "children"] = None
         dp["ssr_tree_block", "style"] = layout.SHOW
-        dp["ssr_tree_img", "src"] = f'/files/{task_id}/ssr_img.{kind}?version={version}_{blast_ver}'
+        dp["ssr_tree_img", "src"] = f'/files/{task_id}/ssr_img.{kind}?version={version}'
 
 # SSR
 # @add_processor(
@@ -1199,7 +1203,7 @@ def update_everything(dp: DashProxy):
             dp['version', 'data'], dp['connection_id', 'data'], updates = updates
         updates: dict[str, str]
         if updates:
-            print(f"<- update {dp['version', 'data']}:", updates)
+            print(f"<- update {dp['version', 'data']}:", updates, flush=True)
         JSON_ENCODED_DATA = {"tree", "tree_opts"}
 
         for k in JSON_ENCODED_DATA.intersection(updates.keys()):
@@ -1213,7 +1217,6 @@ def update_everything(dp: DashProxy):
                 for stage, qid in enqueued.items():
                     user.get_queue_pos(
                         queue_key=f"/queues/{stage}",
-                        worker_group_name=GROUP,
                         task_q_id=qid,
                         redis_client=pipe,
                     )
@@ -1244,8 +1247,12 @@ def update_everything(dp: DashProxy):
             key, subkey = db_key.rsplit("_", maxsplit=1)
             updates.setdefault(key, {})[subkey] = updates.pop(db_key)
 
+        if 'progress_blast' in updates:
+            updates['progress_tree'] = updates.pop('progress_blast')
+
         update_needed = False
-        for db_key in updates:
+
+        for db_key in DB_2_DASH_KEYS.intersection(updates):
             dash_keys, func = DB_2_DASH[db_key]
             update_needed = func(dp, updates, db_key, dash_keys) or update_needed
 
@@ -1375,12 +1382,11 @@ def submit(dp:DashProxy):
                     task_id, redis_pipe=pipe,
 
                     progress_table_style='',
-                    progress_table_max=0,
-                    progress_table_value=0,
                     progress_table_msg="Building table",
                     progress_vis_style='',
                     progress_heatmap_style='',
                     progress_tree_style='',
+                    progress_blast_style='',
                 )
                 res = pipe.execute()
                 dp['force_updates', 'data'] = time.time()+3

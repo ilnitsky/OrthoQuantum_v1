@@ -2,8 +2,8 @@ import asyncio
 
 from aioredis.client import Pipeline
 from . import vis_sync
-
-from ..task_manager import get_db, queue_manager, cancellation_manager, ReportErrorException
+import anyio
+from ..task_manager import get_db, queue_manager, ReportErrorException
 from ..redis import redis, LEVELS, enqueue, update
 from ..utils import atomic_file, decode_int
 from .tree_heatmap import tree, heatmap
@@ -24,6 +24,7 @@ async def vis():
         "input_tax_level",
         "input_max_proteins",
     ]
+
     blast_enable = bool(blast_enable)
     level_id, max_prots = decode_int(level_id, max_prots)
     level, phyloxml_file = LEVELS[level_id]
@@ -34,6 +35,9 @@ async def vis():
     )
     organisms:list[int]
     csv_data: pd.DataFrame
+
+    if len(csv_data) == 0: # < 2?
+        raise ReportErrorException("Not enough proteins to build correlation")
 
     db.current = 0
     db.total = len(csv_data)
@@ -127,6 +131,7 @@ async def vis():
             for t in tasks:
                 t.cancel()
             raise
+    db.msg="Processing correlation data"
 
     df = pd.DataFrame(
         data={
@@ -141,75 +146,35 @@ async def vis():
     )
     df.fillna(0, inplace=True)
     df = df.astype(np.int16, copy=False)
-    db.msg="Processing correlation data"
 
 
     # interpret the results:
 
 
     df_for_heatmap = df.copy()
+    del db.msg
+    db.pb_hide()
 
-    # TODO: db.hide_pb()? set style to ""
-    # await db.flush_progress(status="Waiting")
-
-    tasks = []
-    tasks.append(
-        asyncio.create_task(
-            heatmap(
-                organism_count=len(organisms),
-                df=df_for_heatmap,
-            )
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(
+            heatmap,
+            len(organisms),
+            df_for_heatmap,
         )
-    )
-    del df_for_heatmap
-
-    tasks.append(
-        asyncio.create_task(
-            tree(
-                phyloxml_file=phyloxml_file,
-                OG_names=csv_data['Name'],
-                df=df,
-                organisms=organisms,
-                prot_ids=prot_ids,
-
-                do_blast=blast_enable,
-            )
+        del df_for_heatmap
+        tg.start_soon(
+            tree,
+            blast_enable,
+            phyloxml_file,
+            csv_data['Name'], # OG_names
+            df,
+            organisms,
+            prot_ids,
         )
-    )
+        del csv_data
+        del df
+        del organisms
 
-    del csv_data
-    del df
-    del organisms
-
-    try:
-        _, (shape, tree_kind) = await asyncio.gather(*tasks)
-    except:
-        for task in tasks:
-            task.cancel()
-        raise
-
-
-    if blast_enable:
-        @db.transaction
-        async def res(pipe: Pipeline):
-            pipe.multi()
-            update(db.task_id, redis_pipe=pipe,
-                progress_tree_msg="BLASTing",
-                progress_tree_total="",
-            )
-
-            await enqueue(
-                task_id=db.task_id,
-                stage="blast", # for queue selector
-                params={
-                    "stage": "tree" # for pb report
-                },
-                redis_client=pipe,
-
-                blast_autoreload="1" if shape[0]*shape[1]<80_000 else "",
-                enqueue_tree_gen="1" if tree_kind!="interactive" else "",
-            )
-        await res
 
 @queue_manager.add_handler("/queues/tree_csv")
 async def build_tree_csv():

@@ -1,4 +1,5 @@
 import asyncio
+import urllib.error
 from collections import defaultdict
 import math
 import re
@@ -12,7 +13,7 @@ import anyio
 import pandas as pd
 
 from . import table_sync
-from ..task_manager import queue_manager, get_db
+from ..task_manager import queue_manager, get_db, ReportErrorException
 from ..redis import redis, LEVELS, enqueue, update, happend, report_updates
 from ..utils import atomic_file
 
@@ -186,6 +187,9 @@ async def table():
         m.group(0)
         for m in VALID_PROT_IDS.finditer(COMMENT.sub("", prot_req).upper())
     ))
+    if len(prot_ids) == 0:
+        db["table"] = ""
+        raise ReportErrorException("Np protrin codes provided!")
     db.current = 0
     db.total = len(prot_ids)
     db.msg = "Getting proteins"
@@ -215,14 +219,20 @@ async def table():
     prots_to_fetch = list(
         set(prot_ids) - res_dict.keys()
     )
-
-    if prots_to_fetch:
-        res_dict.update(
-            await fetch_proteins(
-                level=level,
-                prots_to_fetch=prots_to_fetch,
+    try:
+        if prots_to_fetch:
+            res_dict.update(
+                await fetch_proteins(
+                    level=level,
+                    prots_to_fetch=prots_to_fetch,
+                )
             )
-        )
+    except urllib.error.HTTPError as e:
+        if e.code == 502:
+            raise ReportErrorException("orthodb.org server crashed, try again later") from e
+        else:
+            raise
+
     db.current = 0
     db.total = None
     db.msg = "Getting orthogroup info"
@@ -255,7 +265,7 @@ async def table():
         print(repr(e), e, type(e))
         __import__("traceback").print_exc()
         raise
-    print("vis")
+
 
     uniprot_df: pd.DataFrame
 
@@ -298,9 +308,19 @@ async def table():
         ),
         columns=REQUEST_COLUMNS,
     )
+    print("********* debug table: *************")
+    pd.set_option('display.max_columns', None)
+    print("og_info_df")
+    print(og_info_df)
+    print("uniprot_df")
+    print(uniprot_df)
+
     og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
+    print("Combined table")
+    print(og_info_df)
 
     og_info_df = og_info_df[TABLE_COLUMNS]
+
     #prepare datatable update
 
     og_info_df['Name'] = og_info_df['Name'].str.replace(PROTTREE_URL, f"[\\1](/prottree?task_id={db.task_id}&prot_id=\\1)")

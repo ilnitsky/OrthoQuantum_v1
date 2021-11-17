@@ -477,7 +477,8 @@ class TreeRenderer():
             pipe.multi()
             pipe.hincrby(self.db.state_key, "tree_blast_ver")
             report_updates(self.db.task_id, "tree", "tree_blast_ver", redis_client=pipe)
-        await res
+        res = await res
+        print(f'''tree_blast_ver {res[0]=}''', flush=True)
 
     async def flush(self):
         await self.render({})
@@ -572,10 +573,10 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
     renderer = TreeRenderer(db, tree, prots, name_to_idx, name_to_prot, user_cond, blast_request, enqueue_tree_gen)
 
     renderer.render(parsed_cache)
+    print(f'''{len(parsed_cache)=}''', flush=True)
     del parsed_cache
 
     # prot_list = list(prots_to_get)
-
 
     taxid_to_ncbi_taxid = await get_ncbi_taxids_from_cache(taxids_to_get)
     taxids_to_get.difference_update(taxid_to_ncbi_taxid.keys())

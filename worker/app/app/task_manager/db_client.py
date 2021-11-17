@@ -26,7 +26,7 @@ async def _create_db_client(task_id, stage, q_id, stage_for_progress=None):
     token = _db_var.set(db)
     try:
         yield db
-    except (VersionChangedException, KeyboardInterrupt, HandledReportErrorException):
+    except (VersionChangedException, KeyboardInterrupt):
         raise
     except ReportErrorException as e:
         with anyio.CancelScope(shield=True):
@@ -42,13 +42,23 @@ async def _create_db_client(task_id, stage, q_id, stage_for_progress=None):
         raise
     finally:
         _db_var.reset(token)
-        if not (db.is_error is True):
-            db.pb_hide()
-        try:
-            with anyio.move_on_after(60, shield=True):
-                await db.sync()
-        finally:
-            db._flush_task.cancel()
+        with anyio.CancelScope():
+            if not (db.is_error is True):
+                print("pb_hide", db.stage_for_progress)
+                db.pb_hide()
+                print("pb_hide", db.stage_for_progress, db._enqueued_update)
+            try:
+                print("pb_hide db.sync", db.stage_for_progress)
+                try:
+                    await db.sync()
+                except BaseException:
+                    if db.stage_for_progress == "vis":
+                        __import__("traceback").print_exc()
+                    raise
+                print("pb_hide db.sync done", db.stage_for_progress)
+
+            finally:
+                db._flush_task.cancel()
 
 
 
@@ -107,7 +117,6 @@ class DbClient():
         self.q_id: str = q_id
         self.task_dir = DATA_PATH / task_id
         self.state_key = f"/tasks/{self.task_id}/state"
-
         self._pb_vals = {}
 
         self._enqueued_update = {}
@@ -194,6 +203,7 @@ class DbClient():
         if self.q_id != await client.hget(f"/tasks/{self.task_id}/running", self.stage):
             raise VersionChangedException()
 
+
     def _prepare_update(self, upd:dict):
         to_del = []
         progress_keys = {
@@ -229,6 +239,12 @@ class DbClient():
                 self._enqueued_update, upd = {}, self._enqueued_update
                 if upd:
                     print("-> update", upd)
+                    if upd.get("progress_heatmap_style") == 'error':
+                        print(f'''progress_heatmap_style = error''', flush=True)
+                        # asyncio.current_task().print_stack()
+                    if upd.get("progress_tree_style") == 'error':
+                        print(f'''progress_tree_style = error''', flush=True)
+                        asyncio.current_task().print_stack()
                 to_set, to_del, report_upd = self._prepare_update(upd)
             else:
                 if func is None:
@@ -312,40 +328,21 @@ class DbClient():
 
     async def report_error(self, message, cancel_rest=True):
         self._enqueued_update.pop(f"progress_{self.stage_for_progress}_msg", None)
-        self.is_error = True
+        if self.is_error and self.msg:
+            self.msg += f"; {message}"
+        else:
+            self.is_error = True
+            self.msg = message
 
-        @self.transaction
-        async def tx(pipe: Pipeline):
-            await pipe.watch(f"/tasks/{self.task_id}/state/cur_version")
-            style = await pipe.hget(
-                self.state_key,
-                f"progress_{self.stage_for_progress}_style"
-            )
-            pipe.multi()
-
-            if style == "error":
-                happend(
-                    self.state_key,
-                    f"progress_{self.stage_for_progress}_msg", message, separator="; ",
-                    redis_client=pipe
-                )
-            else:
-                pipe.hset(
-                    self.state_key,
-                    f"progress_{self.stage_for_progress}_msg",
-                    message,
-                )
-            report_updates(
-                self.task_id,
-                f"progress_{self.stage_for_progress}_value",
-                f"progress_{self.stage_for_progress}_max",
-                f"progress_{self.stage_for_progress}_msg",
-                f"progress_{self.stage_for_progress}_style",
-                redis_client=pipe,
-            )
-            if cancel_rest:
+        if cancel_rest:
+            # implicitly syncs
+            @self.transaction
+            async def tx(pipe: Pipeline):
+                pipe.multi()
                 cancel(self.task_id, self.stage, redis_client=pipe)
-        await tx
+            await tx
+        else:
+            await self.sync()
 
 
 def get_db() -> DbClient:

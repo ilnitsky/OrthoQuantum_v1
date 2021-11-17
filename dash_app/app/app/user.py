@@ -10,6 +10,8 @@ import redis
 
 import time
 
+GROUP = "worker_group"
+
 for attempt in range(30):
     try:
         db = redis.Redis("redis", encoding="utf-8", decode_responses=True)
@@ -141,13 +143,13 @@ def update(task_id:str, connection_id:int=None, redis_pipe=None, update: dict=No
 
 
 assert 'get_queue_pos' in scripts, 'get_queue_pos is missing!'
-def get_queue_pos(queue_key, worker_group_name, task_q_id, redis_client=None):
+def get_queue_pos(queue_key, task_q_id, redis_client=None):
     if redis_client is None:
         redis_client = db
     return redis_client.evalsha(
         scripts['get_queue_pos'],
         1, queue_key,
-        worker_group_name, task_q_id,
+        GROUP, task_q_id,
     )
 
 assert 'enqueue' in scripts, 'enqueue is missing!'
@@ -179,6 +181,7 @@ def _enqueue(task_id:str, stage:str, params: dict[str, Any], redis_client=None):
         redis_client = redis
 
     args = list(chain.from_iterable(params.items()))
+    args.append(GROUP)
     args.append(stage)
 
     return redis_client.evalsha(

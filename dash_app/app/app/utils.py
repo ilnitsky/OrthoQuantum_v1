@@ -2,8 +2,6 @@ from dash import callback_context, no_update
 from dash.dependencies import Input, Output, State, DashDependency
 import os
 
-GROUP = "worker_group"
-
 def decode_int(*items:bytes, default=0) -> int:
     if len(items)==1:
         return int(items[0]) if items[0] else default

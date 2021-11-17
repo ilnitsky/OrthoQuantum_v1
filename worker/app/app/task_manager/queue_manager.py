@@ -72,23 +72,22 @@ class QueueManager():
         task_id, stage = None, None
         with scope:
             try:
+                if scope.cancel_called:
+                    return
                 if q.raw:
-                    if scope.cancel_called:
-                        return
                     await q.handler(q.name, q_id, **data)
                 else:
                     should_ack = False
                     task_id = data.pop("task_id")
                     stage = data.pop("stage")
-                    if scope.cancel_called:
-                        return
                     if not await launch(task_id=task_id, stage=stage, q_id=q_id):
                         if DEBUG:
                             print("Unable to start, was cancelled")
                         raise VersionChangedException()
                     async with _create_db_client(task_id=task_id, stage=stage, q_id=q_id):
-                        print("db client created")
+                        print("*** db client created, q.handler", q_id)
                         await q.handler(**data)
+                        print("*** q.handler exit", q_id)
 
                 # successful exit
                 should_ack = True
@@ -121,7 +120,7 @@ class QueueManager():
                             finish(task_id, stage, q_id, redis_client=pipe)
                         if should_ack:
                             ack(q.name, q_id, pipe)
-                        await asyncio.shield(pipe.execute())
+                        await pipe.execute()
 
 
     async def _scheduler(self, tg:TaskGroup):

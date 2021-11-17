@@ -37,7 +37,7 @@ def enqueue(task_id:str, stage:str, params: Optional[dict[str, Any]]=None, redis
 
     if not kwargs:
         raise RuntimeError("empty queue data")
-
+    print("*****", task_id, stage, kwargs)
     return _enqueue(
         task_id=task_id,
         stage=stage,
@@ -66,6 +66,7 @@ def _enqueue(task_id:str, stage:str, params: dict[str, Any], redis_client=None):
         "/canceled_jobs",
 
         *chain.from_iterable(params.items()),
+        GROUP,
         stage
     )
 

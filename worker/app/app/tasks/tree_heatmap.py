@@ -7,12 +7,12 @@ from . import tree_heatmap_sync
 
 from ..task_manager import get_db
 from ..utils import DEBUG, atomic_file, json_minify
-from ..redis import enqueue
+from ..redis import enqueue, update
 
 
 # heatmap and tree are very-very similar, but differ just enough to
 # duplicate code...
-async def heatmap(**kwargs):
+async def heatmap(organism_count, df):
     async with get_db().substage("heatmap") as db:
         db.msg = "In queue to build heatmap"
         db.total = None
@@ -30,7 +30,9 @@ async def heatmap(**kwargs):
                 atomic_file(db.task_dir / "Correlation_preview.png") as tmp_file2,
                 atomic_file(db.task_dir / "Correlation_table.json") as tmp_file3 ):
                 task = tree_heatmap_sync.heatmap(
-                    **kwargs,
+                    organism_count=organism_count,
+                    df=df,
+
                     version=db.q_id,
                     output_file=tmp_file,
                     preview_file=tmp_file2,
@@ -49,7 +51,12 @@ async def heatmap(**kwargs):
         db["heatmap"] = db.q_id
 
 
-async def tree(do_blast=False, **kwargs):
+
+
+
+
+
+async def tree(do_blast, phyloxml_file, OG_names, df, organisms, prot_ids):
     async with get_db().substage("tree") as db:
         db.msg = "In queue to build tree"
         db.total = None
@@ -63,7 +70,12 @@ async def tree(do_blast=False, **kwargs):
         try:
             with atomic_file(db.task_dir / "tree.xml") as tmp_file:
                 task = tree_heatmap_sync.tree(
-                    **kwargs,
+                    phyloxml_file=phyloxml_file,
+                    OG_names=OG_names,
+                    df=df,
+                    organisms=organisms,
+                    prot_ids=prot_ids,
+
                     do_blast=do_blast,
                     output_file=tmp_file,
                 )
@@ -95,14 +107,33 @@ async def tree(do_blast=False, **kwargs):
             #         task_id=db.task_id,
             #         stage="tree",
             #     )
+            if do_blast:
+                @db.transaction
+                async def res(pipe: Pipeline):
+                    pipe.multi()
+                    update(db.task_id, redis_pipe=pipe,
+                        progress_blast_msg="BLASTing",
+                        progress_blast_total="",
+                    )
+
+                    await enqueue(
+                        task_id=db.task_id,
+                        stage="blast",
+                        redis_client=pipe,
+
+                        blast_autoreload="1" if shape[0]*shape[1]<80_000 else "",
+                        enqueue_tree_gen="1" if info["kind"]!="interactive" else "",
+                    )
+                await res
 
 
         except Exception as e:
             msg = f"Error while building tree"
+            print("Tree building error!")
+            __import__("traceback").print_exc()
             if DEBUG:
                 msg += f": {repr(e)}"
             await db.report_error(msg, cancel_rest=False)
             raise
 
-        return shape, info["kind"]
 

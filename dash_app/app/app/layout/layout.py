@@ -86,9 +86,10 @@ body = html.Div(
             [
                 dbc.Col(
                     [
-                        html.P("""Download presence and study orthology group presence.
-                                Use UniProt Accesion Codes of your proteins to create a list with corresponding
-                                Orthology groups"""),
+                        html.P("""OrthoQuantum is a web-based tool for visualizing and studying phylogenetic presence/absence patterns of proteins and corresponding orthologous groups."""),
+                        html.P("""OrthoQuantum allows the user to submit protein queries, inspect the output in graphic format and download the output in .csv format. The tool visualizes phylogenetic profiles utilizing a set of databases with orthology predictions."""),
+                        html.P("""A BLAST search can be performed to complement the orthology data."""),
+
                         dbc.InputGroup([
                             html.Div([
                                 dbc.Checkbox(id="tutorial_checkbox"),

@@ -275,7 +275,7 @@ user_storage
 workspace.code-workspace
 redis_data
 .sub_git
-user_data
+user_data*
 dash_app/ssr
 .gitignore
 *.tar.gz
@@ -283,3 +283,4 @@ dash_app/ssr
 blast_data
 pantherdb
 worker/converter/panther/panther
+tabprocessor

@@ -91,9 +91,10 @@ body = html.Div(
             [
                 dbc.Col(
                     [
-                        html.P("""Download presence and study orthology group presence.
-                                Use UniProt Accesion Codes of your proteins to create a list with corresponding
-                                Orthology groups"""),
+                        html.P("""OrthoQuantum is a web-based tool for visualizing and studying phylogenetic presence/absence patterns of proteins and corresponding orthologous groups."""),
+                        html.P("""OrthoQuantum allows the user to submit protein queries, inspect the output in graphic format and download the output in .csv format. The tool visualizes phylogenetic profiles utilizing a set of databases with orthology predictions."""),
+                        html.P("""A BLAST search can be performed to complement the orthology data."""),
+
                         dbc.InputGroup([
                             html.Div([
                                 dbc.Checkbox(id="tutorial_checkbox"),
@@ -799,12 +800,10 @@ def csvdownload(task_id):
 def about(app):
     items = [
         html.H3("About", className="mb-3", ),
-        html.P(
-            [
-                html.I("OrthoQuantum"),
-                html.Span("""is a web-based tool for visualizing and studying phylogenetic presence/absence patterns of proteins and corresponding orthologous groups."""),
-            ],
-        ),
+        html.P([
+            html.I("OrthoQuantum"), """ is a web-based tool for visualizing and studying phylogenetic presence/absence patterns of proteins and corresponding orthologous groups."""
+
+        ]),
         html.P("""OrthoQuantum allows the user to submit protein queries, inspect the output in graphic format and download the output in .csv format. The tool visualizes phylogenetic profiles utilizing a set of databases with orthology predictions.  The webserver mainly relies on orthology predictions from the OrthoDB database, which  is leading in coverage of eukaryotic species, with 1,300 species that have a complete or nearly complete genome assembly and 37 million genes/proteins in the most recent update. Clustering of homologous sequences in OrthoDB occurs at the specified taxonomic level.  Multiple researchers can easily access the tool, which can display data from the set of over 1000 fully sequenced eukaryotic genomes and predicted orthologs at any given time.
         """),
         html.P("""A BLAST search can be performed to complement the orthology data. The user can submit the query in the front page by listing the UniProt identifiers or gene IDs in the input field."""),
@@ -857,15 +856,15 @@ def about(app):
         html.P("""Caveats"""),
         html.P("""It should be noted that there are a number of caveats associated with orthology detection (Kuzniar, et al., 2008; Rano-Rubio et al. 2009). Firstly, in the absence of detailed phylogenetic analyses, domain gains, losses and shuffling events can significantly complicate orthology assignments. Secondly, horizontal gene transfer introduces an additional problem of xenologs which can lead to confounding outcomes. Thirdly, the quality and coverage of genome annotation varies significantly between genome projects. Genomes or lower quality or with lower fold coverage may be associated with incomplete proteomes, giving rise to apparently missing orthologs. Here we have attempted to use published genomes that provide a good compromise between phylogenetic coverage and what we consider are useful genome assemblies. As more genomes are sequenced, there is an increasing recognition for a set of 'industry' standards to be defined (Chain et al., 2009)."""),
         html.H3("References", className="mb-3"),
-        html.P([
-            """Chain PS et al Genome project standards in a new era of sequencing. Science. 2009 Oct 9;326(5950):236-7)""", html.Br(),
-            """Eisen, M.B., et al. (1998) Cluster analysis and display of genome-wide expression patterns, Proc Natl Acad Sci U S A, 95, 14863-14868.""", html.Br(),
-            """Hulsen, T., et al. (2009) PhyloPat: an updated version of the phylogenetic pattern database contains gene neighborhood, Nucleic Acids Res, 37, D731-737.""", html.Br(),
-            """Kuzniar, A., et al. (2008) The quest for orthologs: finding the corresponding gene across genomes, Trends Genet, 24, 539-551.""", html.Br(),
-            """Pellegrini, M., et al. (1999) Assigning protein functions by comparative genome analysis: protein phylogenetic profiles, Proceedings of the National Academy of Sciences of the United States of America, 96, 4285-4288.""", html.Br(),
-            """Ruano-Rubio, V., Poch, O. and Thompson, J. (2009) Comparison of eukaryotic phylogenetic profiling approaches using species tree aware methods, BMC bioinformatics, 10, 383.""", html.Br(),
-            """Schneider, A., Dessimoz, C. and Gonnet, GH. (2007): OMA Browser - Exploring Orthologous Relations across 352 Complete Genomes, Bioinformatics 23(16), pages 2180-2182.""", html.Br(),
-            """von Mering, C., et al. (2003) STRING: a database of predicted functional associations between proteins, Nucleic Acids Res, 31, 258 - 261.""",
+        html.Ol([
+            html.Li("""Chain PS et al Genome project standards in a new era of sequencing. Science. 2009 Oct 9;326(5950):236-7)"""),
+            html.Li("""Eisen, M.B., et al. (1998) Cluster analysis and display of genome-wide expression patterns, Proc Natl Acad Sci U S A, 95, 14863-14868."""),
+            html.Li("""Hulsen, T., et al. (2009) PhyloPat: an updated version of the phylogenetic pattern database contains gene neighborhood, Nucleic Acids Res, 37, D731-737."""),
+            html.Li("""Kuzniar, A., et al. (2008) The quest for orthologs: finding the corresponding gene across genomes, Trends Genet, 24, 539-551."""),
+            html.Li("""Pellegrini, M., et al. (1999) Assigning protein functions by comparative genome analysis: protein phylogenetic profiles, Proceedings of the National Academy of Sciences of the United States of America, 96, 4285-4288."""),
+            html.Li("""Ruano-Rubio, V., Poch, O. and Thompson, J. (2009) Comparison of eukaryotic phylogenetic profiling approaches using species tree aware methods, BMC bioinformatics, 10, 383."""),
+            html.Li("""Schneider, A., Dessimoz, C. and Gonnet, GH. (2007): OMA Browser - Exploring Orthologous Relations across 352 Complete Genomes, Bioinformatics 23(16), pages 2180-2182."""),
+            html.Li("""von Mering, C., et al. (2003) STRING: a database of predicted functional associations between proteins, Nucleic Acids Res, 31, 258 - 261."""),
         ]),
         html.P("""Quick Links to Databases"""),
         html.Ul([

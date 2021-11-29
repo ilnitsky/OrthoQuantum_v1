@@ -19,7 +19,6 @@ def decode_int(*items, default=0) -> int:
 DEBUG = bool(os.environ.get('DEBUG', '').strip())
 DATA_PATH = Path.cwd() / "user_data"
 
-
 @contextlib.contextmanager
 def atomic_file(file:Path):
     fd, tmp = tempfile.mkstemp(

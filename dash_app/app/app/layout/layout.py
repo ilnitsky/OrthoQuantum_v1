@@ -390,7 +390,7 @@ def dashboard(task_id):
     dcc.Store(id='task_id', data=task_id),
     dcc.Store(id='connection_id', data=None),
     dcc.Store(id='version', data=None),
-    dcc.Store(id='force_updates', data=0),
+    dcc.Store(id='force_update', data=0),
     dcc.Interval(
       id='progress_updater',
       interval=500, # in milliseconds

@@ -188,48 +188,114 @@ dash_app.clientside_callback(
     Output('csvdownload_progress_updater', 'disabled'),
     Output('csv_redirect', 'pathname'),
     Output('csvdownload_done', 'data'),
+    Output('tgt_ver', 'data'),
 
     Input('csvdownload_progress_updater', 'n_intervals'),
 
+    State('tgt_ver', 'data'),
     State('task_id', 'data'),
 )
 def csvdownload(dp: DashProxy):
+    raise NotImplementedError("TODO")
+    """
     task_id = dp['task_id', 'data']
+    stage = "tree_csv"
+    update_needed = True
+    while update_needed:
+        # initial load
+        with user.db.pipeline(transaction=True) as pipe:
+            pipe.hget(f"/tasks/{task_id}/enqueued", stage) # stage: qid
+            pipe.hget(f"/tasks/{task_id}/running", stage) # stage: qid
+            user.get_updates(task_id, dp['version', 'data'], dp['connection_id', 'data'], redis_client=pipe)
+
+            enqueued, running, updates = pipe.execute()
+        updates = user.decode_updates_resp(updates)
+        if len(updates) == 2:
+            dp['version', 'data'], updates = updates
+        else:
+            dp['version', 'data'], dp['connection_id', 'data'], updates = updates
+
+
+
+    if not dp['tgt_ver', 'data']:
+        with user.db.pipeline(transaction=True) as pipe:
+            pipe.hget(f"/tasks/{task_id}/enqueued", stage)
+            pipe.hget(f"/tasks/{task_id}/running", stage)
+            pipe.hget(
+                f"/tasks/{task_id}/state",
+                "tree_version", "tree_blast_ver", "tree_csv_ver"
+            )
+            enqueued_q_id, running_q_id, (tree_ver, tree_blast_ver, tree_csv_ver) = pipe.execute()
+
+        tgt_ver = f'{tree_ver}_{tree_blast_ver}'
+        if tree_csv_ver >= dp['tgt_ver', 'data']:
+            # download!
+            pass
+        else:
+            if not enqueued or running:
+                enqueue
+
+            get_q_id
+    else:
+        have q_id
+        fetch updates and enqueued or running
+
+        elif enqueued_q_id:
+            # display enqueued
+        elif running_q_id:
+            # display progress
+    else:
+
+        if enqueued_q_id:
+            # display enqueued
+        elif running_q_id:
+            # display progress
+        else:
+            dp['tgt_ver', 'data'] = None
+
+
+    with user.db.pipeline(transaction=True) as pipe:
+        pipe.hget(f"/tasks/{task_id}/enqueued", stage)
+        pipe.hget(f"/tasks/{task_id}/running", stage)
+        pipe.hmget(
+            f"/tasks/{task_id}/state",
+            "tree_version", "tree_blast_ver", "tree_csv_ver"
+        )
+        enqueued_q_id, running_q_id, () = pipe.execute()
+
+
+    if enqueued_q_id:
+        pass # diplay enqueued pb
+    elif running_q_id:
+        pass # display regular pb
+    el
+
+
     while True:
         try:
             with user.db.pipeline(transaction=True) as pipe:
-                pipe.watch(
-                    f"/tasks/{task_id}/stage/tree/version",
-                    f"/tasks/{task_id}/stage/tree_csv/version",
-                    f"/tasks/{task_id}/progress/tree_csv",
-                )
-                tree_ver, tree_csv_ver = pipe.mget(
-                    f"/tasks/{task_id}/stage/tree/version",
-                    f"/tasks/{task_id}/stage/tree_csv/version",
-                )
-                if tree_ver != tree_csv_ver:
-                    pipe.multi()
-                    user.enqueue(
-                        version_key=f"/tasks/{task_id}/stage/tree_csv/version",
-                        queue_key='/queues/tree_csv',
-                        queue_id_dest=f"/tasks/{task_id}/progress/tree_csv",
-                        queue_hash_key="q_id",
-                        redis_client=pipe,
+                pipe.watch(f"/tasks/{task_id}/enqueued")
+                enqueued_q_id = pipe.hget(f"/tasks/{task_id}/enqueued", stage)
+                if enqueued_q_id:
+                    break
+                if pipe.hget(f"/tasks/{task_id}/running", stage):
+                    break
 
-                        task_id=task_id,
-                        stage="tree",
+
+                if f'{tree_ver}_{blast_ver}' != tree_csv_ver:
+                    pipe.multi()
+                    user.enqueue(task_id, "stage", redis_client=pipe)
+                    user.update(
+                        task_id, connection_id=dp['connection_id', 'data'], redis_pipe=pipe,
+
+                        progress_csv_style='',
+                        progress_csv_msg="Generating csv download",
                     )
-                    _, q_id = pipe.execute()[-1]
-                    data = {
-                        "status": 'Enqueued',
-                        "message": 'CSV generation',
-                        "q_id": q_id,
-                    }
-                    pipe.hset(f"/tasks/{task_id}/progress/tree_csv",
-                        mapping=data,
-                    )
+                    pipe.execute()
+
                     break
                 else:
+
                     data = pipe.hgetall(f"/tasks/{task_id}/progress/tree_csv")
                     if data['status'] == "Done":
                         dp['csvdownload_done', 'data'] = f'/files/{task_id}/tree.csv'
@@ -296,6 +362,7 @@ def csvdownload(dp: DashProxy):
         key="csvdownload_progress_bar",
         **pbar,
     )
+    """
 
 
 # prottree page
@@ -850,7 +917,7 @@ dash_app.clientside_callback(
     # State('request_list_dropdown_shown', 'data'),
 )
 
-
+#region Update processing
 DB_2_DASH = {}
 DB_2_DASH_KEYS = set()
 
@@ -863,6 +930,7 @@ def add_processor(func=None, /, **from_to):
         DB_2_DASH[k] = (v, func)
         DB_2_DASH_KEYS.add(k)
     return func
+
 
 
 _no_val = object()
@@ -941,7 +1009,6 @@ add_processor(
 def missing_prot(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
     # TODO: move missing_prot_alert into state hash
     missing_prot_msg = upd.get(db_key)
-    print(f"{missing_prot_msg=}")
     if missing_prot_msg:
         dp['missing_prot_alert', 'children'] = f"Unknown proteins: {missing_prot_msg}"
         dp['missing_prot_alert', 'is_open'] = True
@@ -973,7 +1040,6 @@ def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[
 
     except Exception:
         # TODO: report exception
-        print("table_exc", flush=True)
         __import__("traceback").print_exc()
         pass
 
@@ -1025,7 +1091,7 @@ def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[s
     dp['tree_header', 'style'] = layout.SHOW
 
     kind = tree_info['kind']
-    version = f"{tree_info['version']}_{upd.get('tree_blast_ver', 0)}"
+    version = f"{upd['tree_version']}_{upd.get('tree_blast_ver', 0)}"
     shape = tree_info['shape']
 
     if kind == 'interactive':
@@ -1038,7 +1104,6 @@ def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[s
             version=version,
             taskid=task_id,
         )
-        print(f"Rendered blast version {version}")
     else:
         assert kind in ('svg', 'png')
         dp["tree_container", "children"] = None
@@ -1150,7 +1215,6 @@ def progress(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tup
 
 def create_outputs():
     outputs = set()
-    print("\n".join(DB_2_DASH.keys()))
     for dash_keys, _ in DB_2_DASH.values():
         for dash_key in dash_keys:
             outputs.add(dash_key)
@@ -1159,7 +1223,6 @@ def create_outputs():
 
 
 @dash_proxy.callback(
-    # Output('progress_updater', 'interval'),
     Output('progress_updater', 'disabled'),
     Output('cancel-button', 'className'),
     Output('version', 'data'),
@@ -1168,7 +1231,7 @@ def create_outputs():
     *create_outputs(),
 
     Input('progress_updater', 'n_intervals'),
-    Input('force_updates', 'data'),
+    Input('force_update', 'data'),
     Input('prot-search-result', 'data'),
 
     State('task_id', 'data'),
@@ -1180,13 +1243,14 @@ def create_outputs():
 def update_everything(dp: DashProxy):
     task_id = dp['task_id', 'data']
 
-    update_needed = (
-        dp.first_load or
-        {
-            ('progress_updater', 'n_intervals'),
-            ('force_updates', 'data')
-        }.intersection(dp.triggered)
-    )
+    if ('force_update', 'data') in dp.triggered:
+        dp['cancel-button', 'className'] = "float-right"
+        update_needed = True
+    else:
+        update_needed = (
+            dp.first_load or
+            ('progress_updater', 'n_intervals') in dp.triggered
+        )
 
     while update_needed:
         # initial load
@@ -1236,10 +1300,10 @@ def update_everything(dp: DashProxy):
                 updates[f"progress_{stage}_msg"] = msg
 
         dp['progress_updater', 'disabled'] = not (
-            enqueued or
-            running or
-            dp['force_updates', 'data'] > time.time()
+            enqueued or running
         )
+        if dp['progress_updater', 'disabled']:
+            dp['cancel-button', 'className'] = "float-right d-none"
 
         # group progress_{stage}_{msg/max/value/style} as
         # dict progress_{stage} with keys {msg/max/value/style}
@@ -1259,12 +1323,15 @@ def update_everything(dp: DashProxy):
     # /stage/tree/info
     # /stage/tree/opts
 
+#endregion
+
+
 @dash_proxy.callback(
     Output("wrong-input-msg", "is_open"),
     # Output("blast-button-input-value", "data"),
 
     Output('uniprotAC', 'value'),
-    Output('force_updates', 'data'),
+    Output('force_update', 'data'),
 
 
     ###
@@ -1305,7 +1372,6 @@ def submit(dp:DashProxy):
         ('prot-search-result', 'data'): 100
     }
     triggers = sorted(dp.triggered, key=lambda x: upd_priority.get(x, 0))
-    print("submit_trig", triggers)
     for cause in triggers:
         if cause == ('uniprotAC_update', 'data'):
             if dp['uniprotAC_update', 'data'] is not None:
@@ -1344,32 +1410,17 @@ def submit(dp:DashProxy):
             assert dp['connection_id', 'data'], "Connection id should be set on page load"
 
             with user.db.pipeline(transaction=True) as pipe:
-                user.enqueue(
-                    task_id=task_id,
-                    stage="table",
-                    redis_client=pipe,
-                )
-                user.cancel(
-                    task_id=task_id,
-                    stage="vis",
+                user.enqueue(task_id, "table", redis_client=pipe)
+                user.cancel(task_id, "vis", redis_client=pipe)
+                user.cancel(task_id, "tree_csv", redis_client=pipe)
+                user.cancel(task_id, "blast", redis_client=pipe)
+                user.cancel(task_id, "ssr", redis_client=pipe)
 
-                    redis_client=pipe,
-                )
-                user.cancel(
-                    task_id=task_id,
-                    stage="blast",
-
-                    redis_client=pipe,
-                )
-                user.cancel(
-                    task_id=task_id,
-                    stage="ssr",
-
-                    redis_client=pipe,
-                )
                 user.update(
                     task_id, connection_id=dp['connection_id', 'data'], redis_pipe=pipe,
 
+                    progress_table_style='',
+                    progress_table_msg="Building table",
                     input_proteins=dp['uniprotAC', 'value'],
                     input_tax_level=dp['tax-level-dropdown', 'value'],
                     input_blast_enabled="1" if dp["blast-options", "is_open"] else "",
@@ -1378,18 +1429,8 @@ def submit(dp:DashProxy):
                     input_blast_qcovs=qcovs,
                     input_max_proteins=dp["max-proteins", "value"],
                 )
-                user.update(
-                    task_id, redis_pipe=pipe,
-
-                    progress_table_style='',
-                    progress_table_msg="Building table",
-                    progress_vis_style='',
-                    progress_heatmap_style='',
-                    progress_tree_style='',
-                    progress_blast_style='',
-                )
                 res = pipe.execute()
-                dp['force_updates', 'data'] = time.time()+3
+                dp['force_update', 'data'] = True
 
         elif cause == ('rerenderSSR_button', 'n_clicks'):
             raise NotImplementedError("SSR needs to be updated")
@@ -1431,34 +1472,11 @@ def submit(dp:DashProxy):
 
         elif cause == ('cancel-button', 'n_clicks'):
             with user.db.pipeline(transaction=True) as pipe:
-                user.cancel(
-                    task_id=task_id,
-                    stage="table",
-                    redis_client=pipe,
-                )
-                user.cancel(
-                    task_id=task_id,
-                    stage="vis",
-                    redis_client=pipe,
-                )
-                user.cancel(
-                    task_id=task_id,
-                    stage="blast",
-                    redis_client=pipe,
-                )
-                user.cancel(
-                    task_id=task_id,
-                    stage="ssr",
-                    redis_client=pipe,
-                )
-                user.update(
-                    task_id, redis_pipe=pipe,
-
-                    progress_table_style='',
-                    progress_vis_style='',
-                    progress_heatmap_style='',
-                    progress_tree_style='',
-                )
+                user.cancel(task_id, "table", redis_client=pipe)
+                user.cancel(task_id, "vis", redis_client=pipe)
+                user.cancel(task_id, "tree_csv", redis_client=pipe)
+                user.cancel(task_id, "blast", redis_client=pipe)
+                user.cancel(task_id, "ssr", redis_client=pipe)
 
                 res = pipe.execute()
 

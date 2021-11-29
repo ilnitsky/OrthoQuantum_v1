@@ -6,6 +6,7 @@ from itertools import chain
 from typing import Optional, Any
 from aioredis.client import Pipeline
 from lxml import etree as ET
+import sqlite3
 
 GROUP = "worker_group"
 CONSUMER = "worker_group_consumer"
@@ -24,6 +25,8 @@ HOST = os.environ["REDIS_HOST"]
 
 redis = aioredis.from_url(f"redis://{HOST}", encoding="utf-8", decode_responses=True)
 raw_redis = aioredis.from_url(f"redis://{HOST}", decode_responses=False)
+ORTHODB = "/PANTHERDB/orthodb.db"
+
 
 LEVELS = {}
 TAXID_TO_NAME = {}
@@ -37,7 +40,6 @@ def enqueue(task_id:str, stage:str, params: Optional[dict[str, Any]]=None, redis
 
     if not kwargs:
         raise RuntimeError("empty queue data")
-    print("*****", task_id, stage, kwargs)
     return _enqueue(
         task_id=task_id,
         stage=stage,
@@ -158,7 +160,7 @@ def ack(q_name, q_id, redis_pipe: Pipeline):
 
 
 async def init_db():
-    global _scripts
+    global _scripts, LEVEL_IDS
     for i in range(30):
         try:
             await redis.ping()
@@ -174,10 +176,22 @@ async def init_db():
     assert all(s in _scripts for s in required_scripts), 'some script is missing!'
 
     await init_availible_levels()
+    # blocking, but only runs once and fast
+
+def load_level_ids():
+    with sqlite3.connect(ORTHODB) as conn:
+        res = conn.execute("SELECT scientific_name, level_id FROM levels;")
+        data = res.fetchall()
+
+    return {
+        k.strip().lower(): v
+        for k,v in data
+    }
 
 
 async def init_availible_levels():
     global LEVELS
+    level_ids = load_level_ids()
     phyloxml_dir = Path.cwd() / "phyloxml"
     l = []
     for file in phyloxml_dir.glob("*.xml"):
@@ -189,11 +203,16 @@ async def init_availible_levels():
             name = level
         else:
             raise RuntimeError(f"incorrect file name {file}")
+        try:
+            level_orthodb_id = level_ids[level.strip().lower()]
+        except KeyError:
+            raise RuntimeError(f"Can't find orthodb level id for {level}")
 
         l.append(
             (
                 int(id),
                 level,
+                level_orthodb_id,
                 name,
                 str(file.resolve()),
             )
@@ -205,8 +224,8 @@ async def init_availible_levels():
 
     async with redis.pipeline(transaction=False) as pipe:
         availible_levels = {}
-        for id, level, name, path in l:
-            LEVELS[id] = (level, path)
+        for id, level, orthodb_id, name, path in l:
+            LEVELS[id] = (level, orthodb_id, path)
             availible_levels[name] = id
 
             # options for the gene search dropdown

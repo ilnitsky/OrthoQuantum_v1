@@ -1,6 +1,5 @@
 import shutil
 import json
-from sys import version
 
 import pandas as pd
 import numpy as np
@@ -56,7 +55,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
             el = ET.SubElement(values, "value")
             if row[df.columns[col_idx]]:
                 el.text = "100"
-                el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(str(index), "Not Found")
+                el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(index, "Not Found")
             else:
                 el.text = "0"
                 if do_blast:
@@ -85,7 +84,7 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
         "#f72585","#b5179e","#7209b7","#560bad","#480ca8",
         "#3a0ca3","#3f37c9","#4361ee","#4895ef","#4cc9f0",
     ],as_cmap=True)
-    # print(df.describe(), df.shape)
+
     items_count = df.shape[1]
     corr = df.corr()
     tbl_corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool)).stack()

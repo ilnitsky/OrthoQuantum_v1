@@ -27,7 +27,7 @@ async def vis():
 
     blast_enable = bool(blast_enable)
     level_id, max_prots = decode_int(level_id, max_prots)
-    level, phyloxml_file = LEVELS[level_id]
+    level, _, phyloxml_file = LEVELS[level_id]
 
     organisms, csv_data = await vis_sync.read_org_info(
         phyloxml_file=phyloxml_file,
@@ -46,92 +46,104 @@ async def vis():
     corr_info = {}
     prot_ids = {}
 
-    cur_time = int(time.time())
-    async with redis.pipeline(transaction=False) as pipe:
-        for _, data in csv_data.iterrows():
-            label=data['label']
-            pipe.hgetall(f"/cache/corr/{level}/{label}/data")
-            pipe.hgetall(f"/cache/corr/{level}/{label}/gene_names")
+    for _, data in csv_data.iterrows():
+        name =data['Name']
+        label = data['label']
+        og_name, ortho_counts, gene_names = await vis_sync.get_corr_data(
+            name=name,
+            label=label,
+            level=level,
+        )
+        db.current += 1
+        corr_info[og_name] = ortho_counts
+        prot_ids[og_name] = gene_names
 
-            pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time, xx=True)
-        res = iter(await pipe.execute())
-        for _, data in csv_data.iterrows():
-            og_name=data['Name']
-            ortho_counts = next(res)
-            gene_names = next(res)
-            _ = next(res)
-            if ortho_counts:
-                corr_info[og_name] = ortho_counts
-                prot_ids[og_name] = gene_names
-                db.current += 1
-            else:
-                corr_info_to_fetch[og_name] = data['label']
 
-    if corr_info_to_fetch:
-        db.total -= 1
-        async def progress(items_in_front):
-            if items_in_front > 0:
-                db.msg=f"In queue to request correlation data ({items_in_front} tasks in front)"
-            elif items_in_front == 0:
-                db.msg = "Requesting correlation data"
-                db.total = len(corr_info_to_fetch)
-                await db.sync()
 
-        corr_info_to_retry = {}
-        tasks = [
-            vis_sync.get_corr_data(
-                name=name,
-                label=label,
-                level=level,
-            )
-            for name, label in corr_info_to_fetch.items()
-        ]
-        tasks[0].set_progress_callback(progress)
+    # cur_time = int(time.time())
+    # async with redis.pipeline(transaction=False) as pipe:
+    #     for _, data in csv_data.iterrows():
+    #         label=data['label']
+    #         pipe.hgetall(f"/cache/corr/{level}/{label}/data")
+    #         pipe.hgetall(f"/cache/corr/{level}/{label}/gene_names")
 
-        try:
-            async with redis.pipeline(transaction=False) as pipe:
-                for _ in range(3):
-                    for f in asyncio.as_completed(tasks):
-                        og_name, ortho_counts, gene_names = await f
-                        if ortho_counts is None:
-                            corr_info_to_retry[og_name] = corr_info_to_fetch[og_name]
-                            continue
-                        og_name: str
-                        ortho_counts: dict
+    #         pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time, xx=True)
+    #     res = iter(await pipe.execute())
+    #     for _, data in csv_data.iterrows():
+    #         og_name=data['Name']
+    #         ortho_counts = next(res)
+    #         gene_names = next(res)
+    #         _ = next(res)
+    #         if ortho_counts:
+    #             corr_info[og_name] = ortho_counts
+    #             prot_ids[og_name] = gene_names
+    #             db.current += 1
+    #         else:
+    #             corr_info_to_fetch[og_name] = data['label']
 
-                        cur_time = int(time.time())
-                        label = corr_info_to_fetch[og_name]
-                        pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=ortho_counts)
-                        pipe.hset(f"/cache/corr/{level}/{label}/gene_names", mapping=gene_names)
-                        pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
-                        pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
+    # if corr_info_to_fetch:
+    #     db.total -= 1
+    #     async def progress(items_in_front):
+    #         if items_in_front > 0:
+    #             db.msg=f"In queue to request correlation data ({items_in_front} tasks in front)"
+    #         elif items_in_front == 0:
+    #             db.msg = "Requesting correlation data"
+    #             db.total = len(corr_info_to_fetch)
+    #             await db.sync()
 
-                        corr_info[og_name] = ortho_counts
-                        prot_ids[og_name] = gene_names
-                        db.current += 1
-                    if corr_info_to_retry:
-                        corr_info_to_fetch, corr_info_to_retry = corr_info_to_retry, corr_info_to_fetch
-                        corr_info_to_retry.clear()
-                        await asyncio.sleep(5)
-                        tasks = [
-                            vis_sync.get_corr_data(
-                                name=name,
-                                label=label,
-                                level=level,
-                            )
-                            for name, label in corr_info_to_fetch.items()
-                        ]
-                    else:
-                        break
-                else:
-                    await pipe.execute()
-                    raise ReportErrorException(f"Can't fetch correlation info for {';'.join(corr_info_to_fetch.keys())}")
-                await pipe.execute()
-        except:
-            for t in tasks:
-                t.cancel()
-            raise
-    db.msg="Processing correlation data"
+    #     # corr_info_to_retry = {}
+    #     # tasks = [
+    #     #     vis_sync.get_corr_data(
+    #     #         name=name,
+    #     #         label=label,
+    #     #         level=level,
+    #     #     )
+    #     #     for name, label in corr_info_to_fetch.items()
+    #     # ]
+    #     # tasks[0].set_progress_callback(progress)
+
+
+
+
+    #     try:
+    #         async with redis.pipeline(transaction=False) as pipe:
+    #             for _ in range(3):
+    #                 for f in asyncio.as_completed(tasks):
+    #                         # if ortho_counts is None:
+    #                         #     corr_info_to_retry[og_name] = corr_info_to_fetch[og_name]
+    #                         #     continue
+
+    #                         # cur_time = int(time.time())
+    #                         # pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=ortho_counts)
+    #                     # pipe.hset(f"/cache/corr/{level}/{label}/gene_names", mapping=gene_names)
+    #                     # pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
+    #                     # pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
+
+
+    #                     db.current += 1
+    #                 # if corr_info_to_retry:
+    #                 #     corr_info_to_fetch, corr_info_to_retry = corr_info_to_retry, corr_info_to_fetch
+    #                 #     corr_info_to_retry.clear()
+    #                 #     await asyncio.sleep(5)
+    #                 #     tasks = [
+    #                 #         vis_sync.get_corr_data(
+    #                 #             name=name,
+    #                 #             label=label,
+    #                 #             level=level,
+    #                 #         )
+    #                 #         for name, label in corr_info_to_fetch.items()
+    #                 #     ]
+    #                 else:
+    #                     break
+    #             else:
+    #                 await pipe.execute()
+    #                 raise ReportErrorException(f"Can't fetch correlation info for {';'.join(corr_info_to_fetch.keys())}")
+    #             await pipe.execute()
+    #     except:
+    #         for t in tasks:
+    #             t.cancel()
+    #         raise
+    # db.msg="Processing correlation data"
 
     df = pd.DataFrame(
         data={

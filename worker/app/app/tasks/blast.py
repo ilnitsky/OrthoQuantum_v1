@@ -476,7 +476,7 @@ class TreeRenderer():
         async def res(pipe:Pipeline):
             pipe.multi()
             pipe.hincrby(self.db.state_key, "tree_blast_ver")
-            report_updates(self.db.task_id, "tree", "tree_blast_ver", redis_client=pipe)
+            report_updates(self.db.task_id, "tree", "tree_blast_ver", "tree_version", redis_client=pipe)
         res = await res
         print(f'''tree_blast_ver {res[0]=}''', flush=True)
 

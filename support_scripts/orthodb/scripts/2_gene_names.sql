@@ -51,10 +51,9 @@ WHERE orthodb_to_uniprot.uniprot_id IS NULL
 DROP TABLE orthodb_to_uniprot;
 DROP TABLE orthodb_to_name;
 
-VACUUM;
-
 CREATE INDEX genes_uniprot_id_idx ON genes(uniprot_id);
 CREATE INDEX genes_gene_name_idx ON genes(gene_name);
+CREATE INDEX genes_orthodb_id_idx ON genes(orthodb_id);
 
 
 -- Test Request

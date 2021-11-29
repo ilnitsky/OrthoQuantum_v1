@@ -17,7 +17,6 @@ async def build_prottree(queue_name, q_id, prot_id):
         prottree_file = (PROTTREE_DIR/f'{prot_id}.xml')
         with atomic_file(prottree_file) as tmp_path:
             error_msg = await prottree_generator(prot_id, tmp_path)
-            print(error_msg)
     except:
         error_msg = "Error while building the gene/protein subfamily tree"
         raise

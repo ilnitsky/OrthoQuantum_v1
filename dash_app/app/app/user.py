@@ -76,9 +76,9 @@ def get_updates(task_id:str, last_version:int = None, connection_id:int = None, 
             5,
             f'/tasks/{task_id}/state/cur_version',
             f'/tasks/{task_id}/state/key_versions',
+            f'/tasks/{task_id}/state',
             f'/tasks/{task_id}/state/key_versions_on_connection_{connection_id}',
             '/scratch/zset',
-            f'/tasks/{task_id}/state',
 
             last_version + 1
         ]

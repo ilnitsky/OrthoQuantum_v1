@@ -11,7 +11,7 @@ import pyppeteer.element_handle
 
 from aioredis.client import Pipeline
 
-from ..task_manager import get_db, queue_manager, cancellation_manager
+from ..task_manager import get_db, queue_manager
 from ..utils import atomic_file
 
 

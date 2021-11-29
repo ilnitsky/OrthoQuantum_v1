@@ -28,8 +28,6 @@ def search_for_prot(taxid, prot_codes:str):
         try:
             up = res['uniprot']
         except LookupError:
-            print("*** LookupError")
-            print(res)
             result.append(f"# {res['query']} - {name}: not found")
             continue
         ac = None

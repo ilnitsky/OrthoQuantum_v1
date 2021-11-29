@@ -87,13 +87,13 @@ async def tree(do_blast, phyloxml_file, OG_names, df, organisms, prot_ids):
             info = {
                 "kind": "interactive",
                 "shape": shape,
-                "version": db.q_id,
             }
             #TODO: always svg
             # if shape[0]*shape[1] > 1:
             #     info["kind"] = "svg"
 
             db["tree"] = json_minify(info)
+            db["tree_version"] = db.q_id
 
             # if info["kind"] != "interactive":
             #     # Perform SSR
@@ -129,8 +129,6 @@ async def tree(do_blast, phyloxml_file, OG_names, df, organisms, prot_ids):
 
         except Exception as e:
             msg = f"Error while building tree"
-            print("Tree building error!")
-            __import__("traceback").print_exc()
             if DEBUG:
                 msg += f": {repr(e)}"
             await db.report_error(msg, cancel_rest=False)

@@ -30,8 +30,8 @@ if old_enqueued then
     -- attempt to prevend delivery of the task to the worker
     -- if worker already took the task - it would fail to launch
     -- since the enqueued id for this stage no longer matches the task id
-    redis.call('xdel', KEYS[1], old_qids[i])
-    redis.call('xack', KEYS[1], group, old_qids[i])
+    redis.call('xdel', KEYS[1], old_enqueued)
+    redis.call('xack', KEYS[1], group, old_enqueued)
 end
 
 if old_running then
@@ -45,7 +45,7 @@ if old_running then
     -- This way we can finish critical sections and clean up progress bars before calling
     -- "finish" and locking ourselves out of the db for good
 
-    redis.call('publish', KEYS[4], KEYS[1] .. ":" .. old_qids[i])
+    redis.call('publish', KEYS[4], KEYS[1] .. ":" .. old_running)
 end
 
 return new_queue_id

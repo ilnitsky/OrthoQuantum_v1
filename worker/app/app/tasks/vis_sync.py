@@ -2,7 +2,8 @@ import csv
 from logging import exception
 import SPARQLWrapper
 import pandas as pd
-import traceback
+import sqlite3
+from ..db import ORTHODB
 from lxml import etree as ET
 
 from ..async_executor import async_pool
@@ -38,9 +39,58 @@ def read_org_info(phyloxml_file:str, og_csv_path:str):
     csv_data = pd.read_csv(og_csv_path, sep=';')
     return orgs, csv_data
 
+# Extracted from odb10v1_species.tab:
+# some use
+_ID_TRANSLATION_TBL = {
+    441894: 8801,
+    381198: 8845,
+    216574: 8962,
+    74533: 9694,
+    62698: 9708,
+    310752: 9767,
+    127582: 9778,
+    73337: 9807,
+    1230840: 9818,
+    43346: 9901,
+    299123: 40157,
+    556262: 100884,
+    319938: 288004,
+    1841481: 302047,
+    1505932: 408180,
+    595593: 656366,
+    667632: 863227,
+    1336249: 1367849,
+    1220582: 1368415,
+    1834200: 1796646,
+    1166016: 1905730,
+}
+
 @async_pool.in_thread(max_pool_share=0.5)
 def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
-    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
+    cluster_id, clade = map(int, label.split('at', maxsplit=1))
+    ortho_counts = {}
+    gene_names = {}
+    with sqlite3.connect(ORTHODB) as conn:
+        cur = conn.execute("""
+            SELECT
+                taxid, count(DISTINCT orthodb_id), GROUP_CONCAT(DISTINCT gene_name)
+            FROM (
+                SELECT orthodb_id>>32 as taxid, orthodb_id, gene_name
+                FROM orthodb_to_og
+                LEFT JOIN genes USING (orthodb_id)
+                WHERE
+                    clade=?
+                    AND
+                    cluster_id=?
+            )
+            GROUP BY taxid;
+        """, (clade, cluster_id))
+        for taxid, orthologs_count, row_gene_names in cur:
+            taxid = _ID_TRANSLATION_TBL.get(taxid, taxid)
+            ortho_counts[taxid] = orthologs_count
+            gene_names[taxid] = row_gene_names if row_gene_names is not None else "None"
+
+    return name, ortho_counts, gene_names
 
     try:
         endpoint.setQuery(
@@ -106,7 +156,6 @@ def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
 
             return name, ortho_counts, gene_names
         except Exception:
-            traceback.print_exc()
             return name, None, None
 
 

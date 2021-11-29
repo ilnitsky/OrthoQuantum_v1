@@ -6,42 +6,29 @@ import requests
 import pandas as pd
 import numpy as np
 
+import sqlite3
+
 from ..async_executor import async_pool
 from ..utils import open_existing
+from ..db import ORTHODB
 
 @async_pool.in_thread(max_running=3)
-def orthodb_get(level:str, prot_ids:list) -> defaultdict[str, list]:
-    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
-
-    endpoint.setQuery(f"""
-    prefix : <http://purl.orthodb.org/>
-    select ?og ?og_description ?gene_name ?xref
-    where {{
-        ?og a :OrthoGroup;
-        :ogBuiltAt [up:scientificName "{level}"];
-        :name ?og_description;
-        !:memberOf/:xref/:xrefResource ?xref
-        filter (?xref in ({', '.join(f'uniprot:{v}' for v in prot_ids)}))
-        ?gene a :Gene; :memberOf ?og.
-        ?gene :xref [a :Xref; :xrefResource ?xref ].
-        ?gene :name ?gene_name.
-    }}
-    """)
-    endpoint.setReturnFormat(SPARQLWrapper.JSON)
-
-    n = endpoint.query().convert()
-
-    # # Tuples of 'label', 'Name', 'PID'
+def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
     res = defaultdict(list)
-
-    for result in n["results"]["bindings"]:
-        prot_id = result["xref"]["value"].rsplit("/", 1)[-1].strip().upper()
-        res[prot_id].append((
-            result["og"]["value"].split('/')[-1].strip(),
-            result["gene_name"]["value"],
-            prot_id,
-        ))
-
+    with sqlite3.connect(ORTHODB) as conn:
+        cur = conn.execute(f"""
+            SELECT
+            printf("%dat%d", cluster_id, clade), gene_name, uniprot_id
+            FROM genes
+            LEFT JOIN orthodb_to_og USING (orthodb_id)
+            WHERE
+                clade=?
+                AND
+                genes.uniprot_id IN ({('?,'*len(prot_ids))[:-1]})
+            ;
+        """, (level_id, *prot_ids))
+        for label, name, prot_id in cur:
+            res[prot_id].append((label, name, prot_id))
     return res
 
 

@@ -23,13 +23,9 @@ CREATE TABLE orthodb_to_og (
 .separator \t
 .import /tmp/import_data.tab orthodb_to_og
 
--- OGs that we can't find by gene name or uniprot id
-DELETE FROM orthodb_to_og
-WHERE orthodb_to_og.orthodb_id NOT IN (SELECT orthodb_id FROM genes);
-
 CREATE INDEX orthodb_to_og_orthodb_id_idx ON orthodb_to_og(orthodb_id);
 CREATE INDEX orthodb_to_og_clade_idx ON orthodb_to_og(clade);
-
+CREATE INDEX orthodb_to_og_cluster_id_idx ON orthodb_to_og(cluster_id);
 
 CREATE TABLE levels (
     level_id PRIMARY KEY NOT NULL,
@@ -47,9 +43,8 @@ INSERT INTO levels VALUES
     (199999999, "Protista")
 ;
 
-
-
 VACUUM;
+ANALYZE;
 
 -- Docker commands
 -- docker run -it --rm --user "$(id -u):$(id -g)" --entrypoint bash -v $PWD:/wd --workdir /wd nouchka/sqlite3

@@ -6,7 +6,7 @@ from anyio.abc import TaskGroup
 import traceback
 
 from .db_client import _create_db_client
-from .exceptions import VersionChangedException
+from .exceptions import VersionChangedException, HandledReportErrorException
 from ..utils import DEBUG
 
 from aioredis.client import PubSub
@@ -67,7 +67,6 @@ class QueueManager():
                     continue
 
     async def _run(self, q:QueueInfo, q_id:str, data:dict[str, str], scope:anyio.CancelScope):
-        print("_run", q, q_id, data)
         should_ack = True
         task_id, stage = None, None
         with scope:
@@ -85,9 +84,7 @@ class QueueManager():
                             print("Unable to start, was cancelled")
                         raise VersionChangedException()
                     async with _create_db_client(task_id=task_id, stage=stage, q_id=q_id):
-                        print("*** db client created, q.handler", q_id)
                         await q.handler(**data)
-                        print("*** q.handler exit", q_id)
 
                 # successful exit
                 should_ack = True
@@ -96,6 +93,9 @@ class QueueManager():
                 # cancelled by Db (version check in transaction) or just above this line
                 if DEBUG:
                     print(f"VersionChangedException on {stage} of {task_id} ({q_id} on {q.name})")
+                should_ack = True
+
+            except HandledReportErrorException:
                 should_ack = True
             except KeyboardInterrupt:
                 if DEBUG:
@@ -114,12 +114,12 @@ class QueueManager():
                 q.slots_left += 1
 
                 with anyio.CancelScope(shield=True):
-                    print(f"pipeline")
                     async with redis.pipeline(transaction=True) as pipe:
                         if not q.raw:
                             finish(task_id, stage, q_id, redis_client=pipe)
                         if should_ack:
                             ack(q.name, q_id, pipe)
+                        print("finish", task_id, stage, q_id)
                         await pipe.execute()
 
 
@@ -179,7 +179,6 @@ class QueueManager():
 
                     for q_id, data in items:
                         if not data:
-                            print(f"Skipping {q_id} (xdel'ed from DB)")
                             to_ack.append(q_id)
                             continue
                         print("Enqueueing", q.name, q_id, data)

@@ -44,18 +44,12 @@ async def _create_db_client(task_id, stage, q_id, stage_for_progress=None):
         _db_var.reset(token)
         with anyio.CancelScope():
             if not (db.is_error is True):
-                print("pb_hide", db.stage_for_progress)
                 db.pb_hide()
-                print("pb_hide", db.stage_for_progress, db._enqueued_update)
             try:
-                print("pb_hide db.sync", db.stage_for_progress)
                 try:
                     await db.sync()
                 except BaseException:
-                    if db.stage_for_progress == "vis":
-                        __import__("traceback").print_exc()
                     raise
-                print("pb_hide db.sync done", db.stage_for_progress)
 
             finally:
                 db._flush_task.cancel()
@@ -170,6 +164,7 @@ class DbClient():
             await self._update_flushed.wait_for(
                 lambda: tgt_upd <= self._flushed_update
             )
+            print("_update_flushed", self.q_id)
 
     def pb_hide(self):
         self.is_error = None
@@ -181,17 +176,18 @@ class DbClient():
         if flush:
             self._flush_event.set()
 
-        done, _ = await asyncio.wait(
-            (
-                asyncio.create_task(self._wait_for_flush(tgt_upd)),
-                self._flush_task, # if flush task is cancelled and the condition will never come true
-            ),
-            return_when=asyncio.FIRST_COMPLETED,
-        )
+        with anyio.CancelScope(shield=True):
+            done, _ = await asyncio.wait(
+                (
+                    asyncio.create_task(self._wait_for_flush(tgt_upd)),
+                    self._flush_task, # if flush task is cancelled and the condition will never come true
+                ),
+                return_when=asyncio.FIRST_COMPLETED,
+            )
 
-        # If self._flush_task was cancelled - raise the error and unlock waiting threads
-        for t in done:
-            await t
+            # If self._flush_task was cancelled - raise the error and unlock waiting threads
+            for t in done:
+                await t
 
 
     def substage(self, substage_name):
@@ -239,12 +235,6 @@ class DbClient():
                 self._enqueued_update, upd = {}, self._enqueued_update
                 if upd:
                     print("-> update", upd)
-                    if upd.get("progress_heatmap_style") == 'error':
-                        print(f'''progress_heatmap_style = error''', flush=True)
-                        # asyncio.current_task().print_stack()
-                    if upd.get("progress_tree_style") == 'error':
-                        print(f'''progress_tree_style = error''', flush=True)
-                        asyncio.current_task().print_stack()
                 to_set, to_del, report_upd = self._prepare_update(upd)
             else:
                 if func is None:

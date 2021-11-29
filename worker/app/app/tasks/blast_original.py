@@ -12,7 +12,7 @@ import pandas as pd
 from aioredis.client import Pipeline
 from lxml import etree as ET
 
-from ..task_manager import get_db, queue_manager, cancellation_manager
+from ..task_manager import get_db, queue_manager
 from ..utils import atomic_file
 from ..redis import raw_redis, enqueue
 from . import blast_sync

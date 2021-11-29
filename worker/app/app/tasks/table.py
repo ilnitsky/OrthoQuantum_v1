@@ -196,42 +196,12 @@ async def table():
     db["missing_prots"] = None
 
     level_id = int(await db["input_tax_level"])
-    level, _ = LEVELS[level_id]
+    _, level_orthodb_id, _ = LEVELS[level_id]
+    res_dict = await table_sync.orthodb_get(level_orthodb_id, prot_ids)
 
-    # Filter out already cached proteins
-    cache_data = await redis.mget([
-        f"/cache/uniprot/{level}/{prot_id}/data"
-        for prot_id in prot_ids
-    ])
-
-    res_dict = {}
-
-    cur_time = int(time())
-    async with redis.pipeline(transaction=False) as pipe:
-        for prot_id, cache in zip(prot_ids, cache_data):
-            if cache is None:
-                continue
-            pipe.set(f"/cache/uniprot/{level}/{prot_id}/accessed", cur_time, xx=True)
-            res_dict[prot_id] = json.loads(cache)
-        await pipe.execute()
-
-    db.current=len(res_dict)
-    prots_to_fetch = list(
-        set(prot_ids) - res_dict.keys()
-    )
-    try:
-        if prots_to_fetch:
-            res_dict.update(
-                await fetch_proteins(
-                    level=level,
-                    prots_to_fetch=prots_to_fetch,
-                )
-            )
-    except urllib.error.HTTPError as e:
-        if e.code == 502:
-            raise ReportErrorException("orthodb.org server crashed, try again later") from e
-        else:
-            raise
+    missing = set(prot_ids).difference(res_dict.keys())
+    if missing:
+        db["missing_prots"] = ', '.join(missing)
 
     db.current = 0
     db.total = None
@@ -247,25 +217,20 @@ async def table():
         await db.check_if_cancelled()
 
     # Can start visualization right now
-    try:
-        @db.transaction
-        async def res(pipe: Pipeline):
-            pipe.multi()
-            await enqueue(
-                task_id=db.task_id,
-                stage="vis",
-                redis_client=pipe,
-            )
-            update(
-                db.task_id, pipe,
-                progress_vis_msg='Building visualization',
-            )
-        await res
-    except BaseException as e:
-        print(repr(e), e, type(e))
-        __import__("traceback").print_exc()
-        raise
 
+    @db.transaction
+    async def res(pipe: Pipeline):
+        pipe.multi()
+        await enqueue(
+            task_id=db.task_id,
+            stage="vis",
+            redis_client=pipe,
+        )
+        update(
+            db.task_id, pipe,
+            progress_vis_msg='Building visualization',
+        )
+    await res
 
     uniprot_df: pd.DataFrame
 
@@ -292,14 +257,22 @@ async def table():
     db.current = len(og_info)
     orthogroups_to_fetch = list(set(og_list)-og_info.keys())
 
-    if orthogroups_to_fetch:
-        og_info.update(
-            await fetch_orthogroups(
-                orthogroups_to_fetch=orthogroups_to_fetch,
-                dash_columns=REQUEST_COLUMNS,
+    try:
+        if orthogroups_to_fetch:
+            og_info.update(
+                await fetch_orthogroups(
+                    orthogroups_to_fetch=orthogroups_to_fetch,
+                    dash_columns=REQUEST_COLUMNS,
+                )
             )
-        )
-
+    except urllib.error.HTTPError as e:
+        if e.code == 502:
+            if og_info: # if something is in the cache
+                await db.report_error("Some data is missing: orthodb.org sparql server is down", cancel_rest=False)
+            else:
+                raise ReportErrorException("Data is missing: orthodb.org sparql server is down") from e
+        else:
+            raise
 
     og_info_df = pd.DataFrame(
         (
@@ -308,17 +281,8 @@ async def table():
         ),
         columns=REQUEST_COLUMNS,
     )
-    print("********* debug table: *************")
-    pd.set_option('display.max_columns', None)
-    print("og_info_df")
-    print(og_info_df)
-    print("uniprot_df")
-    print(uniprot_df)
 
     og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
-    print("Combined table")
-    print(og_info_df)
-
     og_info_df = og_info_df[TABLE_COLUMNS]
 
     #prepare datatable update

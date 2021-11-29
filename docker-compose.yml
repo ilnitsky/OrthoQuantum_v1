@@ -36,5 +36,5 @@ services:
 
 
 volumes:
-  user_data:
-  redis_data:
+  user_data_v2:
+  redis_data_v2:

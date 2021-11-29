@@ -6,7 +6,7 @@ services:
       - "127.0.0.1:8050:8050"
     restart: unless-stopped
     volumes:
-      - "user_data:/app/user_data"
+      - "user_data_v2:/app/user_data"
     environment:
       SECRET_KEY: "${SECRET_KEY:?missing_secret_key}"
       DEMO_TID: "${DEMO_TID:?missing_demo_task_id}"
@@ -23,7 +23,7 @@ services:
     security_opt:
       - seccomp="default_for_chrome.json"
     volumes:
-      - "user_data:/app/user_data"
+      - "user_data_v2:/app/user_data"
       - "/home/ilnitsky/nr:/blast/blastdb"
       - "/home/ilnitsky/PANTHERDB:/PANTHERDB"
       - "/usr/lib/ncbi-blast+/:/blast/lib/:ro"

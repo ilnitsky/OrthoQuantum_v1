@@ -15,7 +15,7 @@ services:
     build: ./redis
     restart: unless-stopped
     volumes:
-      - "redis_data:/data"
+      - "redis_data_v2:/data"
 
   worker:
     build: ./worker

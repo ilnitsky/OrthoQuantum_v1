@@ -163,7 +163,7 @@ def router_page(href):
     if pathname == '/reports':
         return layout.reports, search
     if pathname == '/about':
-        return layout.about, search
+        return layout.about(dash_app), search
     return '404', search
 
 

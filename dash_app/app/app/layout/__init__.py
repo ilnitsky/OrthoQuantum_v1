@@ -6,6 +6,7 @@ from .layout import (
     navbar,
     prottree,
     csvdownload,
+    sized_img,
     SHOW,
     HIDE,
 )

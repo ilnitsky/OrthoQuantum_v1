@@ -740,55 +740,60 @@ def taxid_options(dp: DashProxy):
 
         dp["taxid_input", "options"] = TAXID_CACHE[level_id]
 
+def filter_comments(data:str, only_first=False):
+    res = []
+    lines = data.split("\n")
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            continue
+        if only_first:
+            return '\n'.join(lines[i:])
+        res.append(line)
+    return '\n'.join(res)
+
 @dash_proxy.callback(
     Output('search-prot-button', 'children'),
     Output('search-prot-button', 'disabled'),
-    Output('prot_search_updater', 'disabled'),
     Output('prot-codes', 'value'),
-    Output('prot-search-result', 'data'),
+
+    Output('force_update_protsearch', 'data'),
 
     Input('search-prot-button', 'n_clicks'),
-    Input('prot_search_updater', 'n_intervals'),
+    Input('prot-search-result', 'data'),
 
     State('taxid_input', 'value'),
     State('prot-codes', 'value'),
-    State('search-prot-button', 'disabled'),
-    State('task_id', 'data'),
-    # State('taxid_input_numeric', 'data'),
-)
+    State('task_id', 'data'),)
 def search_taxid(dp: DashProxy):
     if dp.first_load:
         return
     task_id = dp['task_id', 'data']
     if ('search-prot-button', 'n_clicks') in dp.triggered:
-        prot_codes = dp['prot-codes', 'value'].strip()
-        if prot_codes.startswith("#"):
-            return
+
+        prot_codes = filter_comments(dp['prot-codes', 'value'])
         if not dp['taxid_input', 'value']:
-            #TODO: show error?
+            dp['prot-codes', 'value'] = f"# Error: organism was not selected\n{filter_comments(dp['prot-codes', 'value'], only_first=True)}"
             return
-        dp['prot_search_updater', 'disabled'] = False
+        if not prot_codes:
+            dp['prot-codes', 'value'] = '# Error: no gene names entered'
+            return
+
         dp['search-prot-button', 'disabled'] = True
         dp['search-prot-button', 'children'] = [dbc.Spinner(size="sm", spinnerClassName="mr-2"), "Searching..."]
-        with user.db.pipeline(transaction=False) as pipe:
-            pipe.delete(f"/tasks/{task_id}/stage/prot_search/result")
-            pipe.xadd(
-                "/queues/seatch_prot",
-                {
-                    "task_id": task_id,
-                    "prot_codes": prot_codes,
-                    "taxid": dp['taxid_input', 'value']
-                },
-            )
-            pipe.execute()
-    elif ('prot_search_updater', 'n_intervals') in dp.triggered:
-        res = user.db.get(f"/tasks/{task_id}/stage/prot_search/result")
-        if res is not None:
-            dp['prot_search_updater', 'disabled'] = True
-            dp['search-prot-button', 'disabled'] = False
-            dp['search-prot-button', 'children'] = "Find Uniprot ACs ➜"
-            dp['prot-codes', 'value'] = ''
-            dp['prot-search-result', 'data'] = res
+        user.enqueue(
+            task_id, "seatch_prot",
+            prot_codes=prot_codes,
+            taxid=dp['taxid_input', 'value'],
+        )
+        dp['force_update_protsearch', 'data'] = True
+
+    elif ('prot-search-result', 'data') in dp.triggered:
+        dp['search-prot-button', 'disabled'] = False
+        dp['search-prot-button', 'children'] = "Find Uniprot ACs ➜"
+        dp['prot-codes', 'value'] = ''
 
 
 dash_app.clientside_callback(
@@ -959,6 +964,7 @@ add_processor(
     simple_processor(),
     # db_key = dash_key,
     input_proteins = ('uniprotAC_update', 'data'),
+    prot_search_result = ('prot-search-result', 'data'),
 )
 
 add_processor(
@@ -1231,8 +1237,8 @@ def create_outputs():
     *create_outputs(),
 
     Input('progress_updater', 'n_intervals'),
-    Input('force_update', 'data'),
-    Input('prot-search-result', 'data'),
+    Input('force_update_submit', 'data'),
+    Input('force_update_protsearch', 'data'),
 
     State('task_id', 'data'),
     State('connection_id', 'data'),
@@ -1243,14 +1249,10 @@ def create_outputs():
 def update_everything(dp: DashProxy):
     task_id = dp['task_id', 'data']
 
-    if ('force_update', 'data') in dp.triggered:
+    if ('force_update_submit', 'data') in dp.triggered:
         dp['cancel-button', 'className'] = "float-right"
-        update_needed = True
-    else:
-        update_needed = (
-            dp.first_load or
-            ('progress_updater', 'n_intervals') in dp.triggered
-        )
+
+    update_needed = True
 
     while update_needed:
         # initial load
@@ -1331,7 +1333,7 @@ def update_everything(dp: DashProxy):
     # Output("blast-button-input-value", "data"),
 
     Output('uniprotAC', 'value'),
-    Output('force_update', 'data'),
+    Output('force_update_submit', 'data'),
 
 
     ###
@@ -1430,7 +1432,7 @@ def submit(dp:DashProxy):
                     input_max_proteins=dp["max-proteins", "value"],
                 )
                 res = pipe.execute()
-                dp['force_update', 'data'] = True
+                dp['force_update_submit', 'data'] = True
 
         elif cause == ('rerenderSSR_button', 'n_clicks'):
             raise NotImplementedError("SSR needs to be updated")
@@ -1483,7 +1485,7 @@ def submit(dp:DashProxy):
         elif cause == ('prot-search-result', 'data'):
             cur_val = dp['uniprotAC', 'value'].strip()
             if cur_val:
-                dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n\n{cur_val}"
+                dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n{cur_val}"
             else:
                 dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
 

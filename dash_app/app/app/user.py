@@ -178,7 +178,7 @@ def cancel(task_id:str, stage:str, redis_client=None):
 
 def _enqueue(task_id:str, stage:str, params: dict[str, Any], redis_client=None):
     if redis_client is None:
-        redis_client = redis
+        redis_client = db
 
     args = list(chain.from_iterable(params.items()))
     args.append(GROUP)

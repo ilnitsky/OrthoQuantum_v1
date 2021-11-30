@@ -232,11 +232,6 @@ og_from_input = html.Div(children=[
       html.Div([
         dcc.Store(id='taxid_input_numeric', data=False),
         dcc.Store(id='prot-search-result', data=''),
-        dcc.Interval(
-          id='prot_search_updater',
-          interval=500, # in milliseconds
-          disabled=True,
-        ),
         dcc.Dropdown(
           id='taxid_input',
           placeholder="Select species/enter taxid",
@@ -457,7 +452,8 @@ def dashboard(task_id):
     dcc.Store(id='task_id', data=task_id),
     dcc.Store(id='connection_id', data=None),
     dcc.Store(id='version', data=None),
-    dcc.Store(id='force_update', data=0),
+    dcc.Store(id='force_update_submit', data=False),
+    dcc.Store(id='force_update_protsearch', data=False),
     dcc.Interval(
       id='progress_updater',
       interval=500, # in milliseconds

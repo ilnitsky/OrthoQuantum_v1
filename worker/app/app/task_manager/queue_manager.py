@@ -9,8 +9,6 @@ from .db_client import _create_db_client
 from .exceptions import VersionChangedException, HandledReportErrorException
 from ..utils import DEBUG
 
-from aioredis.client import PubSub
-
 from ..redis import redis, GROUP, CONSUMER, launch, finish, ack
 
 DB_CANCEL_REASON = "Canceled by DB"

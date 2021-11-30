@@ -1,5 +1,3 @@
-import asyncio
-
 class VersionChangedException(Exception):
     pass
 

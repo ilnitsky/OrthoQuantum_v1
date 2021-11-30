@@ -35,26 +35,7 @@ async def vis():
     if len(csv_data) == 0: # < 2?
         raise ReportErrorException("Not enough proteins to build correlation")
 
-    db.current = 0
-    db.total = len(csv_data)
-
-    corr_info_to_fetch = {}
-    corr_info = {}
-    prot_ids = {}
-
-    for _, data in csv_data.iterrows():
-        name =data['Name']
-        label = data['label']
-        og_name, ortho_counts, gene_names = await vis_sync.get_corr_data(
-            name=name,
-            label=label,
-            level=level,
-        )
-        db.current += 1
-        corr_info[og_name] = ortho_counts
-        prot_ids[og_name] = gene_names
-
-
+    corr_info, prot_ids = await vis_sync.get_corr_data(csv_data)
 
     db.msg="Processing correlation data"
 

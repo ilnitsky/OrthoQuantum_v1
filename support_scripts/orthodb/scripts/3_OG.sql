@@ -25,7 +25,7 @@ CREATE TABLE orthodb_to_og (
 
 CREATE INDEX orthodb_to_og_orthodb_id_idx ON orthodb_to_og(orthodb_id);
 CREATE INDEX orthodb_to_og_clade_idx ON orthodb_to_og(clade);
-CREATE INDEX orthodb_to_og_cluster_id_idx ON orthodb_to_og(cluster_id);
+CREATE INDEX orthodb_to_og_clade_cluster_id_idx ON orthodb_to_og(clade, cluster_id);
 
 CREATE TABLE levels (
     level_id PRIMARY KEY NOT NULL,

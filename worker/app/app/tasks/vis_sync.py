@@ -66,31 +66,36 @@ _ID_TRANSLATION_TBL = {
 }
 
 @async_pool.in_thread(max_pool_share=0.5)
-def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
-    cluster_id, clade = map(int, label.split('at', maxsplit=1))
-    ortho_counts = {}
-    gene_names = {}
-    with sqlite3.connect(ORTHODB) as conn:
-        cur = conn.execute("""
-            SELECT
-                taxid, count(DISTINCT orthodb_id), GROUP_CONCAT(DISTINCT gene_name)
-            FROM (
-                SELECT orthodb_id>>32 as taxid, orthodb_id, gene_name
-                FROM orthodb_to_og
-                LEFT JOIN genes USING (orthodb_id)
-                WHERE
-                    clade=?
-                    AND
-                    cluster_id=?
-            )
-            GROUP BY taxid;
-        """, (clade, cluster_id))
-        for taxid, orthologs_count, row_gene_names in cur:
-            taxid = _ID_TRANSLATION_TBL.get(taxid, taxid)
-            ortho_counts[taxid] = orthologs_count
-            gene_names[taxid] = row_gene_names if row_gene_names is not None else "None"
+def get_corr_data(csv_data) -> tuple[str, dict]:
+    corr_info = {}
+    prot_ids = {}
 
-    return name, ortho_counts, gene_names
+    with sqlite3.connect(ORTHODB) as conn:
+        for _, data in csv_data.iterrows():
+            name = data['Name']
+            label = data['label']
+
+            cluster_id, clade = map(int, label.split('at', maxsplit=1))
+            ortho_counts = {}
+            gene_names = {}
+
+            cur = conn.execute("""
+                    SELECT orthodb_id>>32 AS taxid, count(distinct orthodb_id), GROUP_CONCAT(distinct gene_name)
+                    FROM orthodb_to_og
+                    LEFT JOIN genes USING (orthodb_id)
+                    WHERE
+                        clade=? AND cluster_id=?
+                    GROUP BY taxid
+                """, (clade, cluster_id))
+            for taxid, orthologs_count, row_gene_names in cur:
+                taxid = _ID_TRANSLATION_TBL.get(taxid, taxid)
+                ortho_counts[taxid] = orthologs_count
+                gene_names[taxid] = row_gene_names if row_gene_names is not None else "None"
+
+            corr_info[name] = ortho_counts
+            prot_ids[name] = gene_names
+
+    return corr_info, prot_ids
 
 @async_pool.in_process()
 def csv_generator(phyloxml_file:str, csv_file:str):

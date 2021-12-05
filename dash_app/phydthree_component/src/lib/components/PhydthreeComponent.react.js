@@ -41,7 +41,7 @@ export default class PhydthreeComponent extends Component {
     var shouldRedraw = this.state.shouldRedraw;
     if (this.state.version != this.props.version){
       shouldRedraw = true;
-      nextTab = this.props.leafCount < 1000 ? "tree" : "svg";
+      nextTab = "tree";// this.props.leafCount < 1000 ? "tree" : "svg";
     }
     switch (nextTab) {
       case "tree":

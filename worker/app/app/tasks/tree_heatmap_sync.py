@@ -53,7 +53,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, output_file:s
         values = ET.SubElement(data, "values", {"for":str(index)})
         for col_idx in reordered_ind:
             el = ET.SubElement(values, "value")
-            if row[df.columns[col_idx]]:
+            if row.iat[col_idx]:
                 el.text = "100"
                 el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(index, "Not Found")
             else:

@@ -476,7 +476,7 @@ def dashboard(task_id):
           html.A(
             [
               html.H1(
-                "",
+                "Loading...",
                 className="text-center",
                 id="request-title",
               ),

@@ -19,8 +19,8 @@ NS = {
 }
 
 @async_pool.in_process()
-def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool, prot_ids):
-    df = df[OG_names]
+def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, output_file:str, do_blast:bool, prot_ids):
+    df = df[OG_names].copy()
 
     df.clip(upper=1, inplace=True)
     df.astype(float, copy=False)
@@ -70,7 +70,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
 
 @async_pool.in_process()
-def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str, table_file:str, version:int):
+def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str, table_file:str, max_prots:int):
     df.reset_index(drop=True, inplace=True)
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
@@ -87,7 +87,15 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
 
     items_count = df.shape[1]
     corr = df.corr()
-    tbl_corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool)).stack()
+    prots_to_exclude = None
+
+    if max_prots:
+        # find least interesting proteins and exclude them from tree data
+        least_correlated_prots = corr.abs().sum(0).sort_values().index
+        prots_to_exclude_count = max(len(least_correlated_prots)-max_prots, 0)
+        prots_to_exclude = set(least_correlated_prots[:prots_to_exclude_count])
+
+    tbl_corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool)).stack()
     tbl_corr.sort_values(ascending=False, inplace=True)
     tbl_corr = tbl_corr.to_frame("Corr")
     tbl_corr.reset_index(drop=False, inplace=True)
@@ -162,4 +170,4 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
         with open_existing(preview_file, 'wb') as fdst, open(output_file, "rb") as fsrc:
             shutil.copyfileobj(fsrc, fdst)
 
-
+    return prots_to_exclude

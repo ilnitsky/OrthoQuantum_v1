@@ -12,7 +12,6 @@ import pyppeteer.element_handle
 from aioredis.client import Pipeline
 
 from ..task_manager import get_db, queue_manager
-from ..utils import atomic_file
 
 
 MAX_PAGES = 3
@@ -95,7 +94,7 @@ async def render(page:pyppeteer.browser.Page):
         res = base64.urlsafe_b64decode(await fut)
         print("took", time.time()-ttv)
 
-        with atomic_file(db.task_dir / "ssr_img.png") as tmp_file:
+        async with db.atomic_file(db.task_dir / "ssr_img.png") as tmp_file:
             with open(tmp_file, "wb") as f:
                 f.write(res)
         print("ssr png done: ", res[:10])
@@ -106,7 +105,7 @@ async def render(page:pyppeteer.browser.Page):
             xml, opts,
         )
         print("took", time.time()-ttv)
-        with atomic_file(db.task_dir / "ssr_img.svg") as tmp_file:
+        async with db.atomic_file(db.task_dir / "ssr_img.svg") as tmp_file:
             with open(tmp_file, "w") as f:
                 f.write(svg)
         print("ssr svg done: ", svg[:10])

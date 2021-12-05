@@ -3,6 +3,10 @@ import PropTypes from 'prop-types';
 import { Nav, NavItem, NavLink, Input, Button, Label } from 'reactstrap';
 
 
+function delSVG(svg_item) {
+  d3.select(svg_item).html(null);
+}
+
 /**
  * ExampleComponent is an example component.
  * It takes a property, `label`, and
@@ -13,7 +17,6 @@ import { Nav, NavItem, NavLink, Input, Button, Label } from 'reactstrap';
 export default class PhydthreeComponent extends Component {
   constructor(props) {
     super(props);
-    this.url = this.props.url;
     this.ref = React.createRef();
     this.svg_ref = React.createRef();
     this.callback = null;
@@ -22,7 +25,7 @@ export default class PhydthreeComponent extends Component {
       nextTab: "",
       firstRender: true,
       shouldRedraw: false, // on mount redraws anyway
-      nextTab: props.leafCount < 1000 ? null : "svg",
+      nextTab: null,
       zoomValue: 100,
       zoomLevel: 1.0,
       displayNames: true,
@@ -38,11 +41,11 @@ export default class PhydthreeComponent extends Component {
     var shouldRedraw = this.state.shouldRedraw;
     if (this.state.version != this.props.version){
       shouldRedraw = true;
-      nextTab = "tree";
+      nextTab = this.props.leafCount < 1000 ? "tree" : "svg";
     }
     switch (nextTab) {
       case "tree":
-        phyd3.phylogram.delSVG(this.svg_ref.current);
+        delSVG(this.svg_ref.current);
         if (shouldRedraw){
           this.redraw();
         }
@@ -96,10 +99,18 @@ export default class PhydthreeComponent extends Component {
       clearTimeout(this.callback)
     }
     d3.select(this.ref.current).html("Loading");
-    phyd3.phylogram.delSVG(this.svg_ref.current);
-    phyd3.phylogram.delSVG(this.ref.current);
+    delSVG(this.svg_ref.current);
+    delSVG(this.ref.current);
   }
+
+
+
   redraw() {
+    if (this.props.version == ""){
+      delSVG(this.svg_ref.current);
+      delSVG(this.ref.current);
+      return;
+    }
 
     const scaleX = 0.4;
     const scaleY = 0.01183*this.props.leafCount;
@@ -140,7 +151,7 @@ export default class PhydthreeComponent extends Component {
     }
 
     // vv url from props
-    d3.xml(this.props.url, (err, xml) => {
+    d3.xml(`${this.props.url}?version=${this.props.version}`, (err, xml) => {
       if (err != null) {
         d3.select(this.ref.current).text("Error");
       } else {
@@ -150,6 +161,7 @@ export default class PhydthreeComponent extends Component {
       }
     });
   }
+
   toggle(newActiveTab) {
     if (this.state.activeTab === newActiveTab) {
       return
@@ -172,14 +184,8 @@ export default class PhydthreeComponent extends Component {
 
   render() {
     const myScale = `scale(${this.state.zoomLevel})`;
-    var csvurl;
-    if (this.props.taskid === ""){
-      csvurl = "";
-    } else {
-      csvurl = `/csvdownload?task_id=${this.props.taskid}`;
-    }
 
-    return <>
+    return this.props.version == "" ? null : <>
       <Nav tabs>
         <NavItem>
           <NavLink
@@ -206,13 +212,16 @@ export default class PhydthreeComponent extends Component {
           </NavLink>
         </NavItem>
         {
-          csvurl !== "" &&
+          this.props.show_download_csv &&
           <NavItem>
-            <NavLink href={csvurl} target="_blank">
+            <NavLink onClick={() => {
+              this.props.setProps({csv_render_n: this.props.csv_render_n+1});
+            }}>
               Download csv
             </NavLink>
           </NavItem>
         }
+
       </Nav>
 
 
@@ -280,22 +289,32 @@ export default class PhydthreeComponent extends Component {
         ></div>
       </div>
     </div>
-    </>;
+  </>;
   }
 
 }
 
 PhydthreeComponent.defaultProps = {
-  taskid: "",
+  csv_render_n: 0,
+  leafCount: 0,
+  version: "",
+  show_download_csv: true,
 };
 
 PhydthreeComponent.propTypes = {
   /**
    * A label that will be printed when this component is rendered.
    */
+  id: PropTypes.string,
   url: PropTypes.string.isRequired,
-  taskid: PropTypes.string,
+
   height: PropTypes.number.isRequired,
-  leafCount: PropTypes.number.isRequired,
-  version: PropTypes.string.isRequired,
+
+  leafCount: PropTypes.number,
+  version: PropTypes.string,
+  show_download_csv: PropTypes.bool,
+
+  csv_render_n: PropTypes.number,
+
+  setProps: PropTypes.func,
 };

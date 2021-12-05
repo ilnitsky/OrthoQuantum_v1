@@ -1,4 +1,4 @@
-import json
+from typing import Optional
 from aioredis.client import Pipeline
 
 
@@ -6,13 +6,14 @@ from aioredis.client import Pipeline
 from . import tree_heatmap_sync
 
 from ..task_manager import get_db
-from ..utils import DEBUG, atomic_file, json_minify
+from ..utils import DEBUG, json_minify
 from ..redis import enqueue, update
 
 
 # heatmap and tree are very-very similar, but differ just enough to
 # duplicate code...
-async def heatmap(organism_count, df):
+async def heatmap(organism_count, df, max_prots=0) -> Optional[set[str]]:
+    res = None
     async with get_db().substage("heatmap") as db:
         db.msg = "In queue to build heatmap"
         db.total = None
@@ -25,22 +26,21 @@ async def heatmap(organism_count, df):
                 await db.sync()
 
         try:
-            with (
-                atomic_file(db.task_dir / "Correlation.png") as tmp_file,
-                atomic_file(db.task_dir / "Correlation_preview.png") as tmp_file2,
-                atomic_file(db.task_dir / "Correlation_table.json") as tmp_file3 ):
+            async with  (
+                db.atomic_file(db.task_dir / "Correlation.png") as tmp_file,
+                db.atomic_file(db.task_dir / "Correlation_preview.png") as tmp_file2,
+                db.atomic_file(db.task_dir / "Correlation_table.json") as tmp_file3 ):
                 task = tree_heatmap_sync.heatmap(
                     organism_count=organism_count,
                     df=df,
 
-                    version=db.q_id,
                     output_file=tmp_file,
                     preview_file=tmp_file2,
                     table_file=tmp_file3,
-
+                    max_prots=max_prots,
                 )
                 task.set_progress_callback(progress)
-                await task
+                res = await task
         except Exception as e:
             msg = f"Error while building heatmap"
             if DEBUG:
@@ -49,6 +49,7 @@ async def heatmap(organism_count, df):
             await db.report_error(msg, cancel_rest=False)
             raise
         db["heatmap"] = db.q_id
+    return res
 
 
 
@@ -56,7 +57,7 @@ async def heatmap(organism_count, df):
 
 
 
-async def tree(do_blast, phyloxml_file, OG_names, df, organisms, prot_ids):
+async def tree(do_blast, phyloxml_file, OG_names, df, prot_ids):
     async with get_db().substage("tree") as db:
         db.msg = "In queue to build tree"
         db.total = None
@@ -68,12 +69,11 @@ async def tree(do_blast, phyloxml_file, OG_names, df, organisms, prot_ids):
                 await db.sync()
 
         try:
-            with atomic_file(db.task_dir / "tree.xml") as tmp_file:
+            async with db.atomic_file(db.task_dir / "tree.xml") as tmp_file:
                 task = tree_heatmap_sync.tree(
                     phyloxml_file=phyloxml_file,
                     OG_names=OG_names,
                     df=df,
-                    organisms=organisms,
                     prot_ids=prot_ids,
 
                     do_blast=do_blast,

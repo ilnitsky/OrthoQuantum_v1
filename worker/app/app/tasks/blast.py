@@ -21,8 +21,7 @@ from urllib.parse import urlencode
 from bs4 import BeautifulSoup
 
 from ..task_manager import get_db, queue_manager, ReportErrorException, DbClient
-from ..utils import atomic_file
-from ..redis import raw_redis, redis, enqueue, report_updates
+from ..redis import raw_redis, redis, report_updates
 from . import blast_sync
 
 
@@ -466,7 +465,7 @@ class TreeRenderer():
                     except KeyError:
                         pass
             await asyncio.sleep(0)
-        with atomic_file(self.db.task_dir / "tree.xml") as tmp_name:
+        async with self.db.atomic_file(self.db.task_dir / "tree.xml") as tmp_name:
             await blast_sync.write_tree(tmp_name, self.tree)
             await self.db.check_if_cancelled()
             # minimal race condition window before last command and writing the tree file

@@ -4,18 +4,15 @@ from collections import defaultdict
 import math
 import re
 from time import time
-import json
 from typing import Optional
 import itertools
 
 from aioredis.client import Pipeline
-import anyio
 import pandas as pd
 
 from . import table_sync
 from ..task_manager import queue_manager, get_db, ReportErrorException
-from ..redis import redis, LEVELS, enqueue, update, happend, report_updates
-from ..utils import atomic_file
+from ..redis import redis, LEVELS, enqueue, update
 
 
 TABLE_COLUMNS = [
@@ -137,7 +134,7 @@ async def table():
     db.total = None
     db.msg = "Getting orthogroup info"
 
-    with atomic_file(db.task_dir / "OG.csv") as tmp_file:
+    async with db.atomic_file(db.task_dir / "OG.csv") as tmp_file:
         uniprot_df = await table_sync.process_prot_data(
             list(itertools.chain.from_iterable(
                 res_dict.values()
@@ -197,10 +194,7 @@ async def table():
             )
     except urllib.error.HTTPError as e:
         if e.code == 502:
-            if og_info: # if something is in the cache
-                await db.report_error("Some data is missing: orthodb.org sparql server is down", cancel_rest=False)
-            else:
-                raise ReportErrorException("Data is missing: orthodb.org sparql server is down") from e
+            await db.report_error("Some data is missing: orthodb.org sparql server is down", cancel_rest=False)
         else:
             raise
 
@@ -212,7 +206,7 @@ async def table():
         columns=REQUEST_COLUMNS,
     )
 
-    og_info_df = pd.merge(og_info_df, uniprot_df, on='label')
+    og_info_df = pd.merge(og_info_df, uniprot_df, on='label', how='right')
     og_info_df = og_info_df[TABLE_COLUMNS]
 
     #prepare datatable update

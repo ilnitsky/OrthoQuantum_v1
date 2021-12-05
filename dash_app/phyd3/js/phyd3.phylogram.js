@@ -715,9 +715,6 @@ window.requestAnimFrame = (function(){
                 }
             );
         }
-        phyd3.phylogram.delSVG = function (svg_item) {
-            d3.select(svg_item).html(null);
-        }
 
         phyd3.phylogram.gensvg_static = function () {
             var svg = $(selector).find("svg")[0];

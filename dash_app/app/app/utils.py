@@ -33,6 +33,9 @@ class DashProxy():
             else:
                 raise RuntimeError("Unknown DashDependency")
 
+    def is_triggered_by(self, *args):
+        return any(arg in self.triggered for arg in args)
+
     @property
     def first_load(self):
         return not self.triggered

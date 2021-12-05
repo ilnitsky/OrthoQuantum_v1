@@ -1,4 +1,5 @@
 import json
+from phydthree_component import PhydthreeComponent
 
 from dash import (
   dcc,
@@ -284,7 +285,7 @@ og_from_input = html.Div(children=[
             dbc.InputGroup(
               [
                 dbc.InputGroupAddon("Max proteins on tree", addon_type="prepend"),
-                dbc.Input(value="800", id="max-proteins", min="1", type="number"),
+                dbc.Input(value="600", id="max-proteins", min="5", type="number"),
               ],
               className="float-right ml-auto",
               id="max-prot-group"
@@ -451,9 +452,14 @@ def dashboard(task_id):
   return html.Div([
     dcc.Store(id='task_id', data=task_id),
     dcc.Store(id='connection_id', data=None),
+    dcc.Store(id='force_update_until', data=0),
     dcc.Store(id='version', data=None),
     dcc.Store(id='force_update_submit', data=False),
-    dcc.Store(id='force_update_protsearch', data=False),
+
+    dcc.Store(id='trigger_csv_download', data=0),
+    dcc.Store(id='trigger_csv_download_2', data=0),
+    html.A(id='csvdownload_done_link', href=f'/files/{task_id}/tree.csv', download='tree.csv', className="d-none"),
+
     dcc.Interval(
       id='progress_updater',
       interval=500, # in milliseconds
@@ -517,6 +523,14 @@ def dashboard(task_id):
       id='vis_progress_container',
       style=HIDE,
     ),
+    # PhydthreeComponent(
+    #   id="PhydthreeComponent_id",
+    #   url=f'/files/{task_id}/nope',
+    #   height=2000,
+    #   leafCount=100,
+    #   version="version",
+    #   taskid=task_id,
+    # ),
 
     html.Div(
       [
@@ -638,10 +652,13 @@ def dashboard(task_id):
       id="tree_header",
       style=HIDE,
     ),
-
     dbc.Row(
       dbc.Col(
-        id='tree_container',
+        PhydthreeComponent(
+            id="tree_component",
+            url=f"/files/{task_id}/tree.xml",
+            height=2000,
+        ),
         className="mx-5 mt-3",
       )
     ),
@@ -703,28 +720,6 @@ def dashboard(task_id):
 
   ])
 
-reports = html.Div([
-  dbc.Row([
-    dbc.Col(
-      [
-        html.H2("Image outputs"),
-        html.P("""Download presence and study orthology group presence"""),
-        #    dbc.Button("View details", color="secondary"),
-      ],
-      md=4,
-    ),
-    dbc.Col([]),
-  ]),
-  html.Div([
-    # dcc.Dropdown(
-    #     id='image-dropdown',
-    #     options=[{'label': i, 'value': i} for i in list_of_images],
-    #     value=list_of_images[0]
-    # ),
-    # html.Img(id='image')
-  ])
-])
-
 def sized_img(img_src, href=None):
     if href is None:
         href = img_src
@@ -767,30 +762,23 @@ def prottree(prot_id):
     ),
     dbc.Row(
       dbc.Col(
-        id='prottree_container',
+        id='prottree_progress_bar_container',
+        className="mx-5 mt-3",
+      )
+    ),
+    dbc.Row(
+      dbc.Col(
+        PhydthreeComponent(
+            id="prottree_tree",
+            url=f"/prottree/{prot_id}.xml",
+            height=2000,
+            leafCount=142,
+            show_download_csv=False,
+        ),
         className="mx-5 mt-3",
       )
     ),
   ])
-
-def csvdownload(task_id):
-    return html.Div([
-        dcc.Store(id='task_id', data=task_id),
-        dcc.Store(id='csvdownload_done', data=False),
-        dcc.Location(id="csv_redirect", refresh=True),
-        dcc.Interval(
-            id='csvdownload_progress_updater',
-            interval=500, # in milliseconds
-            disabled=False,
-        ),
-        dbc.Row(
-            dbc.Col(
-                id='csvdownload_container',
-                className="mx-5 mt-3",
-            )
-        ),
-    ])
-
 
 
 def about(app):

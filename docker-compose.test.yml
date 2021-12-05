@@ -27,6 +27,8 @@ services:
       context: ./worker
       args:
         DEBUG: "1"
+    ports:
+      - "5678:5678"
     # security_opt:
     #   - seccomp="default_for_chrome.json"
     restart: unless-stopped

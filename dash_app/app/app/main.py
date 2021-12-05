@@ -5,15 +5,14 @@ import time
 import json
 import secrets
 import shutil
+import redis
 
 import urllib.parse as urlparse
-from dash import Dash, no_update, dcc, html
+from dash import Dash, dcc, html
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import flask
 from flask_compress import Compress
-
-from phydthree_component import PhydthreeComponent
 
 from . import layout
 from . import user
@@ -153,222 +152,70 @@ def router_page(href):
         if did_schedule:
             user.db.hset(f"/prottree_tasks/{prot_id}/progress", "q_id", res[0])
         return layout.prottree(prot_id), search
-    if pathname == '/csvdownload':
-        args = urlparse.parse_qs(url.query, keep_blank_values=True)
-        task_id = args.get('task_id', (None,))[0]
-
-        if task_id is None or not get_task(task_id):
-            return dcc.Location(pathname="/", id="some_id3", hash="1", refresh=True), ""
-        return layout.csvdownload(task_id), search
-    if pathname == '/reports':
-        return layout.reports, search
     if pathname == '/about':
         return layout.about(dash_app), search
     return '404', search
 
 
-# csvdownload page
 dash_app.clientside_callback(
     """
     function(data) {
         if(data){
-            window.location = data;
-            setTimeout(function() { window.close(); }, 5000);
+            document.getElementById("csvdownload_done_link").click();
         }
+        return window.dash_clientside.no_update;
     }
     """,
-    Output('csvdownload_progress_updater', 'interval'),
-    Input("csvdownload_done", "data"),
+    Output('csvdownload_done_link', 'children'),
+    Input('trigger_csv_download', 'data'),
+    Input('trigger_csv_download_2', 'data'),
 )
 
-
-
 @dash_proxy.callback(
-    Output('csvdownload_container', 'children'),
-    Output('csvdownload_progress_updater', 'disabled'),
-    Output('csv_redirect', 'pathname'),
-    Output('csvdownload_done', 'data'),
-    Output('tgt_ver', 'data'),
+    Output('trigger_csv_download_2', 'data'),
 
-    Input('csvdownload_progress_updater', 'n_intervals'),
+    Input('tree_component', 'csv_render_n'),
 
-    State('tgt_ver', 'data'),
+    State('connection_id', 'data'),
     State('task_id', 'data'),
 )
 def csvdownload(dp: DashProxy):
-    raise NotImplementedError("TODO")
-    """
+    if dp.first_load:
+        return
     task_id = dp['task_id', 'data']
-    stage = "tree_csv"
-    update_needed = True
-    while update_needed:
-        # initial load
-        with user.db.pipeline(transaction=True) as pipe:
-            pipe.hget(f"/tasks/{task_id}/enqueued", stage) # stage: qid
-            pipe.hget(f"/tasks/{task_id}/running", stage) # stage: qid
-            user.get_updates(task_id, dp['version', 'data'], dp['connection_id', 'data'], redis_client=pipe)
-
-            enqueued, running, updates = pipe.execute()
-        updates = user.decode_updates_resp(updates)
-        if len(updates) == 2:
-            dp['version', 'data'], updates = updates
-        else:
-            dp['version', 'data'], dp['connection_id', 'data'], updates = updates
-
-
-
-    if not dp['tgt_ver', 'data']:
-        with user.db.pipeline(transaction=True) as pipe:
-            pipe.hget(f"/tasks/{task_id}/enqueued", stage)
-            pipe.hget(f"/tasks/{task_id}/running", stage)
-            pipe.hget(
-                f"/tasks/{task_id}/state",
-                "tree_version", "tree_blast_ver", "tree_csv_ver"
-            )
-            enqueued_q_id, running_q_id, (tree_ver, tree_blast_ver, tree_csv_ver) = pipe.execute()
-
-        tgt_ver = f'{tree_ver}_{tree_blast_ver}'
-        if tree_csv_ver >= dp['tgt_ver', 'data']:
-            # download!
-            pass
-        else:
-            if not enqueued or running:
-                enqueue
-
-            get_q_id
-    else:
-        have q_id
-        fetch updates and enqueued or running
-
-        elif enqueued_q_id:
-            # display enqueued
-        elif running_q_id:
-            # display progress
-    else:
-
-        if enqueued_q_id:
-            # display enqueued
-        elif running_q_id:
-            # display progress
-        else:
-            dp['tgt_ver', 'data'] = None
-
-
-    with user.db.pipeline(transaction=True) as pipe:
-        pipe.hget(f"/tasks/{task_id}/enqueued", stage)
-        pipe.hget(f"/tasks/{task_id}/running", stage)
-        pipe.hmget(
-            f"/tasks/{task_id}/state",
-            "tree_version", "tree_blast_ver", "tree_csv_ver"
-        )
-        enqueued_q_id, running_q_id, () = pipe.execute()
-
-
-    if enqueued_q_id:
-        pass # diplay enqueued pb
-    elif running_q_id:
-        pass # display regular pb
-    el
-
-
     while True:
         try:
             with user.db.pipeline(transaction=True) as pipe:
-                pipe.watch(f"/tasks/{task_id}/enqueued")
-                enqueued_q_id = pipe.hget(f"/tasks/{task_id}/enqueued", stage)
-                if enqueued_q_id:
-                    break
-                if pipe.hget(f"/tasks/{task_id}/running", stage):
-                    break
+                pipe.watch(f"/tasks/{task_id}/state")
+                tree_ver, tree_blast_ver, tree_csv_ver = pipe.hmget(
+                    f"/tasks/{task_id}/state",
+                    "tree_version", "tree_blast_ver", "tree_csv_ver",
+                )
+                if not tree_ver:
+                    raise RuntimeError("no tree_ver")
+                tree_blast_ver = tree_blast_ver or '0'
+                tree_csv_ver = tree_csv_ver or ''
 
-
-                if f'{tree_ver}_{blast_ver}' != tree_csv_ver:
-                    pipe.multi()
-                    user.enqueue(task_id, "stage", redis_client=pipe)
-                    user.update(
-                        task_id, connection_id=dp['connection_id', 'data'], redis_pipe=pipe,
-
-                        progress_csv_style='',
-                        progress_csv_msg="Generating csv download",
+                pipe.multi()
+                if f'{tree_ver}_{tree_blast_ver}' > tree_csv_ver:
+                    user.enqueue(
+                        task_id, "tree_csv",
+                        tgt_connection_id=dp['connection_id', 'data'],
+                        redis_client=pipe,
                     )
                     pipe.execute()
-
-                    break
                 else:
-
-                    data = pipe.hgetall(f"/tasks/{task_id}/progress/tree_csv")
-                    if data['status'] == "Done":
-                        dp['csvdownload_done', 'data'] = f'/files/{task_id}/tree.csv'
-                        dp['csvdownload_progress_updater', 'disabled'] = True
-                        dp['csvdownload_container', 'children'] = dbc.Card(
-                            [
-                                dbc.CardBody(
-                                    [
-                                        html.H4("Downloading csv", className="card-title"),
-                                        html.P([
-                                            html.A(
-                                                "Click the link",
-                                                href=dp['csvdownload_done', 'data']
-                                            ),
-                                            " to download file manually. This window will be closed in 5 seconds.",
-                                        ], className="card-text"),
-                                    ]
-                                ),
-                            ],
-                            style={"width": "24rem"},
-                            className="mx-auto",
-                        )
-                        return
-                    else:
-                        break
-        except Exception:
-            continue
-
-    msg = data['message']
-    pbar = {
-        "style": {"height": "30px"},
-        'color': 'info',
-        'max': 100,
-        'value': 100,
-        'animated': True,
-        'striped': True,
-    }
-    if data['status'] == "Enqueued":
-        # show_q_pos
-        gueue_len = user.get_queue_pos(
-            queue_key='/queues/prottree',
-            task_q_id=data['q_id'],
-        )
-
-        if gueue_len > 0:
-            msg = f"{msg}: {gueue_len} task{'s' if gueue_len>1 else ''} before yours"
-        else:
-            msg = f"{msg}: starting"
-    elif data['status'] == "Error":
-        dp['csvdownload_progress_updater', 'disabled'] = True
-        pbar['color'] = 'danger'
-        pbar['animated'] = False
-        pbar['striped'] = False
-    # elif data['status'] == "Executing":
-        # Nothing to do, defaults are fine
-
-    dp['csvdownload_container', 'children'] = dbc.Progress(
-        children=html.Span(
-            msg,
-            className="justify-content-center d-flex position-absolute w-100",
-            style={"color": "black"},
-            key="csvdownload_progress_text"
-        ),
-        key="csvdownload_progress_bar",
-        **pbar,
-    )
-    """
-
+                    dp['trigger_csv_download_2', 'data'] = int(time.time())
+                    return
+            break
+        except redis.WatchError:
+            pass
 
 # prottree page
 @dash_proxy.callback(
     Output('prottree_progress_updater', 'disabled'),
-    Output('prottree_container', 'children'),
+    Output('prottree_progress_bar_container', 'children'),
+    Output('prottree_tree', 'version'),
 
     Input('prottree_progress_updater', 'n_intervals'),
 
@@ -381,12 +228,8 @@ def prottree(dp: DashProxy):
     msg = data['message']
     if data['status'] == "Done":
         dp['prottree_progress_updater', 'disabled'] = True
-        dp["prottree_container", "children"] = PhydthreeComponent(
-            url=f'/prottree/{prot_id}.xml',
-            height=2000,
-            leafCount=142,
-            version=0,
-        )
+        dp['prottree_tree', 'version'] = data['version']
+        dp["prottree_progress_bar_container", "children"] = None
         return
 
     pbar = {
@@ -413,10 +256,8 @@ def prottree(dp: DashProxy):
         pbar['color'] = 'danger'
         pbar['animated'] = False
         pbar['striped'] = False
-    # elif data['status'] == "Executing":
-        # Nothing to do, defaults are fine
 
-    dp["prottree_container", "children"] = dbc.Progress(
+    dp["prottree_progress_bar_container", "children"] = dbc.Progress(
         children=html.Span(
             msg,
             className="justify-content-center d-flex position-absolute w-100",
@@ -589,8 +430,6 @@ def request_list(dp: DashProxy):
 
 
 @dash_proxy.callback(
-    # TODO: add tooltips where needed and add them here
-    # to enable hiding
     Output('tooltip-edit-title', 'className'),
     Output('tooltip-orthology', 'className'),
     Output('tooltip-gene-search', 'className'),
@@ -679,11 +518,11 @@ def demo_data(dp: DashProxy):
 def request_title(dp: DashProxy):
     if dp.first_load:
         return
-    if ('request_title_update', 'data') in dp.triggered:
+    if dp.is_triggered_by(('request_title_update', 'data')):
         # set from db
         if dp['request-title', 'children'] != dp['request_title_update', 'data']:
             dp['request-title', 'children'] = dp['request_title_update', 'data']
-    elif dp.triggered.intersection((('request-input', 'n_blur'), ('request-input', 'n_submit'))):
+    elif dp.is_triggered_by(('request-input', 'n_blur'), ('request-input', 'n_submit')):
         # set in db, update and show the text
         dp['edit-request-title', 'className'] = "text-decoration-none"
         dp['request-input', 'className'] = "form-control-lg d-none"
@@ -715,9 +554,9 @@ def request_title(dp: DashProxy):
     State('taxid_input_numeric', 'data'),
 )
 def taxid_options(dp: DashProxy):
-    should_load_text = dp.first_load or ('tax-level-dropdown', 'value') in dp.triggered
+    should_load_text = dp.first_load or dp.is_triggered_by(('tax-level-dropdown', 'value'))
     level_id = dp['tax-level-dropdown', 'value']
-    if ('taxid_input', 'search_value') in dp.triggered:
+    if dp.is_triggered_by(('taxid_input', 'search_value')):
         # if numeric - give user an option to input it
         # if clear or non-numeric - load text autocomplete if needed
         if search_val := dp['taxid_input', 'search_value'].strip():
@@ -759,8 +598,6 @@ def filter_comments(data:str, only_first=False):
     Output('search-prot-button', 'disabled'),
     Output('prot-codes', 'value'),
 
-    Output('force_update_protsearch', 'data'),
-
     Input('search-prot-button', 'n_clicks'),
     Input('prot-search-result', 'data'),
 
@@ -771,7 +608,7 @@ def search_taxid(dp: DashProxy):
     if dp.first_load:
         return
     task_id = dp['task_id', 'data']
-    if ('search-prot-button', 'n_clicks') in dp.triggered:
+    if dp.is_triggered_by(('search-prot-button', 'n_clicks')):
 
         prot_codes = filter_comments(dp['prot-codes', 'value'])
         if not dp['taxid_input', 'value']:
@@ -788,9 +625,8 @@ def search_taxid(dp: DashProxy):
             prot_codes=prot_codes,
             taxid=dp['taxid_input', 'value'],
         )
-        dp['force_update_protsearch', 'data'] = True
 
-    elif ('prot-search-result', 'data') in dp.triggered:
+    elif dp.is_triggered_by(('prot-search-result', 'data')):
         dp['search-prot-button', 'disabled'] = False
         dp['search-prot-button', 'children'] = "Find Uniprot ACs ➜"
         dp['prot-codes', 'value'] = ''
@@ -915,11 +751,9 @@ dash_app.clientside_callback(
         ]
     }
     """,
-    # Output('request_list_dropdown', 'className'),
     Output('svg_zoom_text', 'children'),
     Output('ssr_tree_img', 'style'),
     Input("svg_zoom", "value"),
-    # State('request_list_dropdown_shown', 'data'),
 )
 
 #region Update processing
@@ -1001,7 +835,7 @@ add_processor(
 
 
 add_processor(
-    simple_processor(func=int, default=600),
+    simple_processor(func=lambda x: max(int(x), 5), default=600),
 
     input_max_proteins=("max-proteins", "value"),
 )
@@ -1087,7 +921,8 @@ def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tupl
         ('tree_header', 'style'),
         ("ssr_tree_block", "style"),
 
-        ('tree_container', 'children'),
+        ('tree_component', 'version'),
+        ('tree_component', 'leafCount'),
         ("ssr_tree_img", "src"),
     ),
 )
@@ -1103,32 +938,45 @@ def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[s
     if kind == 'interactive':
         dp["ssr_tree_img", "src"] = ""
         dp["ssr_tree_block", "style"] = layout.HIDE
-        dp["tree_container", "children"] = PhydthreeComponent(
-            url=f'/files/{task_id}/tree.xml?version={version}',
-            height=2000,
-            leafCount=shape[0],
-            version=version,
-            taskid=task_id,
-        )
+        dp["tree_component", "version"] = version
+        dp["tree_component", "leafCount"] = shape[0]
     else:
         assert kind in ('svg', 'png')
-        dp["tree_container", "children"] = None
+        dp["tree_component", "version"] = ""
         dp["ssr_tree_block", "style"] = layout.SHOW
         dp["ssr_tree_img", "src"] = f'/files/{task_id}/ssr_img.{kind}?version={version}'
 
-# SSR
-# @add_processor(
-#     tree_opts = (
-#         ('show_groups', 'checked'),
-#         ('show_species', 'checked'),
-#     ),
-# )
-# def tree_opts(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
-#     opts = upd[db_key]
-#     showNodesType = opts.get("showNodesType", "only leaf")
-#     showNodeNames = opts.get("showNodeNames", True)
-#     dp['show_groups', 'checked'] = showNodeNames and showNodesType != "only leaf"
-#     dp['show_species', 'checked'] = showNodeNames and showNodesType != "only inner"
+
+@add_processor(
+    tree_csv_download_on_connection_id = ('trigger_csv_download', 'data')
+)
+def tree_csv_download(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    if dp['connection_id', 'data'] != int(upd[db_key]):
+        # start download only in one connection
+        return
+    # we got the command to trigger csv download
+    task_id = dp['task_id', 'data']
+    # trigger csv download
+    dp[dash_keys[0]] = int(time.time())
+
+    # remove the command for csv download from the db
+    while True:
+        try:
+            with user.db.pipeline(transaction=True) as pipe:
+                pipe.watch(f"/tasks/{task_id}/state")
+                cur_id = pipe.hget(f"/tasks/{task_id}/state", "tree_csv_download_on_connection_id")
+                if cur_id != upd[db_key]:
+                    # db already has another tree_csv_download command, ignore
+                    return
+
+                pipe.multi()
+                # Clear the tree_csv_download command without issuing update
+                pipe.hset(f"/tasks/{task_id}/state", db_key, -1)
+                pipe.execute()
+            break
+        except redis.WatchError:
+            pass
+
 
 def gen_progress_keys(stage):
     return (
@@ -1233,24 +1081,33 @@ def create_outputs():
     Output('cancel-button', 'className'),
     Output('version', 'data'),
     Output('connection_id', 'data'),
+    Output('force_update_until', 'data'),
 
     *create_outputs(),
 
     Input('progress_updater', 'n_intervals'),
     Input('force_update_submit', 'data'),
-    Input('force_update_protsearch', 'data'),
+    Input('search-prot-button', 'n_clicks'),
+    Input('tree_component', 'csv_render_n'),
 
     State('task_id', 'data'),
     State('connection_id', 'data'),
     State('version', 'data'),
 
+    State('force_update_until', 'data'),
     State('blast-button-input-value', 'data'),
 )
 def update_everything(dp: DashProxy):
     task_id = dp['task_id', 'data']
 
-    if ('force_update_submit', 'data') in dp.triggered:
+    if dp.is_triggered_by(('force_update_submit', 'data')):
         dp['cancel-button', 'className'] = "float-right"
+    if dp.is_triggered_by(
+        ('search-prot-button', 'n_clicks'),
+        ('tree_component', 'csv_render_n')):
+        # can't depend that enqueue would be called before update,
+        # so force-rechecking for a bit
+        dp['force_update_until', 'data'] = time.time()+5
 
     update_needed = True
 
@@ -1302,7 +1159,7 @@ def update_everything(dp: DashProxy):
                 updates[f"progress_{stage}_msg"] = msg
 
         dp['progress_updater', 'disabled'] = not (
-            enqueued or running
+            enqueued or running or dp['force_update_until', 'data'] > time.time()
         )
         if dp['progress_updater', 'disabled']:
             dp['cancel-button', 'className'] = "float-right d-none"
@@ -1315,6 +1172,8 @@ def update_everything(dp: DashProxy):
 
         if 'progress_blast' in updates:
             updates['progress_tree'] = updates.pop('progress_blast')
+        if 'progress_tree_csv' in updates:
+            updates['progress_tree'] = updates.pop('progress_tree_csv')
 
         update_needed = False
 
@@ -1322,26 +1181,37 @@ def update_everything(dp: DashProxy):
             dash_keys, func = DB_2_DASH[db_key]
             update_needed = func(dp, updates, db_key, dash_keys) or update_needed
 
-    # /stage/tree/info
-    # /stage/tree/opts
-
 #endregion
 
 
 @dash_proxy.callback(
-    Output("wrong-input-msg", "is_open"),
-    # Output("blast-button-input-value", "data"),
-
     Output('uniprotAC', 'value'),
+    Input('uniprotAC_update', 'data'),
+    Input('prot-search-result', 'data'),
+    State('uniprotAC', 'value'),
+)
+def uniport_update_multiplexer(dp:DashProxy):
+    # I'm really tried of dash limitations...
+    if dp.is_triggered_by(('uniprotAC_update', 'data')):
+        if dp['uniprotAC_update', 'data'] is not None:
+            dp['uniprotAC', 'value'] = dp['uniprotAC_update', 'data']
+    if dp.is_triggered_by(('prot-search-result', 'data')):
+        cur_val = dp['uniprotAC', 'value'].strip()
+        if cur_val:
+            dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n{cur_val}"
+        else:
+            dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
+
+
+@dash_proxy.callback(
+    Output("wrong-input-msg", "is_open"),
     Output('force_update_submit', 'data'),
 
 
     ###
-    Input('uniprotAC_update', 'data'),
     Input('submit-button', 'n_clicks'),
     Input('rerenderSSR_button', 'n_clicks'),
     Input('cancel-button', 'n_clicks'),
-    Input('prot-search-result', 'data'),
     ###
 
     State('task_id', 'data'),
@@ -1371,14 +1241,11 @@ def submit(dp:DashProxy):
     task_id = dp['task_id', 'data']
     # append prot search result last!
     upd_priority = {
-        ('prot-search-result', 'data'): 100
+        # ('prot-search-result', 'data'): 100
     }
     triggers = sorted(dp.triggered, key=lambda x: upd_priority.get(x, 0))
     for cause in triggers:
-        if cause == ('uniprotAC_update', 'data'):
-            if dp['uniprotAC_update', 'data'] is not None:
-                dp['uniprotAC', 'value'] = dp['uniprotAC_update', 'data']
-        elif cause == ('submit-button', 'n_clicks'):
+        if cause == ('submit-button', 'n_clicks'):
             # button press triggered
             if dp["blast-options", "is_open"]:
                 if dp["pident-input", "invalid"] or dp["qcovs-input", "invalid"]:
@@ -1481,13 +1348,6 @@ def submit(dp:DashProxy):
                 user.cancel(task_id, "ssr", redis_client=pipe)
 
                 res = pipe.execute()
-
-        elif cause == ('prot-search-result', 'data'):
-            cur_val = dp['uniprotAC', 'value'].strip()
-            if cur_val:
-                dp['uniprotAC', 'value'] = f"{dp['prot-search-result', 'data']}\n{cur_val}"
-            else:
-                dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
 
 
 @dash_app.server.route('/files/<task_id>/<name>')

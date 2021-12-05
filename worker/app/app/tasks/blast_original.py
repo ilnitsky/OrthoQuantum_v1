@@ -13,7 +13,6 @@ from aioredis.client import Pipeline
 from lxml import etree as ET
 
 from ..task_manager import get_db, queue_manager
-from ..utils import atomic_file
 from ..redis import raw_redis, enqueue
 from . import blast_sync
 
@@ -281,7 +280,7 @@ async def blast(blast_autoreload=False, enqueue_tree_gen=False):
                         # no blast matches, confirm not found
                         el.text = "37" # 25+12
                 await asyncio.sleep(0)
-            with atomic_file(db.task_dir / "tree.xml") as tmp_name:
+            async with db.atomic_file(db.task_dir / "tree.xml") as tmp_name:
                 await blast_sync.write_tree(tmp_name, tree)
                 await db.check_if_cancelled()
                 # minimal race condition window before last command and writing the tree file

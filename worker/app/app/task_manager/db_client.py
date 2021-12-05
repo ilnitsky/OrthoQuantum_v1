@@ -6,11 +6,11 @@ import contextvars
 import anyio
 from aioredis import WatchError
 from aioredis.client import Pipeline
-
+from pathlib import Path
 
 from .exceptions import ReportErrorException, VersionChangedException, HandledReportErrorException
-from ..redis import redis, cancel, report_updates, happend
-from ..utils import DATA_PATH, DEBUG
+from ..redis import redis, cancel, report_updates
+from ..utils import DATA_PATH, DEBUG, atomic_file
 
 
 _db_var = contextvars.ContextVar("db")
@@ -142,6 +142,12 @@ class DbClient():
         self._enqueued_update[key] = value
         self._schedule_update()
 
+    @contextlib.asynccontextmanager
+    async def atomic_file(self, file:Path):
+        with atomic_file(file) as tmp_file:
+            yield tmp_file
+            await self.check_if_cancelled()
+
     async def __getitem__(self, key):
         if self._enqueued_update:
             # using transaction to flush updates and get cancelation status
@@ -169,12 +175,14 @@ class DbClient():
     def pb_hide(self):
         self.is_error = None
 
-    async def sync(self, flush=True):
+    async def sync(self, flush=True, wait=True):
         if self._update_counter == self._flushed_update:
             return
         tgt_upd = self._update_counter
         if flush:
             self._flush_event.set()
+        if not wait:
+            return
 
         with anyio.CancelScope(shield=True):
             done, _ = await asyncio.wait(

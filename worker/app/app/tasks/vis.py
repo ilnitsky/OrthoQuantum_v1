@@ -1,8 +1,8 @@
 from . import vis_sync
 import anyio
 from ..task_manager import get_db, queue_manager, ReportErrorException
-from ..redis import redis, LEVELS, enqueue, update
-from ..utils import atomic_file, decode_int
+from ..redis import LEVELS
+from ..utils import decode_int
 from .tree_heatmap import tree, heatmap
 
 import pandas as pd
@@ -50,50 +50,61 @@ async def vis():
         },
         index=organisms,
     )
+    del organisms
+
     df.fillna(0, inplace=True)
     df = df.astype(np.int16, copy=False)
 
-
     # interpret the results:
-
-
-    df_for_heatmap = df.copy()
     del db.msg
     db.pb_hide()
 
-    async with anyio.create_task_group() as tg:
-        tg.start_soon(
-            heatmap,
-            len(organisms),
-            df_for_heatmap,
-        )
-        del df_for_heatmap
-        tg.start_soon(
-            tree,
+    if df.shape[1] <= max_prots:
+        # can run in parallel
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(
+                heatmap,
+                df.shape[0],
+                df.copy(),
+            )
+            tg.start_soon(
+                tree,
+                blast_enable,
+                phyloxml_file,
+                csv_data['Name'], # OG_names
+                df,
+                prot_ids,
+            )
+            del csv_data
+            del df
+    else:
+        prots_to_exclude = await heatmap(df.shape[0], df.copy(), max_prots=max_prots)
+
+        await tree(
             blast_enable,
             phyloxml_file,
-            csv_data['Name'], # OG_names
+            csv_data['Name'][~csv_data['Name'].isin(prots_to_exclude)], # OG_names
             df,
-            organisms,
-            prot_ids,
+            prot_ids
         )
-        del csv_data
-        del df
-        del organisms
 
 
 @queue_manager.add_handler("/queues/tree_csv")
-async def build_tree_csv():
-    async with get_db().substage("tree_csv") as db:
-        db.msg = "Generating CSV"
+async def build_tree_csv(tgt_connection_id):
+    db = get_db()
+    db.msg = "Generating CSV"
+    db.total = None
 
-        try:
-            with atomic_file(db.task_dir/'tree.csv') as tmp_path:
-                await vis_sync.csv_generator(
-                    str((db.task_dir/'tree.xml').absolute()),
-                    tmp_path,
-                )
-        except:
-            db.report_error("Error while building the csv", cancel_rest=False)
-            raise
+    tree_ver, tree_blast_ver = await db["tree_version", "tree_blast_ver"]
+
+    async with db.atomic_file(db.task_dir/'tree.csv') as tmp_path:
+        await vis_sync.csv_generator(
+            str((db.task_dir/'tree.xml').absolute()),
+            tmp_path,
+        )
+    tree_blast_ver = tree_blast_ver or 0
+
+    db['tree_csv_ver'] = f'{tree_ver}_{tree_blast_ver}'
+    db['tree_csv_download_on_connection_id'] = tgt_connection_id
 

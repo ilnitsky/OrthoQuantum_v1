@@ -1098,6 +1098,7 @@ def create_outputs():
     State('blast-button-input-value', 'data'),
 )
 def update_everything(dp: DashProxy):
+    st = time.time()
     task_id = dp['task_id', 'data']
 
     if dp.is_triggered_by(('force_update_submit', 'data')):
@@ -1180,7 +1181,7 @@ def update_everything(dp: DashProxy):
         for db_key in DB_2_DASH_KEYS.intersection(updates):
             dash_keys, func = DB_2_DASH[db_key]
             update_needed = func(dp, updates, db_key, dash_keys) or update_needed
-
+    print("update_everything took ", time.time()-st)
 #endregion
 
 

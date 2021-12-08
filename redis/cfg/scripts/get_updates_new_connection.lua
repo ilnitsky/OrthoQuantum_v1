@@ -11,4 +11,4 @@ if next(updatedKeys) ~= nil then
 else
     updatedData = {}
 end
-return {redis.call('GET', KEYS[1]), redis.call('INCR', KEYS[4]), updatedKeys, updatedData}
+return {redis.call('GET', KEYS[1]) or 0, redis.call('INCR', KEYS[4]), updatedKeys, updatedData}

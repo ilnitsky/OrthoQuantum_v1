@@ -27,4 +27,4 @@ if next(updatedKeys) ~= nil then
 else
     updatedData = {}
 end
-return {redis.call('GET', KEYS[1]), updatedKeys, updatedData}
+return {redis.call('GET', KEYS[1]) or 0, updatedKeys, updatedData}

@@ -6,6 +6,20 @@ import contextlib
 import tempfile
 import json
 
+
+from functools import wraps
+
+import time
+def benchmark(func):
+    @wraps(func)
+    def deco(*args, **kwargs):
+        start = time.perf_counter()
+        try:
+            return func(*args, **kwargs)
+        finally:
+            print(f"Function {func.__name__} took {time.perf_counter()-start:.4f}s")
+    return deco
+
 def decode_int(*items, default=0) -> int:
     if len(items)==1:
         return int(items[0]) if items[0] else default

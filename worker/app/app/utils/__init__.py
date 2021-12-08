@@ -4,5 +4,6 @@ from .utils import (
     DATA_PATH,
     atomic_file,
     open_existing,
-    json_minify
+    json_minify,
+    benchmark
 )

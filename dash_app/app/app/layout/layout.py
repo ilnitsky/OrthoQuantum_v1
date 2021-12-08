@@ -451,6 +451,7 @@ def dashboard(task_id):
 
     dcc.Store(id='trigger_csv_download', data=0),
     dcc.Store(id='trigger_csv_download_2', data=0),
+    dcc.Store(id='trigger_csv_download_refresh', data=0),
     html.A(id='csvdownload_done_link', href=f'/files/{task_id}/tree.csv', download='tree.csv', className="d-none"),
 
     dcc.Interval(

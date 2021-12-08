@@ -91,7 +91,7 @@ async def vis():
 
 
 @queue_manager.add_handler("/queues/tree_csv")
-async def build_tree_csv(tgt_connection_id):
+async def build_tree_csv(tgt_connection_id, csv_render_n):
     db = get_db()
     db.msg = "Generating CSV"
     db.total = None
@@ -107,4 +107,5 @@ async def build_tree_csv(tgt_connection_id):
 
     db['tree_csv_ver'] = f'{tree_ver}_{tree_blast_ver}'
     db['tree_csv_download_on_connection_id'] = tgt_connection_id
+    db['csv_render_n'] = csv_render_n
 

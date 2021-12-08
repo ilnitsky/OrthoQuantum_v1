@@ -159,8 +159,11 @@ def router_page(href):
 
 dash_app.clientside_callback(
     """
-    function(data) {
-        if(data){
+    function(trig_1, trig_2, n) {
+        if (n == null){
+            return window.dash_clientside.no_update;
+        }
+        if((trig_1 == n)||(trig_2 == n)){
             document.getElementById("csvdownload_done_link").click();
         }
         return window.dash_clientside.no_update;
@@ -169,10 +172,12 @@ dash_app.clientside_callback(
     Output('csvdownload_done_link', 'children'),
     Input('trigger_csv_download', 'data'),
     Input('trigger_csv_download_2', 'data'),
+    State('tree_component', 'csv_render_n'),
 )
 
 @dash_proxy.callback(
     Output('trigger_csv_download_2', 'data'),
+    Output('trigger_csv_download_refresh', 'data'),
 
     Input('tree_component', 'csv_render_n'),
 
@@ -201,11 +206,13 @@ def csvdownload(dp: DashProxy):
                     user.enqueue(
                         task_id, "tree_csv",
                         tgt_connection_id=dp['connection_id', 'data'],
+                        csv_render_n=dp['tree_component', 'csv_render_n'],
                         redis_client=pipe,
                     )
                     pipe.execute()
+                    dp['trigger_csv_download_refresh', 'data'] = dp['tree_component', 'csv_render_n']
                 else:
-                    dp['trigger_csv_download_2', 'data'] = int(time.time())
+                    dp['trigger_csv_download_2', 'data'] = dp['tree_component', 'csv_render_n']
                     return
             break
         except redis.WatchError:
@@ -956,7 +963,7 @@ def tree_csv_download(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:
     # we got the command to trigger csv download
     task_id = dp['task_id', 'data']
     # trigger csv download
-    dp[dash_keys[0]] = int(time.time())
+    dp[dash_keys[0]] = int(upd['csv_render_n'])
 
     # remove the command for csv download from the db
     while True:
@@ -1087,7 +1094,8 @@ def create_outputs():
     Input('progress_updater', 'n_intervals'),
     Input('force_update_submit', 'data'),
     Input('search-prot-button', 'n_clicks'),
-    Input('tree_component', 'csv_render_n'),
+    Input('trigger_csv_download_refresh', 'data'),
+
 
     State('task_id', 'data'),
     State('connection_id', 'data'),
@@ -1104,7 +1112,7 @@ def update_everything(dp: DashProxy):
         dp['cancel-button', 'className'] = "float-right"
     if dp.is_triggered_by(
         ('search-prot-button', 'n_clicks'),
-        ('tree_component', 'csv_render_n')):
+        ('trigger_csv_download_refresh', 'data')):
         # can't depend that enqueue would be called before update,
         # so force-rechecking for a bit
         dp['force_update_until', 'data'] = time.time()+5

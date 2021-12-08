@@ -437,7 +437,6 @@ def request_list(dp: DashProxy):
     Output('tooltip-table', 'className'),
     Output('tooltip-heatmap', 'className'),
     Output('tooltip-tree', 'className'),
-    Output('tooltip-max-prot-group', 'className'),
 
     Input('tutorial_enabled', 'data'),
 )

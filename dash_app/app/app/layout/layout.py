@@ -290,13 +290,6 @@ og_from_input = html.Div(children=[
               className="float-right ml-auto",
               id="max-prot-group"
             ),
-            dbc.Tooltip(
-              "TKTKTK", # TODO
-              id="tooltip-max-prot-group",
-              target="max-prot-group",
-              # placement="right",
-              className="d-none"
-            ),
           ],
           className="form-inline"),
 

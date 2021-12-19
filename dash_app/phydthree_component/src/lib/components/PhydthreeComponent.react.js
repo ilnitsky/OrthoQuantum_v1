@@ -36,12 +36,14 @@ export default class PhydthreeComponent extends Component {
     };
   }
   componentDidUpdate() {
+    var changed = false;
     var activeTab = this.state.activeTab;
     var nextTab = this.state.nextTab;
     var shouldRedraw = this.state.shouldRedraw;
     if (this.state.version != this.props.version){
       shouldRedraw = true;
       nextTab = "tree";// this.props.leafCount < 1000 ? "tree" : "svg";
+      changed = true;
     }
     switch (nextTab) {
       case "tree":
@@ -50,27 +52,30 @@ export default class PhydthreeComponent extends Component {
           this.redraw();
         }
         activeTab = "tree";
+        changed = true;
         break;
       case "svg":
         if (this.state.activeTab !== "svg"){
           phyd3.phylogram.renderSVG(this.svg_ref.current);
         }
         activeTab = "svg";
+        changed = true;
         break;
-      case "png":
-        phyd3.phylogram.renderPNG();
       default:
         if (shouldRedraw && activeTab == "tree"){
           this.redraw();
-          this.setState((state) => {
-            return { ...state, shouldRedraw: false }
-          });
-        }
-        return;
+          changed = true;
+          // this.setState((state) => {
+          //   return { ...state, shouldRedraw: false }
+          // });
+        };
     }
-    this.setState((state) => {
-      return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null, version: this.props.version }
-    });
+    if (changed) {
+      this.setState((state) => {
+        return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null, version: this.props.version }
+      })
+    }
+
 
   }
   componentDidMount() {
@@ -206,7 +211,7 @@ export default class PhydthreeComponent extends Component {
         <NavItem className="ml-auto">
           <NavLink
             disabled={this.state.activeTab !== 'tree'}
-            onClick={() => { this.toggle('png'); }}
+            onClick={() => { phyd3.phylogram.renderPNG(); }}
           >
             Download image
           </NavLink>

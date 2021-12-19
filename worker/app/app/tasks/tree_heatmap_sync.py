@@ -109,18 +109,7 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
         width = 1
     tbl_corr["Quantile"] = (((min_el-tbl_corr["Corr"]) / width) + 1).round(5)
     tbl_corr["Corr"] = tbl_corr["Corr"].round(5)
-    table_data = {
-        "data": tbl_corr.to_dict('records'),
-        "columns": [
-            {
-                "name": i,
-                "id": i,
-            }
-            for i in tbl_corr.columns
-        ]
-    }
-    with open_existing(table_file, 'w') as f:
-        json.dump(table_data, f, ensure_ascii=False, separators=(',', ':'))
+    tbl_corr.to_pickle(table_file)
 
     # 566 - 85/85
     DEFAULT_FIG_SIZE = 10

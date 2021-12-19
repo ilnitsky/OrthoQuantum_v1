@@ -6,6 +6,8 @@ import json
 import secrets
 import shutil
 import redis
+import math
+import pandas as pd
 
 import urllib.parse as urlparse
 from dash import Dash, dcc, html
@@ -16,7 +18,7 @@ from flask_compress import Compress
 
 from . import layout
 from . import user
-from .utils import DashProxy, DashProxyCreator, decode_int, DEBUG
+from .utils import DashProxy, DashProxyCreator, decode_int, DEBUG, clamp, parse_int, parse_float
 
 
 app = flask.Flask(__name__)
@@ -637,6 +639,124 @@ def search_taxid(dp: DashProxy):
         dp['search-prot-button', 'children'] = "Find Uniprot ACs ➜"
         dp['prot-codes', 'value'] = ''
 
+dash_app.clientside_callback(
+    """
+    function(n, is_open) {
+        if (dash_clientside.callback_context.triggered.length!=0){
+            return !is_open;
+        }
+        return false;
+    }
+    """,
+
+    Output("corr_table_options_collapse", "is_open"),
+    Input("corr_table_options_show", "n_clicks"),
+    State("corr_table_options_collapse", "is_open"),
+)
+
+
+@dash_proxy.callback(
+    Output("corr_table", "data"),
+    Output('corr_table', 'columns'),
+
+    Output('page_size', 'value'),
+    Output('curr_page', 'value'),
+    Output('min_quantile', 'value'),
+    Output('max_quantile', 'value'),
+    Output('min_corr', 'value'),
+    Output('max_corr', 'value'),
+
+    Output('total_pages', 'children'),
+
+    ###
+    Input("heatmap_container", "style"), # Update on show/hide
+
+    Input('reset_corr_settings', 'n_clicks'),
+    Input('curr_page_decr', 'n_clicks'),
+    Input('curr_page_incr', 'n_clicks'),
+
+    Input('curr_page', 'value'),
+    Input('page_size', 'value'),
+    Input('min_quantile', 'value'),
+    Input('max_quantile', 'value'),
+    Input('min_corr', 'value'),
+    Input('max_corr', 'value'),
+
+    State('task_id', 'data'),
+
+)
+def render_corr_table(dp:DashProxy):
+    task_id = dp['task_id', 'data']
+    try:
+        tbl = pd.read_pickle(user.DATA_PATH/task_id/"Correlation_table.pkl")
+        tbl: pd.DataFrame
+    except Exception:
+        __import__("traceback").print_exc()
+        dp["corr_table", "data"] = None
+        dp["corr_table", "columns"] = None
+        return
+
+    if dp.is_triggered_by(('reset_corr_settings', 'n_clicks')):
+        dp['curr_page', 'value'] = ''
+        dp['page_size', 'value'] = ''
+        dp['min_quantile', 'value'] = ''
+        dp['max_quantile', 'value'] = ''
+        dp['min_corr', 'value'] = ''
+        dp['max_corr', 'value'] = ''
+
+
+    min_quantile = clamp(0., parse_float(dp["min_quantile", "value"], 0.), 1.)
+    max_quantile = clamp(0., parse_float(dp["max_quantile", "value"], 1.), 1.)
+
+    min_corr = clamp(-1., parse_float(dp["min_corr", "value"], -1.), 1.)
+    max_corr = clamp(-1., parse_float(dp["max_corr", "value"], 1.), 1.)
+
+    tbl = tbl.loc[
+        tbl["Corr"].between(min_corr, max_corr) &
+        tbl["Quantile"].between(min_quantile, max_quantile)
+    ]
+
+
+    page_size = clamp(5, parse_int(dp['page_size', 'value'], 20), 100)
+
+    page_count = math.ceil(tbl.shape[0]/page_size)
+
+    curr_page = parse_int(dp['curr_page', 'value'], 1)
+
+    if dp.is_triggered_by(('curr_page_decr', 'n_clicks')):
+        curr_page -= 1
+    elif dp.is_triggered_by(('curr_page_incr', 'n_clicks')):
+        curr_page += 1
+
+    if page_count == 0:
+        curr_page = 0
+    else:
+        curr_page = clamp(1, curr_page, page_count)
+
+    dp['page_size', 'value'] = page_size
+    dp['curr_page', 'value'] = curr_page
+    dp['min_quantile', 'value'] = min_quantile
+    dp['max_quantile', 'value'] = max_quantile
+    dp['min_corr', 'value'] = min_corr
+    dp['max_corr', 'value'] = max_corr
+
+    dp['total_pages', 'children'] = f"/{page_count}"
+
+    if curr_page:
+        tbl = tbl.iloc[(curr_page-1)*page_size:curr_page*page_size]
+
+        dp["corr_table", "data"] = tbl.to_dict('records')
+        dp["corr_table", "columns"] = [
+            {
+                "name": i,
+                "id": i,
+            }
+            for i in tbl.columns
+        ]
+    else:
+        dp["corr_table", "data"] = None
+        dp["corr_table", "columns"] = None
+
 
 dash_app.clientside_callback(
     """
@@ -894,9 +1014,6 @@ def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[
         ("heatmap_img", "src"),
         ("heatmap_link", "href"),
         ("heatmap_container", "style"),
-
-        ("corr_table", "data"),
-        ("corr_table", "columns"),
     ),
 )
 def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
@@ -907,19 +1024,6 @@ def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tupl
     dp["heatmap_link", "href"] = f'/files/{task_id}/Correlation.png?version={heatmap_version}'
 
     dp["heatmap_container", "style"] = layout.SHOW
-
-    try:
-        with open(user.DATA_PATH/task_id/"Correlation_table.json", "r") as f:
-            tbl_data = json.load(f)
-
-        for k, v in dash_keys:
-            if k != 'corr_table':
-                continue
-            dp[k, v] = tbl_data[v]
-
-    except Exception:
-        # TODO: report exception
-        pass
 
 
 @add_processor(

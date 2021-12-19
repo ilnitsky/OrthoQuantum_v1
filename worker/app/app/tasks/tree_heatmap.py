@@ -29,7 +29,7 @@ async def heatmap(organism_count, df, max_prots=0) -> Optional[set[str]]:
             async with  (
                 db.atomic_file(db.task_dir / "Correlation.png") as tmp_file,
                 db.atomic_file(db.task_dir / "Correlation_preview.png") as tmp_file2,
-                db.atomic_file(db.task_dir / "Correlation_table.json") as tmp_file3 ):
+                db.atomic_file(db.task_dir / "Correlation_table.pkl") as tmp_file3 ):
                 task = tree_heatmap_sync.heatmap(
                     organism_count=organism_count,
                     df=df,

@@ -586,17 +586,81 @@ def dashboard(task_id):
               md=6,
             ),
             dbc.Col(
-              html.Div(
-                dash_table.DataTable(
-                  filter_action="native",
-                  page_size=20,
-                  id="corr_table",
+              [
+                html.Div(
+                  [
+                    dbc.Button("Options", style={"visibility": "hidden"}), # for InputGroup to be centered
+                    dbc.InputGroup([
+                      dbc.InputGroupAddon(dbc.Button("<", id="curr_page_decr"), addon_type='prepend'),
+                      dbc.Input(inputMode='numeric', value="1", id="curr_page", debounce=True),
+                      dbc.InputGroupAddon("/Loading...", addon_type='append', id="total_pages"),
+                      dbc.InputGroupAddon(dbc.Button(">", id="curr_page_incr"), addon_type='append'),
+                    ], style={"width": "14em"}),
+                    dbc.Button("Options", id="corr_table_options_show"), #style={"overflow":"show","width":"0px"}
+                  ],
+                  className="d-flex flex-row justify-content-between mb-2",
                 ),
-                className="pb-3",
-                style={
-                  "overflow-x": "scroll",
-                },
-              ),
+                dbc.Collapse(
+                  dbc.Card(dbc.CardBody([
+                    dbc.Row([
+                      dbc.Col(
+                        [
+                          html.Div([
+                            dbc.Input(inputMode='numeric', value="0.0", className="d-inline-block", style={"width": "5em"}, id="min_quantile", debounce=True),
+                            html.Span("≤\N{NBSP}quantile\N{NBSP}≤", className="p-2 input-group-text d-inline-block"),
+                            dbc.Input(inputMode='numeric', value="1.0", className="d-inline-block", style={"width": "5em"}, id="max_quantile", debounce=True),
+                          ], style={"display": "inline-block"},className="mb-2"),
+                        ],
+                        xl=6,
+                        style={"white-space": "nowrap"}
+                      ),
+                      dbc.Col(
+                        [
+                          html.Div([
+                            dbc.Input(inputMode='numeric', value="-1.0", className="d-inline-block", style={"width": "5em"}, id="min_corr", debounce=True),
+                            html.Span("≤\N{NBSP}correlation\N{NBSP}≤", className="p-2 input-group-text d-inline-block"),
+                            dbc.Input(inputMode='numeric', value="1.0", className="d-inline-block", style={"width": "5em"}, id="max_corr", debounce=True),
+                          ], style={"display": "inline-block"}, className="mb-2 float-right"),
+
+                          ],
+                        xl=6,
+                        style={"white-space": "nowrap"}
+                      ),
+                    ]),
+                    dbc.Row([
+                      dbc.Col(
+                        [
+                          dbc.InputGroup([
+                            dbc.InputGroupAddon("Page size", addon_type='prepend'),
+                            dbc.Input(inputMode='numeric', value="20", id="page_size", debounce=True),
+                          ], style={"width": "11em"}, className="mb-2"),
+                        ],
+                        lg=6
+                      ),
+                      dbc.Col(
+                        dbc.Button("Reset", className="mb-2 float-right", id="reset_corr_settings", color="danger", outline=True,),
+                        lg=6
+                      ),
+                    ]),
+                  ], className="p-3")),
+                  id="corr_table_options_collapse",
+                  is_open=False,
+                ),
+                dbc.Row(
+                  dbc.Col(
+                    html.Div(
+                      dash_table.DataTable(
+                        id="corr_table",
+                      ),
+                      className="pb-3",
+                      style={
+                        "overflow-x": "scroll",
+                      },
+                    ),
+                  ),
+                  className="pt-3",
+                ),
+              ],
               md=6,
             ),
           ],

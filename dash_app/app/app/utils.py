@@ -2,6 +2,22 @@ from dash import callback_context, no_update
 from dash.dependencies import Input, Output, State, DashDependency
 import os
 
+def clamp(min_val, cur_val, max_val):
+    return min(max(min_val, cur_val), max_val)
+
+
+def parse_int(val, default:int):
+    try:
+        return int(val)
+    except Exception:
+        return default
+
+def parse_float(val, default:float):
+    try:
+        return float(val)
+    except Exception:
+        return default
+
 def decode_int(*items:bytes, default=0) -> int:
     if len(items)==1:
         return int(items[0]) if items[0] else default

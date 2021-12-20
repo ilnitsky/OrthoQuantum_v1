@@ -78,13 +78,13 @@ body = html.Div(
         dbc.Row([
             dbc.Col([
                 html.H2("OrthoQuantum v1.0", style={"white-space": "nowrap"}),
-            ], md=4, lg=3),
+            ], md=5, lg=4),
             dbc.Col([
                 html.Hr(style={
                     "margin-top": "2rem",
                     "margin-bottom": "0",
                 }),
-                ], md=4, lg=3, className="d-none d-md-block"),
+                ], md=5, lg=4, className="d-none d-md-block"),
             ],
             justify='center',
         ),
@@ -117,8 +117,8 @@ body = html.Div(
                             ),
                         ]),
                     ],
-                    md=4,
-                    lg=3,
+                    md=5,
+                    lg=4,
                 ),
                 html.Br(),
                 html.Br(),
@@ -131,8 +131,8 @@ body = html.Div(
                         ])),
                         html.P("""Click "Submit" to see your results."""),
                     ],
-                    md=4,
-                    lg=3,
+                    md=5,
+                    lg=4,
                 ),
             ],
             justify='center',
@@ -145,13 +145,13 @@ og_from_input = html.Div(children=[
     dbc.Row([
       dbc.Col([
         html.H2("OrthoQuantum v1.0", style={"white-space": "nowrap"}),
-      ], md=4, lg=3),
+      ], md=5, lg=4),
       dbc.Col([
         html.Hr(style={
           "margin-top": "2rem",
           "margin-bottom": "0",
         }),
-        ], md=4, lg=3, className="d-none d-md-block"),
+        ], md=5, lg=4, className="d-none d-md-block"),
       ],
       justify='center',
     ),
@@ -183,16 +183,16 @@ og_from_input = html.Div(children=[
               ),
             ]),
           ],
-          md=4,
-          lg=3,
+          md=5,
+          lg=4,
         ),
         html.Br(),
         html.Br(),
         dbc.Col([
             html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
           ],
-          md=4,
-          lg=3,
+          md=5,
+          lg=4,
         ),
       ],
       justify='center',
@@ -221,8 +221,8 @@ og_from_input = html.Div(children=[
             className="d-none"
           ),
         ],
-        md=8,
-        lg=6,
+        md=10,
+        lg=8,
       ),
     ],
     justify='center',
@@ -251,11 +251,11 @@ og_from_input = html.Div(children=[
           color="primary",
           children="Find Uniprot ACs ➜",
           outline=True,
-          className="float-right",
+          className="float-right mb-3",
         ),
       ]),
-      md=4,
-      lg=3,
+      md=5,
+      lg=4,
     ),
     # html.Button("➜", style={}),
     # html.Div(dbc.Button("->")),
@@ -264,8 +264,8 @@ og_from_input = html.Div(children=[
         dcc.Store(id='uniprotAC_update', data=None),
         dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=10, style={'width': '100%'}),
       ]),
-      md=4,
-      lg=3,
+      md=5,
+      lg=4,
     ),
   ], justify='center'),
 
@@ -348,8 +348,8 @@ og_from_input = html.Div(children=[
             id="blast-options",
           ),
         ]),
-        md=8,
-        lg=6,
+        md=10,
+        lg=8,
       ),
     ],
     justify='center',
@@ -373,8 +373,8 @@ og_from_input = html.Div(children=[
           className="float-right d-none"
         ),
       ],
-      md=8,
-      lg=6,
+      md=10,
+      lg=8,
     ),
     justify='center',
     className="mb-4",
@@ -386,7 +386,7 @@ og_from_input = html.Div(children=[
         is_open=False,
         className="alert-warning",
       ),
-      md=8, lg=6,
+      md=10, lg=8,
     ),
     justify='center',
   ),
@@ -402,7 +402,7 @@ og_from_input = html.Div(children=[
         id="table_progress_bar",
         style={"height": "30px"},
       ),
-      md=8, lg=6,
+      md=10, lg=8,
     ),
     justify='center',
     id='table_progress_container',
@@ -431,7 +431,7 @@ og_from_input = html.Div(children=[
           className="d-none"
         ),
       ],
-      md=8, lg=6,
+      md=10, lg=8,
     ),
     justify='center',
     className="mb-3",
@@ -493,7 +493,7 @@ def dashboard(task_id):
             style={"text-align": "center"}
           ),
         ],
-        md=8, lg=6, className="mb-3",
+        md=10, lg=8, className="mb-3",
       ),
       justify='center'
     ),
@@ -511,20 +511,12 @@ def dashboard(task_id):
           id="vis_progress_bar",
           style={"height": "30px"},
         ),
-        md=8, lg=6,
+        md=10, lg=8,
       ),
       justify='center',
       id='vis_progress_container',
       style=HIDE,
     ),
-    # PhydthreeComponent(
-    #   id="PhydthreeComponent_id",
-    #   url=f'/files/{task_id}/nope',
-    #   height=2000,
-    #   leafCount=100,
-    #   version="version",
-    #   taskid=task_id,
-    # ),
 
     html.Div(
       [
@@ -554,7 +546,7 @@ def dashboard(task_id):
               id="heatmap_progress_bar",
               style={"height": "30px"},
             ),
-            md=8, lg=6,
+            md=10, lg=8,
           ),
           justify='center',
           id='heatmap_progress_container',
@@ -564,110 +556,99 @@ def dashboard(task_id):
       id='heatmap_header',
       style=HIDE,
     ),
-    html.Div(
+    dbc.Row(
       [
-        dbc.Row(
-          [
-            dbc.Col(
-              html.A(
-                html.Img(
-                  id="heatmap_img",
-                  style={
-                    'width': '100%',
-                    'max-width': '1100px',
-                  },
-                  className="mx-auto",
-                ),
-                target="_blank",
-                className="mx-auto",
-                id="heatmap_link",
-              ),
-              className="text-center",
-              md=6,
+        dbc.Col(
+          html.A(
+            html.Img(
+              id="heatmap_img",
+              style={
+                'width': '100%',
+                'max-width': '1100px',
+              },
+              className="mx-auto",
             ),
-            dbc.Col(
+            target="_blank",
+            className="mx-auto",
+            id="heatmap_link",
+          ),
+          className="text-center",
+          lg=4,
+        ),
+        dbc.Col(
+          [
+            html.Div(
               [
-                html.Div(
-                  [
-                    dbc.Button("Options", style={"visibility": "hidden"}), # for InputGroup to be centered
-                    dbc.InputGroup([
-                      dbc.InputGroupAddon(dbc.Button("<", id="curr_page_decr"), addon_type='prepend'),
-                      dbc.Input(inputMode='numeric', value="1", id="curr_page", debounce=True),
-                      dbc.InputGroupAddon("/Loading...", addon_type='append', id="total_pages"),
-                      dbc.InputGroupAddon(dbc.Button(">", id="curr_page_incr"), addon_type='append'),
-                    ], style={"width": "14em"}),
-                    dbc.Button("Options", id="corr_table_options_show"),
-                  ],
-                  className="d-flex flex-row justify-content-between mb-2",
-                ),
-                dbc.Collapse(
-                  dbc.Card(dbc.CardBody([
-                    dbc.Row([
-                      dbc.Col(
-                        [
-                          html.Div([
-                            dbc.Input(inputMode='numeric', value="0.0", className="d-inline-block", style={"width": "5em"}, id="min_quantile", debounce=True),
-                            html.Span("≤\N{NBSP}quantile\N{NBSP}≤", className="p-2 input-group-text d-inline-block"),
-                            dbc.Input(inputMode='numeric', value="1.0", className="d-inline-block", style={"width": "5em"}, id="max_quantile", debounce=True),
-                          ], style={"display": "inline-block"},className="mb-2"),
-                        ],
-                        xl=6,
-                        style={"white-space": "nowrap"}
-                      ),
-                      dbc.Col(
-                        [
-                          html.Div([
-                            dbc.Input(inputMode='numeric', value="-1.0", className="d-inline-block", style={"width": "5em"}, id="min_corr", debounce=True),
-                            html.Span("≤\N{NBSP}correlation\N{NBSP}≤", className="p-2 input-group-text d-inline-block"),
-                            dbc.Input(inputMode='numeric', value="1.0", className="d-inline-block", style={"width": "5em"}, id="max_corr", debounce=True),
-                          ], style={"display": "inline-block"}, className="mb-2 float-right"),
-
-                          ],
-                        xl=6,
-                        style={"white-space": "nowrap"}
-                      ),
-                    ]),
-                    dbc.Row([
-                      dbc.Col(
-                        [
-                          dbc.InputGroup([
-                            dbc.InputGroupAddon("Page size", addon_type='prepend'),
-                            dbc.Input(inputMode='numeric', value="20", id="page_size", debounce=True),
-                          ], style={"width": "11em"}, className="mb-2"),
-                        ],
-                        lg=6
-                      ),
-                      dbc.Col(
-                        dbc.Button("Reset", className="mb-2 float-right", id="reset_corr_settings", color="danger", outline=True,),
-                        lg=6
-                      ),
-                    ]),
-                  ], className="p-3")),
-                  id="corr_table_options_collapse",
-                  is_open=False,
-                ),
-                dbc.Row(
-                  dbc.Col(
-                    html.Div(
-                      dash_table.DataTable(
-                        id="corr_table",
-                      ),
-                      className="pb-3",
-                      style={
-                        "overflow-x": "scroll",
-                      },
-                    ),
-                  ),
-                  className="pt-3",
-                ),
+                dbc.Button("Options", style={"visibility": "hidden"}, className="d-none d-xl-block"), # for InputGroup to be centered
+                dbc.InputGroup([
+                  dbc.InputGroupAddon(dbc.Button("<", id="curr_page_decr"), addon_type='prepend'),
+                  dbc.Input(inputMode='numeric', value="1", id="curr_page", debounce=True),
+                  dbc.InputGroupAddon("/Loading...", addon_type='append', id="total_pages"),
+                  dbc.InputGroupAddon(dbc.Button(">", id="curr_page_incr"), addon_type='append'),
+                ], style={"width": "14em"}),
+                dbc.Button("Options", id="corr_table_options_show"),
               ],
-              md=6,
+              className="d-flex flex-row justify-content-between mb-2",
+            ),
+            dbc.Collapse(
+              dbc.Card(dbc.CardBody([
+                dbc.Row([
+                  dbc.Col(
+                    [
+                      html.Div([
+                        dbc.Input(inputMode='numeric', value="0.0", className="d-inline-block", style={"width": "4em"}, id="min_quantile", debounce=True),
+                        html.Span("≤\N{NBSP}quantile\N{NBSP}≤", className="p-2 input-group-text d-inline-block"),
+                        dbc.Input(inputMode='numeric', value="1.0", className="d-inline-block", style={"width": "4em"}, id="max_quantile", debounce=True),
+                      ], className="mb-2 d-inline-block text-nowrap"),
+
+                      html.Div([
+                        dbc.Input(inputMode='numeric', value="-1.0", className="d-inline-block", style={"width": "4em"}, id="min_corr", debounce=True),
+                        html.Span("≤\N{NBSP}correlation\N{NBSP}≤", className="p-2 input-group-text d-inline-block"),
+                        dbc.Input(inputMode='numeric', value="1.0", className="d-inline-block", style={"width": "4em"}, id="max_corr", debounce=True),
+                      ], className="mb-2 float-right d-inline-block text-nowrap"),
+
+                    ],
+                    className="d-flex flex-row justify-content-between flex-wrap"
+                  ),
+                ]),
+                dbc.Row([
+                  dbc.Col(
+                    [
+                      dbc.InputGroup([
+                        dbc.InputGroupAddon("Page size", addon_type='prepend'),
+                        dbc.Input(inputMode='numeric', value="20", id="page_size", debounce=True),
+                      ], style={"width": "11em"}, className="mb-2"),
+                    ],
+                  ),
+                  dbc.Col(
+                    dbc.Button("Reset", className="mb-2 float-right", id="reset_corr_settings", color="danger", outline=True,),
+                  ),
+                ]),
+              ], className="p-3")),
+              id="corr_table_options_collapse",
+              is_open=False,
+            ),
+            dbc.Row(
+              dbc.Col(
+                html.Div(
+                  dash_table.DataTable(
+                    id="corr_table",
+                  ),
+                  className="pb-3",
+                  style={
+                    "overflow-x": "scroll",
+                  },
+                ),
+              ),
+              className="pt-3",
             ),
           ],
-          className="mx-4",
+          lg=4,
         ),
       ],
+      className="mx-4",
       id='heatmap_container',
+      justify='center',
       style=HIDE,
     ),
 
@@ -699,7 +680,7 @@ def dashboard(task_id):
               id="tree_progress_bar",
               style={"height": "30px"},
             ),
-            md=8, lg=6,
+            md=10, lg=8,
             className="mt-3"
           ),
           justify='center',
@@ -717,8 +698,10 @@ def dashboard(task_id):
             url=f"/files/{task_id}/tree.xml",
             height=2000,
         ),
+        md=10, lg=8,
         className="mx-5 mt-3",
-      )
+      ),
+      justify='center',
     ),
 
     html.Div(
@@ -989,6 +972,6 @@ def about(app):
                 className="mb-4",
             ),
             *items,
-        ], md=8, lg=6),
+        ], md=10, lg=8),
         justify='center',
     )

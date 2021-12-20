@@ -76,21 +76,47 @@ dash_app.layout = layout.index
 
 dash_proxy = DashProxyCreator(dash_app)
 
-@dash_app.callback(
+dash_app.clientside_callback(
+    """
+    function(n_clicks) {
+        if (n_clicks == null){
+            return window.dash_clientside.no_update;
+        }
+        return true;
+    }
+    """,
+    Output('cookie_consent_given', 'data'),
+    Input("accept_cookies_btn", "n_clicks"),
+)
+
+
+@dash_proxy.callback(
     Output('page-content', 'children'),
     Output('location', 'search'),
+    Output('cookies_consent_modal', 'is_open'),
     Input('location', 'href'),
+    Input('cookie_consent_given', 'data'),
 )
-def router_page(href):
+def router_page(dp: DashProxy):
+    href = dp['location', 'href']
     url = urlparse.urlparse(href)
     pathname = url.path.rstrip('/')
-    search = ''
+
     if url.query:
-        search = f'?{url.query}'
+        dp['location', 'search'] = f'?{url.query}'
+    else:
+        dp['location', 'search'] = ''
+
+    if not dp['cookie_consent_given', 'data']:
+        dp['cookies_consent_modal', 'is_open'] = True
+        dp['page-content', 'children'] = None
+        return
+    dp['cookies_consent_modal', 'is_open'] = False
 
     if pathname == '':
         if not user.is_logged_in():
-            return login(pathname), search
+            dp['page-content', 'children'] = login(pathname)
+            return
 
         args = urlparse.parse_qs(url.query, keep_blank_values=True)
         task_id = args.get('task_id', (None,))[0]
@@ -110,9 +136,10 @@ def router_page(href):
             task_id = new_task()
 
         new_args = urlparse.urlencode({"task_id": task_id})
-        search = f"?{new_args}"
+        dp['location', 'search'] = f"?{new_args}"
 
-        return layout.dashboard(task_id), search
+        dp['page-content', 'children'] = layout.dashboard(task_id)
+        return
 
     if pathname == '/prottree':
         args = urlparse.parse_qs(url.query, keep_blank_values=True)
@@ -120,7 +147,8 @@ def router_page(href):
         prot_id = args.get('prot_id', (None,))[0]
 
         if task_id is None or prot_id is None or not get_task(task_id):
-            return dcc.Location(pathname="/", id="some_id2", hash="1", refresh=True), search
+            dp['page-content', 'children'] = dcc.Location(pathname="/", id="some_id2", hash="1", refresh=True)
+            return
         if '-' in prot_id:
             prot_ids = prot_id.split('-')
             prot_ids.sort()
@@ -153,10 +181,12 @@ def router_page(href):
                 continue
         if did_schedule:
             user.db.hset(f"/prottree_tasks/{prot_id}/progress", "q_id", res[0])
-        return layout.prottree(prot_id), search
+        dp['page-content', 'children'] = layout.prottree(prot_id)
+        return
     if pathname == '/about':
-        return layout.about(dash_app), search
-    return '404', search
+        dp['page-content', 'children'] = layout.about(dash_app)
+        return
+    dp['page-content', 'children'] = "Page Not Found"
 
 
 dash_app.clientside_callback(
@@ -686,6 +716,8 @@ dash_app.clientside_callback(
 
 )
 def render_corr_table(dp:DashProxy):
+    if dp["heatmap_container", "style"] != layout.SHOW:
+        return
     task_id = dp['task_id', 'data']
     try:
         tbl = pd.read_pickle(user.DATA_PATH/task_id/"Correlation_table.pkl")

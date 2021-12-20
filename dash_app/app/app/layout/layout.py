@@ -596,7 +596,7 @@ def dashboard(task_id):
                       dbc.InputGroupAddon("/Loading...", addon_type='append', id="total_pages"),
                       dbc.InputGroupAddon(dbc.Button(">", id="curr_page_incr"), addon_type='append'),
                     ], style={"width": "14em"}),
-                    dbc.Button("Options", id="corr_table_options_show"), #style={"overflow":"show","width":"0px"}
+                    dbc.Button("Options", id="corr_table_options_show"),
                   ],
                   className="d-flex flex-row justify-content-between mb-2",
                 ),
@@ -804,6 +804,35 @@ index = html.Div([
     id="location-refresh-cont",
   ),
   dcc.Store(id='tutorial_enabled', data=True, storage_type="local"),
+  dcc.Store(id='cookie_consent_given', data=False, storage_type="local"),
+
+  dbc.Modal(
+    [
+      dbc.ModalHeader("Cookie consent form"),
+      dbc.ModalBody(
+        "This website uses cookies to accomplish essential functionality. No user tracking across other websites for advertizing or other purposes is performed."
+      ),
+      dbc.ModalFooter(
+        [
+          dbc.Button(
+            "Leave",
+            id="close-centered",
+            color="danger",
+            href="https://en.wikipedia.org/wiki/HTTP_cookie",
+          ),
+          dbc.Button(
+            "I accept cookies",
+            id="accept_cookies_btn",
+            color="success"
+          ),
+        ]
+      ),
+    ],
+    id="cookies_consent_modal",
+    centered=True,
+    is_open=False,
+  ),
+
   dbc.Container(
     id='page-content',
     fluid=True,

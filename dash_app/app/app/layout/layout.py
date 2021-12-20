@@ -27,7 +27,7 @@ nav_children = [
   # recreating their functionality manually
   html.Li([
       html.A(
-        "My requests",
+        "My queries",
         className="nav-link dropdown-toggle",
         id="request_list_menu_item",
         role="button",
@@ -35,7 +35,7 @@ nav_children = [
       dcc.Store(id='request_list_dropdown_shown', data=False),
       html.Div([
           dbc.DropdownMenuItem(
-            "New request",
+            "New query",
             external_link=True, href=f"/",
           ),
           dbc.DropdownMenuItem(divider=True),

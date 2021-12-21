@@ -391,7 +391,7 @@ def request_list(dp: DashProxy):
         return
     res = [
         dbc.DropdownMenuItem(
-            "New request",
+            "New query",
             external_link=True, href=f"/?create",
         ),
         dbc.DropdownMenuItem(divider=True),
@@ -405,7 +405,7 @@ def request_list(dp: DashProxy):
     user_id = flask.session.get("USER_ID")
     if not user_id:
         dp['request_list_dropdown', 'children'] = [
-            dbc.DropdownMenuItem("New request"),
+            dbc.DropdownMenuItem("New query"),
         ]
         return
 

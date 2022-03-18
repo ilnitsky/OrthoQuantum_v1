@@ -1,4 +1,6 @@
 #!/bin/bash
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+
 echo "** Pulling from git **"
 git pull
 echo "** Building **"

@@ -284,3 +284,5 @@ blast_data
 pantherdb
 worker/converter/panther/panther
 tabprocessor
+.env
+secrets/

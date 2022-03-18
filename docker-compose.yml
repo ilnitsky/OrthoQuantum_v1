@@ -17,6 +17,11 @@ services:
     volumes:
       - "redis_data_v2:/data"
 
+  shadowsocks:
+    image: shadowsocks/shadowsocks-libev:latest
+    entrypoint: ss-local -s "${SHADOWSOCKS_SERVER:?missing_shadowsocks_server}" -p "${SHADOWSOCKS_REMOTE_PORT:?missing_shadowsocks_remote_port}" -l "${SHADOWSOCKS_LOCAL_PORT:?missing_shadowsocks_local_port}" -k "${SHADOWSOCKS_PASSWD:?missing_shadowsocks_passwd}" -m "${SHADOWSOCKS_CIPHER:?missing_shadowsocks_cipher}" -b "0.0.0.0"
+    restart: unless-stopped
+
   worker:
     build: ./worker
     restart: unless-stopped
@@ -33,6 +38,8 @@ services:
     environment:
       REDIS_HOST: "redis"
       LD_LIBRARY_PATH: "/blast/lib/:/blast/lib2/:/blast/lib3"
+      SOCKS_SERVER: "shadowsocks"
+      SOCKS_PORT: "${SHADOWSOCKS_LOCAL_PORT:?missing_shadowsocks_local_port}"
 
 
 volumes:

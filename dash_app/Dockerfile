@@ -1,4 +1,12 @@
-FROM buildpack-deps:buster as suexec-builder
+FROM debian:11.2-slim as suexec-builder
+RUN apt-get update                              &&\
+    apt-get install -y --no-install-recommends    \
+            build-essential                     &&\
+    rm -rf /var/lib/apt/lists/*                 &&\
+    rm -rf /usr/share/doc                       &&\
+    rm -rf /usr/share/man                       &&\
+    apt-get clean
+
 COPY ./su-exec /su-exec
 RUN cd /su-exec && make
 

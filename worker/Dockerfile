@@ -1,7 +1,15 @@
-FROM buildpack-deps:buster as suexec-builder
-COPY ./su-exec /su-exec
-RUN cd /su-exec && make
+FROM golang:1.18.0-bullseye as proxy-builder
+ARG DEBUG=""
+ENV DEBUG=${DEBUG}
 
+WORKDIR /proxy
+COPY ./proxy/go.* /proxy/
+
+RUN go mod download
+
+COPY ./proxy /proxy
+RUN [ ! -z "$DEBUG" ] && TAG="enableDebug" ; \
+	go build -tags "$TAG" -o proxy
 
 
 FROM ncbi/blast:2.11.0
@@ -158,26 +166,35 @@ RUN useradd -ms /bin/bash -u 1234 www                             &&\
     apt-get update                                                &&\
     apt-get upgrade -y                                            &&\
     apt-get install -y --no-install-recommends                      \
-            ca-certificates build-essential                         \
-			chromium                                                \
-			# chromium dependencies
-			gconf-service libasound2 libatk1.0-0 libc6 libcairo2    \
-			libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1   \
-			libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 \
-			libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6  \
-			libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 \
-			libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2       \
-			libxrender1 libxss1 libxtst6 fonts-liberation           \
-			libappindicator1 libnss3 lsb-release xdg-utils wget   &&\
+            ca-certificates libcap2-bin                           &&\
     python3 -m pip --no-cache-dir install --upgrade pip pipenv    &&\
     rm -rf /var/lib/apt/lists/*                                   &&\
     rm -rf /usr/share/doc                                         &&\
     rm -rf /usr/share/man                                         &&\
     apt-get clean
 
-ENV PATH /home/www/.local/bin:$PATH
 
-COPY --from=suexec-builder --chown=root:root /su-exec/su-exec /bin/su-exec
+# Install chromium
+
+# RUN apt-get install -y --no-install-recommends                      \
+#             ca-certificates build-essential                         \
+# 			chromium                                                \
+# 			# chromium dependencies
+# 			gconf-service libasound2 libatk1.0-0 libc6 libcairo2    \
+# 			libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1   \
+# 			libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 \
+# 			libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6  \
+# 			libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 \
+# 			libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2       \
+# 			libxrender1 libxss1 libxtst6 fonts-liberation           \
+# 			libappindicator1 libnss3 lsb-release xdg-utils wget   &&\
+#     python3 -m pip --no-cache-dir install --upgrade pip pipenv    &&\
+#     rm -rf /var/lib/apt/lists/*                                   &&\
+#     rm -rf /usr/share/doc                                         &&\
+#     rm -rf /usr/share/man                                         &&\
+#     apt-get clean
+
+ENV PATH /home/www/.local/bin:$PATH
 
 WORKDIR /app/
 
@@ -186,6 +203,8 @@ COPY --chown=www:www ./app/Pipfile* /app/
 RUN su www -c "pipenv install --deploy --system --clear"
 
 COPY --chown=www:www ./app/ /app/
+
+COPY --from=proxy-builder  --chown=root:root /proxy/proxy /bin/proxy
 
 # entrypoint.sh drops the priveleges as soon as it
 # ensures correct permissions on everything

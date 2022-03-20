@@ -148,6 +148,8 @@ export default class PhydthreeComponent extends Component {
       backgroundColor: "#f5f5f5",
       foregroundColor: "#000000",
       nanColor: "#f5f5f5",
+      taskid_for_links: this.props.taskid_for_links,
+
     };
     if (this.state.showGroups && this.state.showSpecies){
       opts.showNodesType = "all";
@@ -312,6 +314,7 @@ PhydthreeComponent.propTypes = {
    */
   id: PropTypes.string,
   url: PropTypes.string.isRequired,
+  taskid_for_links: PropTypes.string,
 
   height: PropTypes.number.isRequired,
 

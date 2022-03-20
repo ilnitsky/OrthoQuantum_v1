@@ -214,6 +214,7 @@ window.requestAnimFrame = (function(){
         options.showNodeNames = ('showNodeNames' in options) ? options.showNodeNames : true;
         options.showPhylogram = ('showPhylogram' in options) ? options.showPhylogram : false;
         options.pinnedNodes = options.pinnedNodes || [];
+        options.taskid_for_links = options.taskid_for_links || "";
         onodes.groups = onodes.groups ? onodes.groups : {};
 
         // nodes object, domain scale, last drawn leaf, leaves padding for displaying graphs and text
@@ -2273,10 +2274,15 @@ window.requestAnimFrame = (function(){
                                 });
                             if (options.showGraphs && options.showGraphLegend) {
                                 for (var i=0; i<graph.legend.fields.length; i++) {
-                                    vis.append("text")
-                                       .attr("class", "legend")
-                                       .text((graph.legend.show != 0) ? graph.legend.fields[i].name : '')
-                                       .attr("transform", "translate("+ parseInt(phyd3.phylogram.dx + padding + graphPadding + (i+1)*h*2)+",-10) rotate(-90)");
+                                    var legendText = (graph.legend.show != 0) ? graph.legend.fields[i].name : '';
+                                    var el = vis.append("text")
+                                        .attr("class", "legend")
+                                        .attr("transform", "translate("+ parseInt(phyd3.phylogram.dx + padding + graphPadding + (i+1)*h*2)+",-10) rotate(-90)");
+                                    if (options.taskid_for_links) {
+                                        el = el.append("a")
+                                            .attr("href", "/prottree?task_id="+options.taskid_for_links+"&prot_id="+legendText);
+                                    }
+                                    el.text(legendText);
                                 }
                             }
                             graphPadding += (graph.legend.fields.length) * (h*2) + 5;

@@ -697,6 +697,7 @@ def dashboard(task_id):
             id="tree_component",
             url=f"/files/{task_id}/tree.xml",
             height=2000,
+            taskid_for_links=task_id,
         ),
         md=10, lg=8,
         className="mx-5 mt-3",

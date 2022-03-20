@@ -1315,9 +1315,9 @@ window.requestAnimFrame = (function(){
                     var row = table.append("tr");
                     row.append("td").text("Taxononomy");
                     var tax = row.append("td");
-                    if (onodes.taxcolors[t.code] && onodes.taxcolors[t.code].url) {
-                        tax = tax.append("a").attr("href", onodes.taxcolors[t.code].url).attr("target", "_blank");
-                    }
+                    // if (onodes.taxcolors[t.code] && onodes.taxcolors[t.code].url) {
+                    //     tax = tax.append("a").attr("href", onodes.taxcolors[t.code].url).attr("target", "_blank");
+                    // }
                     var text = "";
                     text += onodes.taxcolors[t.code] && onodes.taxcolors[t.code].name ? onodes.taxcolors[t.code].name+" " : '';
                     text += ' ';
@@ -1425,9 +1425,9 @@ window.requestAnimFrame = (function(){
                                 .style("background", (onodes.domcolors[d.name] && onodes.domcolors[d.name].color) ? onodes.domcolors[d.name].color.replace("0x", "#") : '')
                                 .text(" ");
                             var name = row.append("td");
-                            if (onodes.domcolors[d.name] && onodes.domcolors[d.name].url) {
-                                name = name.append("a").attr("href", onodes.domcolors[d.name].url).attr("target", "_blank");
-                            }
+                            // if (onodes.domcolors[d.name] && onodes.domcolors[d.name].url) {
+                            //     name = name.append("a").attr("href", onodes.domcolors[d.name].url).attr("target", "_blank");
+                            // }
                             name.text(d.name);
                             row.append("td").text(onodes.domcolors[d.name] ? onodes.domcolors[d.name].description : '');
                             row.append("td").text(d.from);
@@ -1462,9 +1462,9 @@ window.requestAnimFrame = (function(){
                         for (var i = 0; i<graph.legend.fields.length; i++) {
                             var row = table.append("tr");
                             var name = row.append("td");
-                            if (graph.legend.fields[i].url) {
-                                name = name.append("a").attr("href", graph.legend.fields[i].url).attr("target", "_blank");
-                            }
+                            // if (graph.legend.fields[i].url) {
+                            //     name = name.append("a").attr("href", graph.legend.fields[i].url).attr("target", "_blank");
+                            // }
                             name.text(graph.legend.fields[i].name);
                             row.append("td").text(graph.data[n.id][i]);
                         }
@@ -2478,7 +2478,7 @@ window.requestAnimFrame = (function(){
                             return "leaf node cid_"+n.id;
                         }
                     })
-                    .style("cursor", "pointer")
+                    // .style("cursor", "pointer")
                     .on("click",  function(d) {
                         var mouseEvent = d3.event;
                         if (mouseEvent.ctrlKey && !mouseEvent.altKey && !mouseEvent.shiftKey) {

@@ -787,7 +787,6 @@ index = html.Div([
     id="location-refresh-cont",
   ),
   dcc.Store(id='tutorial_enabled', data=True, storage_type="local"),
-  dcc.Store(id='cookie_consent_given', data=False, storage_type="local"),
 
   dbc.Modal(
     [
@@ -802,11 +801,13 @@ index = html.Div([
             id="close-centered",
             color="danger",
             href="https://en.wikipedia.org/wiki/HTTP_cookie",
+            external_link=True,
           ),
           dbc.Button(
             "I accept cookies",
             id="accept_cookies_btn",
-            color="success"
+            color="success",
+            external_link=False,
           ),
         ]
       ),

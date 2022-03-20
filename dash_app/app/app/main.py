@@ -76,26 +76,12 @@ dash_app.layout = layout.index
 
 dash_proxy = DashProxyCreator(dash_app)
 
-dash_app.clientside_callback(
-    """
-    function(n_clicks) {
-        if (n_clicks == null){
-            return window.dash_clientside.no_update;
-        }
-        return true;
-    }
-    """,
-    Output('cookie_consent_given', 'data'),
-    Input("accept_cookies_btn", "n_clicks"),
-)
-
-
 @dash_proxy.callback(
     Output('page-content', 'children'),
     Output('location', 'search'),
     Output('cookies_consent_modal', 'is_open'),
     Input('location', 'href'),
-    Input('cookie_consent_given', 'data'),
+    Input("accept_cookies_btn", "n_clicks"),
 )
 def router_page(dp: DashProxy):
     href = dp['location', 'href']
@@ -107,11 +93,14 @@ def router_page(dp: DashProxy):
     else:
         dp['location', 'search'] = ''
 
-    if not dp['cookie_consent_given', 'data']:
+    if dp.is_triggered_by(("accept_cookies_btn", "n_clicks")):
+        flask.session['COOKIE_CONSENT'] = '1'
+        dp['cookies_consent_modal', 'is_open'] = False
+    elif not int(flask.session.get('COOKIE_CONSENT', '0')):
         dp['cookies_consent_modal', 'is_open'] = True
         dp['page-content', 'children'] = None
         return
-    dp['cookies_consent_modal', 'is_open'] = False
+
 
     if pathname == '':
         if not user.is_logged_in():

@@ -90,7 +90,7 @@ def get_corr_data(csv_data) -> tuple[str, dict]:
             for taxid, orthologs_count, row_gene_names in cur:
                 taxid = _ID_TRANSLATION_TBL.get(taxid, taxid)
                 ortho_counts[taxid] = orthologs_count
-                gene_names[taxid] = row_gene_names if row_gene_names is not None else "None"
+                gene_names[taxid] = row_gene_names.replace(",", ", ") if row_gene_names is not None else "None"
 
             corr_info[name] = ortho_counts
             prot_ids[name] = gene_names

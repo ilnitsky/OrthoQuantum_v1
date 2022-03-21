@@ -165,6 +165,89 @@ window.requestAnimFrame = (function(){
     }
 
     phyd3.phylogram.build = function(selector, onodes, options) {
+        var popup = null;
+        var popupX = null;
+        var popupLocked = false;
+        var popupMouseOutTimeout = null;
+        var mouseMoveReg = false;
+
+        function getNameFor(item) {
+            try{
+                return item.parentNode.parentNode.getElementsByClassName("name")[0].textContent.trimEnd();
+            }catch(err){
+                return "";
+            }
+        }
+        function popupMouseMove(evt) {
+            popup.style("left", parseInt(evt.clientX+5) + "px")
+            .style("top", parseInt(evt.clientY+5) + "px");
+        }
+
+        function popupUpdate(el, d){
+            spName = getNameFor(el)
+            var evt = d3.event;
+
+            popup
+                .style("display", "block")
+                .style("left", parseInt(evt.clientX+5) + "px")
+                .style("top",  parseInt(evt.clientY+5) + "px");
+
+            popup.select("#popupSpecies").text(getNameFor(el));
+            popup.select("#popupProtein").text(onodes.graphs[0].legend.fields[d.i].name);
+            popup.select("#popupInfo").text(d.label);
+        }
+        function popupReset() {
+            if (popup!==null){
+                popup.style("display", "none").text();
+            }
+            if (popup!==null){
+                popupX.style("display", "none");
+            }
+            popupLocked = false;
+            if (mouseMoveReg){
+                window.removeEventListener("mousemove", popupMouseMove);
+                mouseMoveReg = false;
+            }
+        }
+        function popupClickX(d) {
+            d3.event.preventDefault();
+            popupReset();
+        }
+        function popupClick(d){
+            popupLocked = true;
+            if (mouseMoveReg){
+                window.removeEventListener("mousemove", popupMouseMove);
+                mouseMoveReg = false;
+            }
+            popupUpdate(this, d);
+            popupX.style("display", "block");
+        }
+        function popupMouseOver(d) {
+            if (popupLocked){
+                return
+            }
+            if (!mouseMoveReg){
+                window.addEventListener("mousemove", popupMouseMove);
+                mouseMoveReg = true;
+            }
+            if (popupMouseOutTimeout !== null){
+                clearTimeout(popupMouseOutTimeout);
+                popupMouseOutTimeout = null;
+            }
+            popupUpdate(this, d)
+        };
+        function popupMouseOut(d){
+            if (popupLocked){
+                return
+            }
+            popupMouseOutTimeout = setTimeout(() => {
+                popupMouseOutTimeout=null;
+                if (popupLocked){
+                    return
+                }
+                popupReset();
+            }, 150);
+        };
 
         // options
         options = options || {};
@@ -881,6 +964,7 @@ window.requestAnimFrame = (function(){
 
         // reset tree position & zoom level
         function resetZoom() {
+            popupReset();
             options.domainWidth = options.domainWidthStep;
             options.graphWidth = options.initialGraphWidth;
             options.scaleX = 1;
@@ -899,6 +983,38 @@ window.requestAnimFrame = (function(){
 
             svg = d3.select(selector)
                 .insert("svg");
+
+            popup = d3.select(selector)
+                .append("div")
+                .attr("class", "popup")
+                .attr("id", "popupId")
+                .style("position", "fixed")
+            ;
+            popupX = popup.append("a")
+                .text("x")
+                .attr("href", "#")
+                .style("display", "none")
+                .style("position", "absolute")
+                .style("top", "-2px")
+                .style("right", "6px")
+                .on("click", popupClickX);
+
+            r = popup.append("div");
+            r.append("b")
+            .text("Species: ");
+            r.append("span")
+            .attr("id", "popupSpecies");
+            r = popup.append("div");
+            r.append("b")
+            .text("Protein: ");
+            r.append("span")
+            .attr("id", "popupProtein");
+            r = popup.append("div");
+            r.append("b")
+            .text("Info:");
+            r.append("div")
+            .attr("id", "popupInfo");
+
             svg.attr("width", selectorWidth + "px")
                 .attr("height", options.height + "px")
                 .attr("overflow", "hidden")
@@ -1553,11 +1669,6 @@ window.requestAnimFrame = (function(){
                         max = t.length;
                         longestNode = d.id;
                     }
-                    // set tooltip text
-                    d3.select(this.parentNode).selectAll("rect.heatmap>title").text(
-                        function(d, i){
-                            return t.trimEnd() + ": " + d.label;
-                    });
 
                     return t;
                });
@@ -2075,10 +2186,9 @@ window.requestAnimFrame = (function(){
                                         }
                                     })
                                     .attr("stroke-width", options.outline + "px")
-                                    .append("title")
-                                    .text(function(d, i) {
-                                        return d.label
-                                    });
+                                    .on("mouseover",  popupMouseOver)
+                                    .on("mouseout",  popupMouseOut)
+                                    .on("click", popupClick);
 
 
                             }
@@ -2680,6 +2790,7 @@ window.requestAnimFrame = (function(){
         // action handlers for zoom & drag events
 
         function applyZoomTransform() {
+            popupReset();
             var t = zoom.translate(),
                 x = t[0] + options.marginX - options.translateX,
                 y = t[1] + options.marginY - options.translateY;

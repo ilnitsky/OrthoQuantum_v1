@@ -10,7 +10,7 @@ import math
 import pandas as pd
 
 import urllib.parse as urlparse
-from dash import Dash, dcc, html
+from dash import Dash, dcc, html, callback_context
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import flask
@@ -94,9 +94,13 @@ def router_page(dp: DashProxy):
         dp['location', 'search'] = ''
 
     if dp.is_triggered_by(("accept_cookies_btn", "n_clicks")):
-        flask.session['COOKIE_CONSENT'] = '1'
+        callback_context.response.set_cookie(
+            key='COOKIE_CONSENT',
+            value='1',
+            max_age=365*24*60*60
+        )
         dp['cookies_consent_modal', 'is_open'] = False
-    elif not int(flask.session.get('COOKIE_CONSENT', '0')):
+    elif flask.request.cookies.get('COOKIE_CONSENT', None) != '1':
         dp['cookies_consent_modal', 'is_open'] = True
         dp['page-content', 'children'] = None
         return

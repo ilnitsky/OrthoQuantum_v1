@@ -5,5 +5,9 @@ from .utils import (
     atomic_file,
     open_existing,
     json_minify,
-    benchmark
+    benchmark,
+    retry,
+    RetiesFailed,
+    case_insensitive_unique,
+    case_insensitive_top_trunc,
 )

@@ -1,15 +1,14 @@
-from functools import partial
+import abc
 import os
-from typing import Text
-from pathlib import Path
 import contextlib
 import tempfile
 import json
-
-
-from functools import wraps
-
+import itertools
 import time
+from functools import partial, wraps
+from pathlib import Path
+from collections import Counter
+import anyio
 def benchmark(func):
     @wraps(func)
     def deco(*args, **kwargs):
@@ -56,3 +55,94 @@ open_existing = partial(open, opener=_if_exists)
 
 def json_minify(obj):
     return json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
+
+class DelayStrategy(abc.ABC):
+    @abc.abstractmethod
+    def __iter__(self):
+        pass
+
+class ExponentialBackoff(DelayStrategy):
+    def __init__(self, init_delay=0.2, max_delay=5, mult=2):
+        self.init_delay = init_delay
+        self.max_delay = max_delay
+        self.mult = mult
+
+    def __iter__(self):
+        cur_delay = self.init_delay
+        while True:
+            yield cur_delay
+            cur_delay = min(self.max_delay, cur_delay*self.mult)
+
+
+
+class RetiesFailed(Exception):
+    pass
+
+def retry(func=None, /, call_timeout=20, total_timeout=None, retries=5, delay_strategy: DelayStrategy=ExponentialBackoff(), retriable_exceptions=(Exception,)):
+    if func is None:
+        kwargs = dict(locals())
+        kwargs.pop("func")
+        def deco(func):
+            return retry(func, **kwargs)
+        return deco
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        with anyio.fail_after(total_timeout):
+            exc = None
+            try:
+                with anyio.fail_after(call_timeout):
+                    return await func(*args, **kwargs)
+            except TypeError:
+                raise # something wrong with func args
+            except BaseException as e:
+                if not isinstance(e, retriable_exceptions):
+                    raise
+                exc = e
+            for delay in itertools.islice(delay_strategy, retries):
+                if delay:
+                    await anyio.sleep(delay)
+                try:
+                    with anyio.fail_after(call_timeout):
+                        return await func(*args, **kwargs)
+                except BaseException as e:
+                    if not isinstance(e, retriable_exceptions):
+                        raise
+                    exc = e
+            raise RetiesFailed(f'Calling "{func.__qualname__}" failed after {retries} retries') from exc
+    return wrapper
+
+def case_insensitive_unique(data):
+    seen = set()
+    for item in data:
+        mod_item = item.strip().lower()
+        if mod_item in seen:
+            continue
+        seen.add(mod_item)
+        yield item
+
+def case_insensitive_top_trunc(data, n=5, fraction=0.8):
+    data_len = 0
+    def process(elem):
+        nonlocal data_len
+        data_len += 1
+        return elem.strip().upper()
+
+    cnt = Counter(map(process, data))
+    if data_len == 0:
+        return '<NA in species>'
+
+    res = []
+    if data_len<10:
+        frac = data_len
+    else:
+        frac = fraction*data_len
+    included_count = 0
+    for elem, count in cnt.most_common(n):
+        res.append(elem)
+        included_count += count
+        if included_count >= frac:
+            break
+    else:
+        res.append('...')
+
+    return ', '.join(res)

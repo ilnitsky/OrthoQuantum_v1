@@ -1,5 +1,6 @@
 from functools import partial
 import os
+import re
 import os.path
 import time
 import json
@@ -462,6 +463,7 @@ def request_list(dp: DashProxy):
 
 
 @dash_proxy.callback(
+    Output('tooltip-extra-table', 'className'),
     Output('tooltip-edit-title', 'className'),
     Output('tooltip-orthology', 'className'),
     Output('tooltip-gene-search', 'className'),
@@ -581,6 +583,7 @@ def request_title(dp: DashProxy):
 
     Input('taxid_input', 'search_value'),
     Input('tax-level-dropdown', 'value'),
+    Input('taxid_input_from_srv', 'data'),
 
     State('taxid_input_numeric', 'data'),
 )
@@ -602,6 +605,8 @@ def taxid_options(dp: DashProxy):
                 if not dp['taxid_input_numeric', 'data']:
                     dp['taxid_input_numeric', 'data'] = True
                 dp["taxid_input", "options"].append({'label': dp['taxid_input', 'search_value'], 'value': search_val})
+    elif dp.is_triggered_by(('taxid_input_from_srv', 'data')):
+        dp['taxid_input', 'value'] = dp['taxid_input_from_srv', 'data']
 
 
     if should_load_text and level_id:
@@ -623,44 +628,6 @@ def filter_comments(data:str, only_first=False):
             return '\n'.join(lines[i:])
         res.append(line)
     return '\n'.join(res)
-
-@dash_proxy.callback(
-    Output('search-prot-button', 'children'),
-    Output('search-prot-button', 'disabled'),
-    Output('prot-codes', 'value'),
-
-    Input('search-prot-button', 'n_clicks'),
-    Input('prot-search-result', 'data'),
-
-    State('taxid_input', 'value'),
-    State('prot-codes', 'value'),
-    State('task_id', 'data'),)
-def search_taxid(dp: DashProxy):
-    if dp.first_load:
-        return
-    task_id = dp['task_id', 'data']
-    if dp.is_triggered_by(('search-prot-button', 'n_clicks')):
-
-        prot_codes = filter_comments(dp['prot-codes', 'value'])
-        if not dp['taxid_input', 'value']:
-            dp['prot-codes', 'value'] = f"# Error: organism was not selected\n{filter_comments(dp['prot-codes', 'value'], only_first=True)}"
-            return
-        if not prot_codes:
-            dp['prot-codes', 'value'] = '# Error: no gene names entered'
-            return
-
-        dp['search-prot-button', 'disabled'] = True
-        dp['search-prot-button', 'children'] = [dbc.Spinner(size="sm", spinnerClassName="mr-2"), "Searching..."]
-        user.enqueue(
-            task_id, "seatch_prot",
-            prot_codes=prot_codes,
-            taxid=dp['taxid_input', 'value'],
-        )
-
-    elif dp.is_triggered_by(('prot-search-result', 'data')):
-        dp['search-prot-button', 'disabled'] = False
-        dp['search-prot-button', 'children'] = "Find Uniprot ACs ➜"
-        dp['prot-codes', 'value'] = ''
 
 dash_app.clientside_callback(
     """
@@ -949,6 +916,7 @@ add_processor(
     simple_processor(),
     # db_key = dash_key,
     input_proteins = ('uniprotAC_update', 'data'),
+    taxid_input = ('taxid_input_from_srv', 'data'),
     prot_search_result = ('prot-search-result', 'data'),
 )
 
@@ -1011,7 +979,6 @@ def missing_prot(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple
 @add_processor(
     table = (
         ('data_table', 'data'),
-        ('data_table', 'columns'),
         ('table_container', 'style'),
     ),
 )
@@ -1021,18 +988,41 @@ def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[
         dp['table_container', 'style'] = layout.HIDE
         return
     try:
-        with open(user.DATA_PATH/dp['task_id', 'data']/"Info_table.json", "r") as f:
-            tbl_data = json.load(f)
-        for k, v in dash_keys:
-            if k != 'data_table':
-                continue
-            dp[k, v] = tbl_data[v]
+        tbl = pd.read_pickle(user.DATA_PATH/dp['task_id', 'data']/"Info_table.pkl")
+        dp['data_table', 'data'] = tbl.to_records(index=False)
         dp['table_container', 'style'] = layout.SHOW
 
     except Exception:
         # TODO: report exception
         __import__("traceback").print_exc()
         pass
+
+@add_processor(
+    extra_table = (
+        ('extra_data_table', 'data'),
+        ('extra_data_table', 'selected_rows'),
+        ('extra_table_container', 'is_open'),
+    ),
+)
+def extra_table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
+    if not upd[db_key]:
+        # empty string in update - hide table
+        dp['extra_table_container', 'is_open'] = False
+        return
+    try:
+        tbl = pd.read_pickle(user.DATA_PATH/dp['task_id', 'data']/"Extra_table.pkl")
+        is_selected_column = tbl.columns[-1]
+        dp['extra_data_table', 'selected_rows'] = tbl.index[tbl[is_selected_column]].to_list()
+        tbl.drop(tbl.columns[-2:], axis='columns', inplace=True)
+
+        dp['extra_data_table', 'data'] = tbl.to_records(index=False)
+        dp['extra_table_container', 'is_open'] = True
+
+    except Exception:
+        # TODO: report exception
+        __import__("traceback").print_exc()
+        pass
+
 
 @add_processor(
     heatmap = (
@@ -1128,6 +1118,7 @@ def gen_progress_keys(stage):
 
 
 @add_processor(
+    progress_search = gen_progress_keys("search"),
     progress_table = gen_progress_keys("table"),
     progress_vis = gen_progress_keys("vis"),
     progress_heatmap = (
@@ -1221,8 +1212,7 @@ def create_outputs():
     *create_outputs(),
 
     Input('progress_updater', 'n_intervals'),
-    Input('force_update_submit', 'data'),
-    Input('search-prot-button', 'n_clicks'),
+    Input('data_submit_error', 'data'),
     Input('trigger_csv_download_refresh', 'data'),
 
 
@@ -1235,17 +1225,21 @@ def create_outputs():
 )
 def update_everything(dp: DashProxy):
     task_id = dp['task_id', 'data']
+    extra_updates = {}
 
-    if dp.is_triggered_by(('force_update_submit', 'data')):
-        dp['cancel-button', 'className'] = "float-right"
-    if dp.is_triggered_by(
-        ('search-prot-button', 'n_clicks'),
-        ('trigger_csv_download_refresh', 'data')):
+    if dp.is_triggered_by(('data_submit_error', 'data')):
+        extra_updates['missing_prots'] = ''
+        if dp['data_submit_error', 'data']: # on data submit success this is empty
+            extra_updates['progress_table_style'] = "error"
+            extra_updates['progress_table_msg'] = dp['data_submit_error', 'data']
+
+    if dp.is_triggered_by(('trigger_csv_download_refresh', 'data')):
         # can't depend that enqueue would be called before update,
         # so force-rechecking for a bit
         dp['force_update_until', 'data'] = time.time()+5
 
     update_needed = True
+    can_cancel = False
 
     while update_needed:
         # initial load
@@ -1260,6 +1254,12 @@ def update_everything(dp: DashProxy):
             dp['version', 'data'], updates = updates
         else:
             dp['version', 'data'], dp['connection_id', 'data'], updates = updates
+        if extra_updates:
+            # update inter-callback updates with newer values from db
+            extra_updates.update(updates)
+            updates = extra_updates
+            extra_updates = None
+
         updates: dict[str, str]
         if updates:
             print(f"<- update {dp['version', 'data']}:", updates, flush=True)
@@ -1294,11 +1294,10 @@ def update_everything(dp: DashProxy):
                 updates[f"progress_{stage}_style"] = "progress"
                 updates[f"progress_{stage}_msg"] = msg
 
+        can_cancel = enqueued or running
         dp['progress_updater', 'disabled'] = not (
-            enqueued or running or dp['force_update_until', 'data'] > time.time()
+            can_cancel or dp['force_update_until', 'data'] > time.time()
         )
-        if dp['progress_updater', 'disabled']:
-            dp['cancel-button', 'className'] = "float-right d-none"
 
         # group progress_{stage}_{msg/max/value/style} as
         # dict progress_{stage} with keys {msg/max/value/style}
@@ -1316,6 +1315,11 @@ def update_everything(dp: DashProxy):
         for db_key in DB_2_DASH_KEYS.intersection(updates):
             dash_keys, func = DB_2_DASH[db_key]
             update_needed = func(dp, updates, db_key, dash_keys) or update_needed
+
+    if can_cancel:
+        dp['cancel-button', 'className'] = "float-right"
+    else:
+        dp['cancel-button', 'className'] = "float-right d-none"
 #endregion
 
 
@@ -1338,9 +1342,22 @@ def uniport_update_multiplexer(dp:DashProxy):
             dp['uniprotAC', 'value'] = dp['prot-search-result', 'data']
 
 
+COMMENTS = re.compile(r"#.*(\n|$)")
+SEPARATORS = re.compile(r"[ \t,;]+")
+EMPTY_LINES = re.compile(r"\n+")
+
+def case_insensitive_unique(data):
+    seen = set()
+    for item in data:
+        mod_item = item.lower()
+        if mod_item in seen:
+            continue
+        seen.add(mod_item)
+        yield item
+
 @dash_proxy.callback(
     Output("wrong-input-msg", "is_open"),
-    Output('force_update_submit', 'data'),
+    Output('data_submit_error', 'data'),
 
 
     ###
@@ -1352,6 +1369,9 @@ def uniport_update_multiplexer(dp:DashProxy):
     State('task_id', 'data'),
     State("pident-input", "invalid"),
     State("qcovs-input", "invalid"),
+    State('taxid_input', 'value'),
+    State("extra_data_table", "selected_rows"),
+    State("extra_auto_select", "checked"),
 
     State("blast-options", "is_open"),
     State("blast-button-input-value", "data"),
@@ -1381,6 +1401,20 @@ def submit(dp:DashProxy):
     triggers = sorted(dp.triggered, key=lambda x: upd_priority.get(x, 0))
     for cause in triggers:
         if cause == ('submit-button', 'n_clicks'):
+            if not dp['taxid_input', 'value']:
+                # TODO: help message text
+                dp['data_submit_error', 'data'] = 'Taxid not selected!'
+                return
+
+            request = tuple(
+                case_insensitive_unique(
+                    EMPTY_LINES.split(SEPARATORS.sub("\n", COMMENTS.sub("", dp['uniprotAC', 'value'])).strip())
+                )
+            )
+            if not request:
+                dp['data_submit_error', 'data'] = 'No protein codes provided!'
+                return
+
             # button press triggered
             if dp["blast-options", "is_open"]:
                 if dp["pident-input", "invalid"] or dp["qcovs-input", "invalid"]:
@@ -1424,17 +1458,24 @@ def submit(dp:DashProxy):
                     task_id, connection_id=dp['connection_id', 'data'], redis_pipe=pipe,
 
                     progress_table_style='',
+                    progress_table_max=len(request),
                     progress_table_msg="Building table",
                     input_proteins=dp['uniprotAC', 'value'],
+                    input_proteins_parsed=' '.join(request),
                     input_tax_level=dp['tax-level-dropdown', 'value'],
                     input_blast_enabled="1" if dp["blast-options", "is_open"] else "",
                     input_blast_evalue=evalue,
                     input_blast_pident=pident,
                     input_blast_qcovs=qcovs,
                     input_max_proteins=dp["max-proteins", "value"],
+                    extra_auto_select='1' if dp["extra_auto_select", "checked"] else '',
+
+                    extra_table_selected_rows=json.dumps(dp['extra_data_table', 'selected_rows'], ensure_ascii=False, separators=(',', ':')),
+                    missing_prots='',
+                    taxid_input=dp['taxid_input', 'value'],
                 )
                 res = pipe.execute()
-                dp['force_update_submit', 'data'] = True
+                dp['data_submit_error', 'data'] = ''
 
         elif cause == ('rerenderSSR_button', 'n_clicks'):
             raise NotImplementedError("SSR needs to be updated")

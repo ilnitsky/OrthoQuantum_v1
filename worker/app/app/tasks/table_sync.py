@@ -1,5 +1,5 @@
 from collections import defaultdict
-import json
+import re
 
 import SPARQLWrapper
 import requests
@@ -14,6 +14,23 @@ from ..db import ORTHODB
 
 @async_pool.in_thread(max_running=3)
 def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
+    # from requested ids here we get:
+    # https://v101.orthodb.org/fasta?query=Q92484&level=7742&species=7742&universal=&singlecopy=
+    # SMPDL3A - pub_gene_id
+    # 164772at7742 - pub_og_id
+
+    # Clade=level=dropdown value
+    #                  'label',       'Name',    'PID'
+    # {
+    #     "A6NK59": [("125442at7742", "ASB14", "A6NK59")],
+    #     "P05026": [("276599at7742", "ATP1B1", "P05026")],
+    #     "P39687": [("413605at7742", "ANP32A", "P39687")],
+    #     "P51451": [("177888at7742", "BLK", "P51451")],
+    #     "Q5T1B0": [("91060at7742", "AXDND1", "Q5T1B0")],
+    #     "Q92484": [("164772at7742", "SMPDL3A", "Q92484")]
+    # }
+
+
     res = defaultdict(list)
     with sqlite3.connect(ORTHODB) as conn:
         cur = conn.execute(f"""
@@ -31,6 +48,38 @@ def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
             res[prot_id].append((label, name, prot_id))
     return res
 
+SPLITTER = re.compile(r"[_:]")
+def str_to_orthodb_id(s:str)->int:
+    res = SPLITTER.split(s, maxsplit=2)
+    assert len(res) == 3, s
+    return int(res[0], 10)<<32 | int(res[1], 10) << 24 | int(res[2], 16)
+
+@async_pool.in_process(max_running=5)
+def orthodb_get_uniprot(orthodb_ids:list[set[str]]) -> defaultdict[str, list]:
+    # 9103_0:004161
+    # (a << (32)) | (b << 24) | c, nil
+    req = [str_to_orthodb_id(s) for s in set.union(*orthodb_ids)]
+    with sqlite3.connect(ORTHODB) as conn:
+        cur = conn.execute(f"""
+            SELECT
+            orthodb_id, uniprot_id
+            FROM genes
+            WHERE
+                orthodb_id IN ({('?,'*len(req))[:-1]})
+            ;
+        """, req)
+        res = cur.fetchall()
+    res = dict(res)
+    result = []
+    for s in orthodb_ids:
+        for id in s:
+            r = res.get(str_to_orthodb_id(id))
+            if r:
+                result.append(r)
+                break
+        else:
+            result.append(None)
+    return result
 
 @async_pool.in_thread(max_running=6)
 def uniprot_get(prot_id:str):
@@ -106,7 +155,7 @@ def process_prot_data(data:list[tuple[str, str, str]], output_file:str)-> pd.Dat
     # this uses pandas dataframes, but is not really cpu-bound
     # so we run it in a thread for less overhead and syncronous file io
     uniprot_df = pd.DataFrame(
-        columns=['label', 'Name', 'PID'],
+        columns=['req', 'label', 'Name', 'PID'],
         data=data,
     )
 
@@ -133,6 +182,7 @@ def process_prot_data(data:list[tuple[str, str, str]], output_file:str)-> pd.Dat
     return uniprot_df
 
 @async_pool.in_thread()
-def save_table(file, table_data):
-    with open(file, "w") as f:
-        json.dump(table_data, f, ensure_ascii=False, separators=(',', ':'))
+def pickle_df(file, og_info_df:pd.DataFrame):
+    og_info_df.to_pickle(file)
+    # with open(file, "w") as f:
+    #     json.dump(table_data, f, ensure_ascii=False, separators=(',', ':'))

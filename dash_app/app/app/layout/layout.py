@@ -21,6 +21,49 @@ DROPDOWN_OPTIONS = [
   }
   for name, id in json.loads(db.get("/availible_levels")).items()
 ]
+
+EXTRA_TABLE_COLUMNS = [
+  {
+    "name": name,
+    "id": i,
+  }
+  for i, name in enumerate((
+    'Request',
+    'OrthoDB id',
+    'Gene Name',
+    'Description',
+    'Gene Count',
+    'Present in # species',
+  ))
+]
+EXTRA_TABLE_COLUMNS[0]['type'] = 'text'
+EXTRA_TABLE_COLUMNS[0]['presentation'] = 'markdown'
+
+TABLE_COLUMNS = [
+  {
+    "name": name,
+    "id": i,
+  }
+  for i, name in enumerate((
+    "label",
+    "Name",
+    "description",
+    "clade",
+    "evolRate",
+    "totalGenesCount",
+    "multiCopyGenesCount",
+    "singleCopyGenesCount",
+    "inSpeciesCount",
+    # "medianExonsCount", "stddevExonsCount",
+    "medianProteinLength",
+    "stddevProteinLength"
+  ))
+]
+
+TABLE_COLUMNS[1]['type'] = 'text'
+TABLE_COLUMNS[1]['presentation'] = 'markdown'
+
+
 nav_children = [
   dbc.NavItem(dbc.NavLink("Help/About", href="/about")),
   # dbc.DropdownMenu doesn't expose n_clicks to fetch the newest data
@@ -201,6 +244,27 @@ og_from_input = html.Div(children=[
   className="mt-4",
 )
 
+def progress_bar(name, md=10, lg=8, height="30px"):
+  return dbc.Row(
+    dbc.Col([
+      html.Span(
+          className="d-flex justify-content-center align-items-center position-absolute w-100",
+          style={"color": "black", "height": height, "font-size": "0.9rem"},
+          id=f"{name}_progress_text",
+        ),
+      dbc.Progress(
+        id=f"{name}_progress_bar",
+        style={"height": height},
+      ),
+      ],
+      md=md, lg=lg,
+    ),
+    justify='center',
+    id=f"{name}_progress_container",
+    className="mb-3 mt-3",
+    style=HIDE,
+  )
+
 og_from_input = html.Div(children=[
   dbc.Row([
       dbc.Col([
@@ -220,6 +284,13 @@ og_from_input = html.Div(children=[
             placement="right",
             className="d-none"
           ),
+          dcc.Store(id='taxid_input_numeric', data=False),
+          dcc.Store(id='taxid_input_from_srv', data=None),
+          dcc.Dropdown(
+            id='taxid_input',
+            placeholder="Select species/enter taxid",
+            className="mt-2"
+          ),
         ],
         md=10,
         lg=8,
@@ -231,13 +302,7 @@ og_from_input = html.Div(children=[
   dbc.Row([
     dbc.Col(
       html.Div([
-        dcc.Store(id='taxid_input_numeric', data=False),
         dcc.Store(id='prot-search-result', data=''),
-        dcc.Dropdown(
-          id='taxid_input',
-          placeholder="Select species/enter taxid",
-          className="mb-2"
-        ),
         dcc.Textarea(id="prot-codes", placeholder='Gene of interest names', value='', rows=6, style={'width': '100%'}),
         dbc.Tooltip(
           "Convert gene names to Uniprot IDs to perform search.",
@@ -246,28 +311,23 @@ og_from_input = html.Div(children=[
           placement="right",
           className="d-none"
         ),
-        dbc.Button(
-          id="search-prot-button",
-          color="primary",
-          children="Find Uniprot ACs ➜",
-          outline=True,
-          className="float-right mb-3",
-        ),
       ]),
       md=5,
       lg=4,
+      style=HIDE,
     ),
-    # html.Button("➜", style={}),
-    # html.Div(dbc.Button("->")),
-    dbc.Col(
-      html.Div([
-        dcc.Store(id='uniprotAC_update', data=None),
-        dcc.Textarea(id='uniprotAC', placeholder='This app uses Uniprot AC (Accession Code): for example "Q91W36" ', value='', rows=10, style={'width': '100%'}),
-      ]),
-      md=5,
-      lg=4,
+    dbc.Col([
+        html.Div([
+          dcc.Store(id='uniprotAC_update', data=None),
+          dcc.Textarea(id='uniprotAC', placeholder='Enter protein IDs', value='', rows=10, style={'width': '100%'}),
+        ]),
+      ],
+      md=10,
+      lg=8,
     ),
   ], justify='center'),
+
+  progress_bar("search"),
 
   dbc.Row(
     [
@@ -318,7 +378,7 @@ og_from_input = html.Div(children=[
                   ],
                   id="pident-input-group"
                 ),
-                dcc.Slider(id="pident-slider", min=0, max=100, step=0.5),
+                dcc.Slider(id="pident-slider", min=0, max=100, step=0.5, marks=None),
               ]),
               dcc.Store(id='pident-input-val', data=70),
               dcc.Store(id='pident-output-val', data=70),
@@ -332,7 +392,7 @@ og_from_input = html.Div(children=[
                   ],
                   id="qcovs-input-group"
                 ),
-                dcc.Slider(id="qcovs-slider", min=0, max=100, step=0.5),
+                dcc.Slider(id="qcovs-slider", min=0, max=100, step=0.5, marks=None),
               ]),
               dcc.Store(id='qcovs-input-val', data=70),
               dcc.Store(id='qcovs-output-val', data=70),
@@ -358,12 +418,69 @@ og_from_input = html.Div(children=[
 
   dbc.Row(
     dbc.Col(
+      dbc.Alert(
+        id="missing_prot_alert",
+        is_open=False,
+        className="alert-warning",
+      ),
+      md=10, lg=8,
+    ),
+    justify='center',
+  ),
+
+  dbc.Row(
+    dbc.Col(
+      dbc.Collapse(
+        dbc.Card(dbc.CardBody([
+          dbc.Alert(
+            children="Some proteins yielded multiple matching orthogroups. Select the ones in which you are interested and re-submit.",
+            is_open=True,
+            className="alert-info",
+          ),
+          html.Div(
+            dash_table.DataTable(
+              page_size=40,
+              row_selectable="multi",
+              columns=EXTRA_TABLE_COLUMNS,
+              id="extra_data_table",
+            ),
+            style={
+              "overflow-x": "scroll",
+            }
+          ),
+          dbc.Tooltip(
+            "Choose orthogroups to investigate further",
+            id="tooltip-extra-table",
+            target="extra_table_container",
+            placement="right",
+            className="d-none"
+          ),
+        ])),
+        id="extra_table_container",
+      ),
+      md=10, lg=8,
+    ),
+    justify='center',
+    className="mb-3",
+  ),
+
+  dbc.Row(
+    dbc.Col(
       [
         dbc.Button(
           id="submit-button",
           color="primary",
           children="Submit",
           className=""
+        ),
+        dbc.Checkbox(
+          id="extra_auto_select",
+          className="ml-3"
+        ),
+        dbc.Label(
+          "Automatically select the most relevant orthogroup",
+          html_for="extra_auto_select",
+          className="ml-1"
         ),
         dbc.Button(
           id="cancel-button",
@@ -379,36 +496,7 @@ og_from_input = html.Div(children=[
     justify='center',
     className="mb-4",
   ),
-  dbc.Row(
-    dbc.Col(
-      dbc.Alert(
-        id="missing_prot_alert",
-        is_open=False,
-        className="alert-warning",
-      ),
-      md=10, lg=8,
-    ),
-    justify='center',
-  ),
-
-  dbc.Row(
-    dbc.Col(
-      dbc.Progress(
-        html.Span(
-          className="justify-content-center d-flex position-absolute w-100",
-          style={"color": "black"},
-          id="table_progress_text",
-        ),
-        id="table_progress_bar",
-        style={"height": "30px"},
-      ),
-      md=10, lg=8,
-    ),
-    justify='center',
-    id='table_progress_container',
-    className="mb-3",
-    style=HIDE,
-  ),
+  progress_bar("table"),
 
   dbc.Row(
     dbc.Col(
@@ -416,8 +504,10 @@ og_from_input = html.Div(children=[
         html.Div(
           dash_table.DataTable(
             filter_action="native",
+            sort_action='native',
             page_size=40,
             id="data_table",
+            columns=TABLE_COLUMNS,
           ),
           style={
             "overflow-x": "scroll",
@@ -447,7 +537,7 @@ def dashboard(task_id):
     dcc.Store(id='connection_id', data=None),
     dcc.Store(id='force_update_until', data=0),
     dcc.Store(id='version', data=None),
-    dcc.Store(id='force_update_submit', data=False),
+    dcc.Store(id='data_submit_error', data=False),
 
     dcc.Store(id='trigger_csv_download', data=0),
     dcc.Store(id='trigger_csv_download_2', data=0),
@@ -499,24 +589,7 @@ def dashboard(task_id):
     ),
 
     og_from_input,
-
-    dbc.Row(
-      dbc.Col(
-        dbc.Progress(
-          html.Span(
-            className="justify-content-center d-flex position-absolute w-100",
-            style={"color": "black"},
-            id="vis_progress_text",
-          ),
-          id="vis_progress_bar",
-          style={"height": "30px"},
-        ),
-        md=10, lg=8,
-      ),
-      justify='center',
-      id='vis_progress_container',
-      style=HIDE,
-    ),
+    progress_bar("vis"),
 
     html.Div(
       [
@@ -534,24 +607,7 @@ def dashboard(task_id):
           justify='center',
           className='mt-5 mb-3'
         ),
-
-        dbc.Row(
-          dbc.Col(
-            dbc.Progress(
-              html.Span(
-                className="justify-content-center d-flex position-absolute w-100",
-                style={"color": "black"},
-                id="heatmap_progress_text",
-              ),
-              id="heatmap_progress_bar",
-              style={"height": "30px"},
-            ),
-            md=10, lg=8,
-          ),
-          justify='center',
-          id='heatmap_progress_container',
-          style=HIDE,
-        ),
+        progress_bar("heatmap"),
       ],
       id='heatmap_header',
       style=HIDE,
@@ -669,24 +725,7 @@ def dashboard(task_id):
           id="tree_title_row",
           className='mt-5 mb-0'
         ),
-        dbc.Row(
-          dbc.Col(
-            dbc.Progress(
-              html.Span(
-                className="justify-content-center d-flex position-absolute w-100",
-                style={"color": "black"},
-                id="tree_progress_text",
-              ),
-              id="tree_progress_bar",
-              style={"height": "30px"},
-            ),
-            md=10, lg=8,
-            className="mt-3"
-          ),
-          justify='center',
-          id='tree_progress_container',
-          style=HIDE,
-        ),
+        progress_bar("tree"),
       ],
       id="tree_header",
       style=HIDE,
@@ -726,7 +765,7 @@ def dashboard(task_id):
                 ),
                 dbc.Button("Rerender", id="rerenderSSR_button", className="ml-4 align-top")
               ]),
-              dcc.Slider(id="svg_zoom", min=0, max=200, value=100, step=1, updatemode='drag'),
+              dcc.Slider(id="svg_zoom", min=0, max=200, value=100, step=1, updatemode='drag', marks=None),
               html.Span(
                 id="svg_zoom_text",
                 className="float-right"

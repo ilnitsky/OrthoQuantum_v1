@@ -28,7 +28,7 @@ EXTRA_TABLE_COLUMNS = [
     "id": i,
   }
   for i, name in enumerate((
-    'Request',
+    'Query',
     'OrthoDB id',
     'Gene Name',
     'Description',
@@ -143,7 +143,7 @@ body = html.Div(
                             html.Div([
                                 dbc.Checkbox(id="tutorial_checkbox"),
                                 dbc.Label(
-                                    "Show tutorial",
+                                    "Show description on hover",
                                     html_for="tutorial_checkbox",
                                     className="form-check-label",
                                     style={"margin-left": "0.5em"},
@@ -151,7 +151,7 @@ body = html.Div(
                             ],
                             # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
                             className="input-group-text important-btn-secondary mr-2 mt-2", id="tutorial-checkbox-div"),
-                            dbc.Button("Open demo data", id="demo-btn", color="secondary", className="mt-2"),
+                            dbc.Button("Load demo data", id="demo-btn", color="secondary", className="mt-2"),
                             dbc.Tooltip(
                                 "Information would be displayed while hovering over an element",
                                 # id="tooltip-edit-title",
@@ -168,9 +168,9 @@ body = html.Div(
                 dbc.Col([
                         html.P("To perform a query:"),
                         html.P(html.Ol([
-                            html.Li("Select clades for which to display the correlation matrix and the phylogenetic profile"),
-                            html.Li("Input a list of query genes. Choose organism scientific name or NCBI taxid to convert gene names into corresponding Uniprot IDs."),
-                            html.Li("To perform BLAST search click on the ‘Enable BLAST’ button. The default parameters for blastp search (sequence identity and E-value threshold) can be modified."),
+                            html.Li("Select clades for which to display the correlation matrix and the phylogenetic profile. Choose organism scientific name or NCBI taxid."),
+                            html.Li("Input a list of query genes. Please use line breaks as a delimiter. OrthoQuantum accepts identifiers of proteins and genes, such as NCBI RefSeq, Genbank, UniProt ACs.  InterPro, KEGG, OrthoDB orthogroup IDs also can be used."),
+                            html.Li("To perform BLAST search click on the ‘Enable BLAST’ button. The default parameters for BlastP search (E-value threshold, sequence identity, and query coverage) can be modified."),
                         ])),
                         html.P("""Click "Submit" to see your results."""),
                     ],
@@ -209,7 +209,7 @@ og_from_input = html.Div(children=[
               html.Div([
                 dbc.Checkbox(id="tutorial_checkbox"),
                 dbc.Label(
-                  "Show tutorial",
+                  "Show description on hover",
                   html_for="tutorial_checkbox",
                   className="form-check-label",
                   style={"margin-left": "0.5em"},
@@ -217,7 +217,7 @@ og_from_input = html.Div(children=[
               ],
               # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
               className="input-group-text important-btn-secondary mr-2 mt-2", id="tutorial-checkbox-div"),
-              dbc.Button("Open demo data", id="demo-btn", color="secondary", className="mt-2"),
+              dbc.Button("Load demo data", id="demo-btn", color="secondary", className="mt-2"),
               dbc.Tooltip(
                 "Information would be displayed while hovering over an element",
                 # id="tooltip-edit-title",
@@ -319,7 +319,7 @@ og_from_input = html.Div(children=[
     dbc.Col([
         html.Div([
           dcc.Store(id='uniprotAC_update', data=None),
-          dcc.Textarea(id='uniprotAC', placeholder='Enter protein IDs', value='', rows=10, style={'width': '100%'}),
+          dcc.Textarea(id='uniprotAC', placeholder='Input a list of query gene/protein/orthogroup IDs or keywords ...', value='', rows=10, style={'width': '100%'}),
         ]),
       ],
       md=10,
@@ -344,7 +344,7 @@ og_from_input = html.Div(children=[
             ),
             dbc.InputGroup(
               [
-                dbc.InputGroupAddon("Max proteins on tree", addon_type="prepend"),
+                dbc.InputGroupAddon("Max proteins on the tree", addon_type="prepend"),
                 dbc.Input(value="600", id="max-proteins", min="5", type="number"),
               ],
               className="float-right ml-auto",
@@ -363,14 +363,14 @@ og_from_input = html.Div(children=[
           dbc.Collapse(
             dbc.Card(dbc.CardBody([
               dbc.FormGroup([
-                dbc.Label("EValue", html_for="evalue"),
+                dbc.Label("E-value threshold", html_for="evalue"),
                 dbc.Input(
                   id="evalue",
                   value="1e-5",
                 ),
               ]),
               dbc.FormGroup([
-                dbc.Label("Pident", html_for="pident-input-group"),
+                dbc.Label("Sequence identity", html_for="pident-input-group"),
                 dbc.InputGroup(
                   [
                     dbc.Input(id="pident-input"),
@@ -384,7 +384,7 @@ og_from_input = html.Div(children=[
               dcc.Store(id='pident-output-val', data=70),
 
               dbc.FormGroup([
-                dbc.Label("Qcovs", html_for="qcovs-input-group"),
+                dbc.Label("Query coverage", html_for="qcovs-input-group"),
                 dbc.InputGroup(
                   [
                     dbc.Input(id="qcovs-input"),
@@ -433,7 +433,7 @@ og_from_input = html.Div(children=[
       dbc.Collapse(
         dbc.Card(dbc.CardBody([
           dbc.Alert(
-            children="Some proteins yielded multiple matching orthogroups. Select the ones in which you are interested and re-submit.",
+            children="Some query strings yielded multiple matching orthogroups. Select the ones you are interested in and re-submit.",
             is_open=True,
             className="alert-info",
           ),

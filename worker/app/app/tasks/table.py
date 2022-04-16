@@ -115,8 +115,13 @@ VALID_UNIPROT_IDS = re.compile(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][
 # uniprot through tab file
 
 async def get_gene_name_db(ortho_id, species):
-    gene_names, uniprot_ids = await table_sync.orthodb_get_gene_name(ortho_id, species)
-    uniprot_id = next(filter(None, uniprot_ids), None)
+    try:
+        gene_names, uniprot_ids = await table_sync.orthodb_get_gene_name(ortho_id, species)
+    except Exception:
+        # error here probably means that nothing was found or client error
+        return '<NA in selected species>', ''
+
+    uniprot_id = next(filter(None, uniprot_ids), '')
     return case_insensitive_top_trunc(gene_names), uniprot_id
 
 @retry

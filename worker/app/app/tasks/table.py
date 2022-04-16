@@ -122,7 +122,7 @@ async def get_gene_name_db(ortho_id, species):
         return '<NA in selected species>', ''
 
     uniprot_id = next(filter(None, uniprot_ids), '')
-    return case_insensitive_top_trunc(gene_names), uniprot_id
+    return case_insensitive_top_trunc(filter(None, gene_names)), uniprot_id
 
 @retry
 async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):

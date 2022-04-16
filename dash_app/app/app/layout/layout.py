@@ -38,6 +38,8 @@ EXTRA_TABLE_COLUMNS = [
 ]
 EXTRA_TABLE_COLUMNS[0]['type'] = 'text'
 EXTRA_TABLE_COLUMNS[0]['presentation'] = 'markdown'
+EXTRA_TABLE_COLUMNS[1]['type'] = 'text'
+EXTRA_TABLE_COLUMNS[1]['presentation'] = 'markdown'
 
 TABLE_COLUMNS = [
   {
@@ -59,7 +61,8 @@ TABLE_COLUMNS = [
     "stddevProteinLength"
   ))
 ]
-
+TABLE_COLUMNS[0]['type'] = 'text'
+TABLE_COLUMNS[0]['presentation'] = 'markdown'
 TABLE_COLUMNS[1]['type'] = 'text'
 TABLE_COLUMNS[1]['presentation'] = 'markdown'
 

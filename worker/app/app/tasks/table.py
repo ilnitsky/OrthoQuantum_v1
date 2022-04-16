@@ -108,7 +108,7 @@ async def fetch_orthogroups(orthogroups_to_fetch: list[str], dash_columns: list[
     return og_info
 
 # https://www.uniprot.org/help/accession_numbers
-# VALID_PROT_IDS = re.compile(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}")
+VALID_UNIPROT_IDS = re.compile(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}")
 
 # level_orthodb_id = 7742 # Vertebrata|7742
 
@@ -116,15 +116,30 @@ async def fetch_orthogroups(orthogroups_to_fetch: list[str], dash_columns: list[
 
 @retry
 async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):
+
     resp = await sess.get(
         "https://v101.orthodb.org/tab",
         params={
             "id": ortho_id,
             "species": species,
         },
+        headers={
+            'Connection': 'keep-alive',
+            'sec-ch-ua': '"Chromium";v="95", ";Not A Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4619.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-User': '?1',
+            'Sec-Fetch-Dest': 'document',
+            'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
+        }
     )
 
-    assert resp.is_success
+    assert resp.is_success, (resp.status_code, resp.text)
     try:
         reader = csv.reader(StringIO(resp.text), dialect="excel-tab")
         header = next(reader)
@@ -144,16 +159,6 @@ async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):
 @retry
 async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_name_species):
     resp = await sess.get(
-        "https://www.orthodb.org/",
-        params={
-            "query": prot_id,
-            "level": level_orthodb_id,
-            "species": level_orthodb_id,
-        }
-    )
-    assert resp.is_success
-
-    resp = await sess.get(
         "https://www.orthodb.org/pgrest/rpc/search",
         params={
             "query": prot_id,
@@ -161,10 +166,26 @@ async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_na
             "species": level_orthodb_id,
             "skip": 0,
             "limit": 100,
-        })
+        },
+        headers={
+            'authority': 'www.orthodb.org',
+            'cache-control': 'max-age=0',
+            'sec-ch-ua': '"Chromium";v="95", ";Not A Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4619.0 Safari/537.36',
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'sec-fetch-site': 'none',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-user': '?1',
+            'sec-fetch-dest': 'document',
+            'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+            'cookie': f'universal=; singlecopy=; cookieconsent_status=dismiss; species={level_orthodb_id}; level=',
+        }
+    )
 
-    assert resp.is_success
-
+    assert resp.is_success, (resp.status_code, resp.text)
     rj = resp.json()
 
     assert rj['status'] == 'ok'
@@ -197,7 +218,15 @@ async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_na
         ])
     return False, res
 
-
+def split_uniprot_prots(prots):
+    uniprot = []
+    nonuniprot = []
+    for prot in prots:
+        if VALID_UNIPROT_IDS.match(prot):
+            uniprot.append(prot)
+        else:
+            nonuniprot.append(prot)
+    return uniprot, nonuniprot
 
 @queue_manager.add_handler("/queues/table")
 async def table():
@@ -243,6 +272,7 @@ async def table():
     auto_selection = bool(int(auto_selection or 0))
 
     main_tbl = []
+    uniprot_main_tbl = []
     missing_prots = []
 
     new_selections = []
@@ -272,38 +302,56 @@ async def table():
             pass
     prots_to_get = set(prot_ids)
     prots_to_get.difference_update(prots.keys())
+
+
     if prots_to_get:
-        async with httpx.AsyncClient() as sess:
-            sess.headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4619.0 Safari/537.36"
-            some_set = False
-
-            async with redis.pipeline(transaction=False) as pipe:
-                for prot_id in prots_to_get:
-                    try:
-                        is_single, res = await search_prot(sess, prot_id, level_orthodb_id, taxid_input)
-                    except Exception as e:
-                        __import__("traceback").print_exc()
-                        res = None
-
-                    if res is None:
-                        db.total -= 1
-                        missing_prots.append(prot_id)
+        async with redis.pipeline(transaction=False) as pipe:
+            uniprot, nonuniprot = split_uniprot_prots(prots_to_get)
+            if uniprot:
+                # old search via uniprot
+                res_dict = await table_sync.orthodb_get(level_orthodb_id, uniprot)
+                for uniprot_id in uniprot:
+                    if len(res_dict.get(uniprot_id, ())) != 1:
+                        # failed to get these uniprot proteins the old way, let's try the new way
+                        nonuniprot.append(uniprot_id)
                         continue
+                    # single
+                    label, name = next(iter(res_dict[uniprot_id].items()))
+                    res = [prot_id, label, name, prot_id]
+                    uniprot_main_tbl.append(res)
+                    res[-1] = [res[-1]]
                     db.current += 1
-                    pipe.hset(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/data", prot_id, json.dumps((is_single, res), ensure_ascii=False, separators=(',', ':')))
-                    some_set = True
-                    if is_single:
-                        res[-1] = set(res[-1])
-                    else:
-                        for row in res:
-                            row[-1] = set(row[-1])
-                    prots[prot_id] = (is_single, res)
+                    pipe.hset(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/data", prot_id, json.dumps((True, res), ensure_ascii=False, separators=(',', ':')))
+            if nonuniprot:
+                async with httpx.AsyncClient() as sess:
+                    some_set = False
 
-                if some_set:
-                    cur_time = int(time())
-                    pipe.set(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/accessed", cur_time)
-                    pipe.setnx(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/created", cur_time)
-                    await pipe.execute()
+                    for prot_id in nonuniprot:
+                        try:
+                            is_single, res = await search_prot(sess, prot_id, level_orthodb_id, taxid_input)
+                        except Exception as e:
+                            __import__("traceback").print_exc()
+                            res = None
+
+                        if res is None:
+                            db.total -= 1
+                            missing_prots.append(prot_id)
+                            continue
+                        db.current += 1
+                        pipe.hset(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/data", prot_id, json.dumps((is_single, res), ensure_ascii=False, separators=(',', ':')))
+                        some_set = True
+                        if is_single:
+                            res[-1] = set(res[-1])
+                        else:
+                            for row in res:
+                                row[-1] = set(row[-1])
+                        prots[prot_id] = (is_single, res)
+
+                    if some_set:
+                        cur_time = int(time())
+                        pipe.set(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/accessed", cur_time)
+                        pipe.setnx(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/created", cur_time)
+                        await pipe.execute()
 
     for prot_id, (is_single, res) in prots.items():
         if is_single:
@@ -351,10 +399,14 @@ async def table():
 
     if regen_table:
         # changed the table itself
-        for row in new_selections:
-            row[0] = f"**{row[0]}**"
+        if new_selections:
+            tbl = pd.DataFrame.from_records(new_selections)
+            tbl[0] = tbl[0].map('**{}**'.format)
+            tbl = pd.concat([tbl, pd.DataFrame.from_records(old_selections)], copy=False)
+        else:
+            tbl = pd.DataFrame.from_records(old_selections)
+        tbl[1] = tbl[1].map('[{0}](https://v101.orthodb.org/fasta?id={0})'.format)
 
-        tbl = pd.DataFrame.from_records(itertools.chain(new_selections, old_selections))
         async with db.atomic_file(db.task_dir / "Extra_table.pkl") as tmp_file:
             await table_sync.pickle_df(tmp_file, tbl)
         db['extra_hash'] = cur_hash
@@ -374,12 +426,14 @@ async def table():
         else:
             db["extra_table"] = ''
 
+    if main_tbl:
+        res = await table_sync.orthodb_get_uniprot([r[-1] for r in main_tbl])
+        for q, a in zip(main_tbl, res):
+            q[-1] = a
+    main_tbl.extend(uniprot_main_tbl)
+
     if not main_tbl:
         raise ReportErrorException('No proteins found')
-
-    res = await table_sync.orthodb_get_uniprot([r[-1] for r in main_tbl])
-    for q, a in zip(main_tbl, res):
-        q[-1] = a
 
     db.current = 0
     db.total = None
@@ -461,6 +515,7 @@ async def table():
         return f"[{s.group(0)}](/prottree?task_id={db.task_id}&prot_id={s.group(0)})"
 
     og_info_df['Name'] = og_info_df['Name'].str.replace(PROTTREE_PROT_NAME, add_link)
+    og_info_df['label'] = og_info_df['label'].map('[{0}](https://v101.orthodb.org/fasta?id={0})'.format)
 
     og_info_df.columns = list(range(len(og_info_df.columns)))
     async with db.atomic_file(db.task_dir / "Info_table.pkl") as tmp_file:

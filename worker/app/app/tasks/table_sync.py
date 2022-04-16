@@ -31,7 +31,7 @@ def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
     # }
 
 
-    res = defaultdict(list)
+    res = defaultdict(lambda: defaultdict(list))
     with sqlite3.connect(ORTHODB) as conn:
         cur = conn.execute(f"""
             SELECT
@@ -45,7 +45,10 @@ def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
             ;
         """, (level_id, *prot_ids))
         for label, name, prot_id in cur:
-            res[prot_id].append((label, name, prot_id))
+            res[prot_id][label].append(name)
+        for prot_id in res:
+            for label in res[prot_id]:
+                res[prot_id][label] = ', '.join(res[prot_id][label])
     return res
 
 SPLITTER = re.compile(r"[_:]")

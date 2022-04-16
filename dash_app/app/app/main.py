@@ -1343,8 +1343,6 @@ def uniport_update_multiplexer(dp:DashProxy):
 
 
 COMMENTS = re.compile(r"#.*(\n|$)")
-SEPARATORS = re.compile(r"[ \t,;]+")
-EMPTY_LINES = re.compile(r"\n+")
 
 def case_insensitive_unique(data):
     seen = set()
@@ -1408,7 +1406,13 @@ def submit(dp:DashProxy):
 
             request = tuple(
                 case_insensitive_unique(
-                    EMPTY_LINES.split(SEPARATORS.sub("\n", COMMENTS.sub("", dp['uniprotAC', 'value'])).strip())
+                    filter(
+                        None,
+                        map(
+                            str.strip,
+                            COMMENTS.sub("", dp['uniprotAC', 'value']).splitlines()
+                        )
+                    )
                 )
             )
             if not request:

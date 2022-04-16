@@ -78,7 +78,7 @@ class ExponentialBackoff(DelayStrategy):
 class RetiesFailed(Exception):
     pass
 
-def retry(func=None, /, call_timeout=20, total_timeout=None, retries=5, delay_strategy: DelayStrategy=ExponentialBackoff(), retriable_exceptions=(Exception,)):
+def retry(func=None, /, call_timeout=None, total_timeout=None, retries=3, delay_strategy: DelayStrategy=ExponentialBackoff(), retriable_exceptions=(Exception,)):
     if func is None:
         kwargs = dict(locals())
         kwargs.pop("func")
@@ -97,6 +97,7 @@ def retry(func=None, /, call_timeout=20, total_timeout=None, retries=5, delay_st
             except BaseException as e:
                 if not isinstance(e, retriable_exceptions):
                     raise
+                __import__("traceback").print_exc()
                 exc = e
             for delay in itertools.islice(delay_strategy, retries):
                 if delay:
@@ -107,6 +108,7 @@ def retry(func=None, /, call_timeout=20, total_timeout=None, retries=5, delay_st
                 except BaseException as e:
                     if not isinstance(e, retriable_exceptions):
                         raise
+                    __import__("traceback").print_exc()
                     exc = e
             raise RetiesFailed(f'Calling "{func.__qualname__}" failed after {retries} retries') from exc
     return wrapper

@@ -138,6 +138,7 @@ async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):
             'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
         }
     )
+    print(resp.elapsed)
 
     assert resp.is_success, (resp.status_code, resp.text)
     try:
@@ -184,6 +185,7 @@ async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_na
             'cookie': f'universal=; singlecopy=; cookieconsent_status=dismiss; species={level_orthodb_id}; level=',
         }
     )
+    print(resp.elapsed)
 
     assert resp.is_success, (resp.status_code, resp.text)
     rj = resp.json()

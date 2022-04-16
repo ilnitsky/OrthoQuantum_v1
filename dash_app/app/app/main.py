@@ -1392,12 +1392,7 @@ def case_insensitive_unique(data):
 )
 def submit(dp:DashProxy):
     task_id = dp['task_id', 'data']
-    # append prot search result last!
-    upd_priority = {
-        # ('prot-search-result', 'data'): 100
-    }
-    triggers = sorted(dp.triggered, key=lambda x: upd_priority.get(x, 0))
-    for cause in triggers:
+    for cause in dp.triggered:
         if cause == ('submit-button', 'n_clicks'):
             if not dp['taxid_input', 'value']:
                 # TODO: help message text

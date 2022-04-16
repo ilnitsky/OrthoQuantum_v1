@@ -194,6 +194,14 @@ window.requestAnimFrame = (function(){
 
             popup.select("#popupSpecies").text(getNameFor(el));
             popup.select("#popupProtein").text(onodes.graphs[0].legend.fields[d.i].name);
+            var species;
+            el.parentNode.parentNode.classList.forEach(function(elm) {
+                if (!elm.startsWith("cid")){
+                    return
+                }
+                species = elm.split("_")[1];
+            });
+            popup.select("#popupFASTA").attr("href", "https://v101.orthodb.org/fasta?id="+onodes.graphs[0].legend.fields[d.i].orthoid+"&species="+species);
             popup.select("#popupInfo").text(d.label);
         }
         function popupReset() {
@@ -1014,6 +1022,9 @@ window.requestAnimFrame = (function(){
             .text("Info:");
             r.append("div")
             .attr("id", "popupInfo");
+            r.append("a")
+            .attr("id", "popupFASTA")
+            .text("FASTA");
 
             svg.attr("width", selectorWidth + "px")
                 .attr("height", options.height + "px")

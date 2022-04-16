@@ -20,7 +20,7 @@ NS = {
 
 @async_pool.in_process()
 def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, output_file:str, do_blast:bool, prot_ids):
-    df = df[OG_names].copy()
+    df = df[OG_names['Name']]
 
     df.clip(upper=1, inplace=True)
     df.astype(float, copy=False)
@@ -43,6 +43,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, output_file:s
     for col_idx in reordered_ind:
         field = ET.SubElement(legend, "field")
         ET.SubElement(field, "name").text = df.columns[col_idx]
+        ET.SubElement(field, "orthoid").text = str(OG_names['label'][col_idx])
 
     gradient = ET.SubElement(legend, "gradient")
     ET.SubElement(gradient, "name").text = "Custom"

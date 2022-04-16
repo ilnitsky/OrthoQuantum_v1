@@ -72,7 +72,7 @@ async def vis():
                 tree,
                 blast_enable,
                 phyloxml_file,
-                csv_data['Name'], # OG_names
+                csv_data[['label', 'Name']], # OG_names
                 df,
                 prot_ids,
             )

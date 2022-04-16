@@ -405,7 +405,8 @@ async def table():
             tbl = pd.concat([tbl, pd.DataFrame.from_records(old_selections)], copy=False)
         else:
             tbl = pd.DataFrame.from_records(old_selections)
-        tbl[1] = tbl[1].map('[{0}](https://v101.orthodb.org/fasta?id={0})'.format)
+        if not tbl.empty:
+            tbl[1] = tbl[1].map('[{0}](https://v101.orthodb.org/fasta?id={0})'.format)
 
         async with db.atomic_file(db.task_dir / "Extra_table.pkl") as tmp_file:
             await table_sync.pickle_df(tmp_file, tbl)

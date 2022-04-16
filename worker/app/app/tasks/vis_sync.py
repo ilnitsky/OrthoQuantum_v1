@@ -65,7 +65,7 @@ _ID_TRANSLATION_TBL = {
     1166016: 1905730,
 }
 
-@async_pool.in_thread(max_pool_share=0.5)
+@async_pool.in_process(max_pool_share=0.5)
 def get_corr_data(csv_data) -> tuple[str, dict]:
     corr_info = {}
     prot_ids = {}
@@ -87,7 +87,8 @@ def get_corr_data(csv_data) -> tuple[str, dict]:
                         clade=? AND cluster_id=?
                     GROUP BY taxid
                 """, (clade, cluster_id))
-            for taxid, orthologs_count, row_gene_names in cur:
+            req_res = cur.fetchall()
+            for taxid, orthologs_count, row_gene_names in req_res:
                 taxid = _ID_TRANSLATION_TBL.get(taxid, taxid)
                 ortho_counts[taxid] = orthologs_count
                 gene_names[taxid] = row_gene_names.replace(",", ", ") if row_gene_names is not None else "None"

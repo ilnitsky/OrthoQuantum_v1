@@ -114,6 +114,11 @@ VALID_UNIPROT_IDS = re.compile(r"[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][
 
 # uniprot through tab file
 
+async def get_gene_name_db(ortho_id, species):
+    gene_names, uniprot_ids = await table_sync.orthodb_get_gene_name(ortho_id, species)
+    uniprot_id = next(filter(None, uniprot_ids), None)
+    return case_insensitive_top_trunc(gene_names), uniprot_id
+
 @retry
 async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):
 
@@ -195,7 +200,7 @@ async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_na
         record = rj['bigdata'][0]
         if record['id'] != record['public_id']:
             print("Note: dissimilar IDs", level_orthodb_id, prot_id, record)
-        gene_name, prot_ids = await get_gene_name(sess, record["id"], gene_name_species)
+        gene_name, prot_ids = await get_gene_name_db(record["id"], gene_name_species)
         return True, [prot_id, record["id"], gene_name, prot_ids]
 
     rj['bigdata'] = sorted(rj['bigdata'], key=lambda x: x.get('relevance', 0), reverse=True)
@@ -205,7 +210,7 @@ async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_na
     for record in rj['bigdata']:
         if record['id'] != record['public_id']:
             print("Note: dissimilar IDs", level_orthodb_id, prot_id, record)
-        gene_name, prot_ids = await get_gene_name(sess, record["id"], gene_name_species)
+        gene_name, prot_ids = await get_gene_name_db(record["id"], gene_name_species)
 
         res.append([
             prot_id, # "PIWIL2"
@@ -260,7 +265,7 @@ async def table():
     try:
         tbl = pd.read_pickle(db.task_dir/"Extra_table.pkl")
         for k, t in tbl.loc[selected_rows,[0,1]].itertuples(index=False):
-            selected[k.strip('*')].add(t)
+            selected[k.strip('*')].add(t[1:t.find("]")])
         if not regen_table:
             assert not tbl.empty
             tbl.loc[:, tbl.columns[-1]] = False
@@ -272,7 +277,6 @@ async def table():
     auto_selection = bool(int(auto_selection or 0))
 
     main_tbl = []
-    uniprot_main_tbl = []
     missing_prots = []
 
     new_selections = []
@@ -289,13 +293,7 @@ async def table():
         if not s:
             continue
         try:
-            is_single, res = json.loads(s)
-            if is_single:
-                res[-1] = set(res[-1])
-            else:
-                for row in res:
-                    row[-1] = set(row[-1])
-            prots[prot_id] = (is_single, res)
+            prots[prot_id] = json.loads(s)
             db.current += 1
         except Exception:
             __import__("traceback").print_exc()
@@ -317,11 +315,8 @@ async def table():
                         continue
                     # single
                     label, name = next(iter(res_dict[uniprot_id].items()))
-                    res = [prot_id, label, name, prot_id]
-                    uniprot_main_tbl.append(res)
-                    res[-1] = [res[-1]]
+                    main_tbl.append([prot_id, label, name, prot_id])
                     db.current += 1
-                    pipe.hset(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/data", prot_id, json.dumps((True, res), ensure_ascii=False, separators=(',', ':')))
             if nonuniprot:
                 async with httpx.AsyncClient() as sess:
                     some_set = False
@@ -340,11 +335,6 @@ async def table():
                         db.current += 1
                         pipe.hset(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/data", prot_id, json.dumps((is_single, res), ensure_ascii=False, separators=(',', ':')))
                         some_set = True
-                        if is_single:
-                            res[-1] = set(res[-1])
-                        else:
-                            for row in res:
-                                row[-1] = set(row[-1])
                         prots[prot_id] = (is_single, res)
 
                     if some_set:
@@ -426,12 +416,6 @@ async def table():
             db["extra_table"] = db.q_id
         else:
             db["extra_table"] = ''
-
-    if main_tbl:
-        res = await table_sync.orthodb_get_uniprot([r[-1] for r in main_tbl])
-        for q, a in zip(main_tbl, res):
-            q[-1] = a
-    main_tbl.extend(uniprot_main_tbl)
 
     if not main_tbl:
         raise ReportErrorException('No proteins found')

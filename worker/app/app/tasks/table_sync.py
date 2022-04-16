@@ -9,7 +9,7 @@ import numpy as np
 import sqlite3
 
 from ..async_executor import async_pool
-from ..utils import open_existing
+from ..utils import open_existing, decode_int
 from ..db import ORTHODB
 
 @async_pool.in_thread(max_running=3)
@@ -56,6 +56,27 @@ def str_to_orthodb_id(s:str)->int:
     res = SPLITTER.split(s, maxsplit=2)
     assert len(res) == 3, s
     return int(res[0], 10)<<32 | int(res[1], 10) << 24 | int(res[2], 16)
+
+@async_pool.in_process(max_running=5)
+def orthodb_get_gene_name(ortho_id:str, species:str) -> list[tuple[str, str]]:
+    cluster_id, clade = decode_int(*ortho_id.split('at', maxsplit=1))
+    species = int(species)
+    # 9103_0:004161
+    # (a << (32)) | (b << 24) | c, nil
+    with sqlite3.connect(ORTHODB) as conn:
+        cur = conn.execute(f"""
+        SELECT genes.gene_name, genes.uniprot_id
+        FROM genes
+        LEFT JOIN orthodb_to_og USING (orthodb_id)
+        WHERE
+            orthodb_to_og.cluster_id=? AND
+            orthodb_to_og.clade=? AND
+            orthodb_to_og.orthodb_id>>32=?
+        ;
+        """, [cluster_id, clade, species])
+        res = cur.fetchall()
+    return tuple(zip(*res))
+
 
 @async_pool.in_process(max_running=5)
 def orthodb_get_uniprot(orthodb_ids:list[set[str]]) -> defaultdict[str, list]:

@@ -287,6 +287,8 @@ async def table():
         pipe.set(f"/cache/orthoreq/{level_orthodb_id}/{taxid_input}/accessed", int(time()), xx=True)
 
         cache_data = (await pipe.execute())[0]
+    cache_data = itertools.repeat(None)
+
     for prot_id, s in zip(prot_ids, cache_data):
         if not s:
             continue

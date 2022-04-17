@@ -236,7 +236,7 @@ og_from_input = html.Div(children=[
                                 ),
                             ]),
                             dbc.FormGroup([
-                                dbc.Label("Pident", html_for="pident-input-group"),
+                                dbc.Label("Sequence identity", html_for="pident-input-group"),
                                 dbc.InputGroup(
                                     [
                                         dbc.Input(id="pident-input"),
@@ -250,7 +250,7 @@ og_from_input = html.Div(children=[
                             dcc.Store(id='pident-output-val', data=70),
 
                             dbc.FormGroup([
-                                dbc.Label("Qcovs", html_for="qcovs-input-group"),
+                                dbc.Label("Query coverage", html_for="qcovs-input-group"),
                                 dbc.InputGroup(
                                     [
                                         dbc.Input(id="qcovs-input"),

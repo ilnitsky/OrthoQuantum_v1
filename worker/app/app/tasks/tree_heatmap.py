@@ -1,8 +1,6 @@
 from typing import Optional
 from aioredis.client import Pipeline
 
-
-
 from . import tree_heatmap_sync
 
 from ..task_manager import get_db
@@ -15,6 +13,9 @@ from ..redis import enqueue, update
 async def heatmap(organism_count, df, max_prots=0) -> Optional[set[str]]:
     res = None
     async with get_db().substage("heatmap") as db:
+        if df.shape[1] < 2:
+            await db.report_error("Not enough proteins to build the correlation matrix", cancel_rest=False)
+            return
         db.msg = "In queue to build heatmap"
         db.total = None
         async def progress(items_in_front):

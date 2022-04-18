@@ -56,3 +56,13 @@ a.anchor{
     border: solid #777 1px;
     width: 300px;
 }
+
+span.tree-legend{
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+    display: inline-block;
+    margin-right: 5px;
+    vertical-align: text-bottom;
+
+}

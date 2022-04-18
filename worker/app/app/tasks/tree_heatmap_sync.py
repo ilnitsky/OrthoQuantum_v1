@@ -27,10 +27,13 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, output_file:s
 
     # Slower, but without fastcluster lib
     # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
-    link = fastcluster.linkage(df.T.values, method='average', metric='euclidean')
-    dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
+    if df.shape[1] >= 2:
+        link = fastcluster.linkage(df.T.values, method='average', metric='euclidean')
+        dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
 
-    reordered_ind = dendro['leaves']
+        reordered_ind = dendro['leaves']
+    else:
+        reordered_ind = list(range(len(df.columns)))
 
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(phyloxml_file, parser)

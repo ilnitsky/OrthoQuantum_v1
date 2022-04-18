@@ -2821,13 +2821,15 @@ window.requestAnimFrame = (function(){
 
             var mouseEvent = d3.event.sourceEvent;
             if (!mouseEvent) return;
-
             // determine scale action (zoom in || zoom out)
             if (mouseEvent.deltaY > 0 || mouseEvent.wheelDelta < 0) scale = -1 * options.scaleStep;
             if (mouseEvent.deltaY < 0 || mouseEvent.wheelDelta > 0) scale = options.scaleStep;
-
             var factorX = 0.5, factorY = 0.5;
+
             if (!mouseEvent.altKey && !mouseEvent.ctrlKey) {
+                // do scroll
+                options.translateY -= (treeHeight*scale) * factorY/2;
+            } else if (mouseEvent.altKey && mouseEvent.ctrlKey) {
                 factorX = mouseEvent.layerX / selectorWidth;
                 factorY = mouseEvent.layerY / options.height;
                 if (scale < 0) {
@@ -2836,17 +2838,16 @@ window.requestAnimFrame = (function(){
                 }
             }
 
-            // apply scale Y (when CTRL is pressed or none keys are pressed)
-            if (mouseEvent.ctrlKey || !mouseEvent.altKey) {
+            if (mouseEvent.ctrlKey) {
+                // apply scale Y (when CTRL is pressed or none keys are pressed)
                 //options.nodeHeight += (scale == 0 ? 0 : (scale < 0 ? -1 : 1));
                 //if (options.nodeHeight < 1) options.nodeHeight = 1;
                 options.scaleY += scale;
                 if (options.scaleY < options.scaleStep) options.scaleY = options.scaleStep;
                 else options.translateY  += (treeHeight*scale) * factorY;
             }
-
-            // apply scale X (when ALT is pressed or none keys are pressed)
-            if (mouseEvent.altKey || !mouseEvent.ctrlKey) {
+            if (mouseEvent.altKey) {
+                // apply scale X (when ALT is pressed or none keys are pressed)
                 options.graphWidth += (scale == 0 ? 0 : (scale < 0 ? -10 : 10));
                 if (options.graphWidth < 10) options.graphWidth = 10;
                 options.domainWidth += (scale == 0 ? 0 : (scale < 0 ? -1*options.domainWidthStep : options.domainWidthStep));

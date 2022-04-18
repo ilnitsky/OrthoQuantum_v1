@@ -716,13 +716,6 @@ def dashboard(task_id):
         dbc.Row(
           [
             html.H3("Phylogenetic profile plot", id="tree_title"),
-            dbc.Tooltip(
-              "The columns show the orthogroups, with the same name as the query proteins. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors. To scale the graph use a mouse wheel (only  x axis -  Alt, only y axis - Ctrl).",
-              id="tooltip-tree",
-              target="tree_title",
-              placement="right",
-              className="d-none"
-            ),
           ],
           justify='center',
           id="tree_title_row",
@@ -735,12 +728,43 @@ def dashboard(task_id):
     ),
     dbc.Row(
       dbc.Col(
-        PhydthreeComponent(
-            id="tree_component",
-            url=f"/files/{task_id}/tree.xml",
-            height=2000,
-            taskid_for_links=task_id,
-        ),
+        [
+          html.Div(
+            html.Div([
+                html.P("The columns show the orthogroups, with the same name as the query proteins. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors."),
+                html.P("To scale the graph use a mouse wheel while holding Alt to scale x axis and/or Ctrl to scale y axis."),
+                html.P("Legend:"),
+                html.Ul([
+                  html.Li([
+                    html.Span(className="tree-legend", style={"background-color": "#170a1c"}),
+                    html.Span("No findings")
+                  ]),
+                  html.Li([
+                    html.Span(className="tree-legend", style={"background-color": "#666666"}),
+                    html.Span("Scheduled to be BLAST'ed")
+                  ]),
+                  html.Li([
+                    html.Span(className="tree-legend", style={"background-color": "#f72585"}),
+                    html.Span("Found via BLAST")
+                  ]),
+                  html.Li([
+                    html.Span(className="tree-legend", style={"background-color": "#228cdb"}),
+                    html.Span("Found in OrthoDB")
+                  ]),
+                ]),
+              ],
+              className="my-2",
+            ),
+            id="tree-description",
+            className="d-none"
+          ),
+          PhydthreeComponent(
+              id="tree_component",
+              url=f"/files/{task_id}/tree.xml",
+              height=2000,
+              taskid_for_links=task_id,
+          ),
+        ],
         md=10, lg=8,
         className="mx-5 mt-3",
       ),

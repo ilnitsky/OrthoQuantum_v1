@@ -470,7 +470,7 @@ def request_list(dp: DashProxy):
     Output('tooltip-blast-button', 'className'),
     Output('tooltip-table', 'className'),
     Output('tooltip-heatmap', 'className'),
-    Output('tooltip-tree', 'className'),
+    Output('tree-description', 'className'),
 
     Input('tutorial_enabled', 'data'),
 )

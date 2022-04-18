@@ -201,7 +201,9 @@ window.requestAnimFrame = (function(){
                 }
                 species = elm.split("_")[1];
             });
-            popup.select("#popupFASTA").attr("href", "https://v101.orthodb.org/fasta?id="+onodes.graphs[0].legend.fields[d.i].orthoid+"&species="+species);
+            if (options.taskid_for_links) {
+                popup.select("#popupFASTA").attr("href", "https://v101.orthodb.org/fasta?id="+onodes.graphs[0].legend.fields[d.i].orthoid+"&species="+species);
+            }
             popup.select("#popupInfo").text(d.label);
         }
         function popupReset() {
@@ -1022,9 +1024,11 @@ window.requestAnimFrame = (function(){
             .text("Info:");
             r.append("div")
             .attr("id", "popupInfo");
-            r.append("a")
-            .attr("id", "popupFASTA")
-            .text("FASTA");
+            if (options.taskid_for_links) {
+                r.append("a")
+                .attr("id", "popupFASTA")
+                .text("FASTA");
+            }
 
             svg.attr("width", selectorWidth + "px")
                 .attr("height", options.height + "px")

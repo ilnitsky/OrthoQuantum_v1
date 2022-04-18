@@ -2828,7 +2828,7 @@ window.requestAnimFrame = (function(){
 
             if (!mouseEvent.altKey && !mouseEvent.ctrlKey) {
                 // do scroll
-                options.translateY -= (treeHeight*scale) * factorY/2;
+                options.translateY -= (treeHeight*scale) * factorY;
             } else if (mouseEvent.altKey && mouseEvent.ctrlKey) {
                 factorX = mouseEvent.layerX / selectorWidth;
                 factorY = mouseEvent.layerY / options.height;

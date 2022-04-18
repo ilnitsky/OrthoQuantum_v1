@@ -1044,6 +1044,7 @@ def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tupl
 @add_processor(
     tree = (
         ('tree_header', 'style'),
+        ('tree_help', 'style'),
         ("ssr_tree_block", "style"),
 
         ('tree_component', 'version'),
@@ -1055,6 +1056,7 @@ def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[s
     task_id = dp['task_id', 'data']
     tree_info = upd[db_key]
     dp['tree_header', 'style'] = layout.SHOW
+    dp['tree_help', 'style'] = layout.SHOW
 
     kind = tree_info['kind']
     version = f"{upd['tree_version']}_{upd.get('tree_blast_ver', 0)}"

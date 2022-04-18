@@ -754,9 +754,11 @@ def dashboard(task_id):
                 ]),
               ],
               className="my-2",
+              id="tree_help",
+              style=HIDE,
             ),
             id="tree-description",
-            className="d-none"
+            className="d-none",
           ),
           PhydthreeComponent(
               id="tree_component",

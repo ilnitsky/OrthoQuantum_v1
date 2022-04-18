@@ -14,6 +14,7 @@ async def heatmap(organism_count, df, max_prots=0) -> Optional[set[str]]:
     res = None
     async with get_db().substage("heatmap") as db:
         if df.shape[1] < 2:
+            db["heatmap"] = ''
             await db.report_error("Not enough proteins to build the correlation matrix", cancel_rest=False)
             return
         db.msg = "In queue to build heatmap"

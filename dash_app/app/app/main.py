@@ -1033,12 +1033,15 @@ def extra_table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[
 )
 def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
     task_id = dp['task_id', 'data']
-    heatmap_version = upd[db_key]
+    if upd[db_key]:
+        heatmap_version = upd[db_key]
 
-    dp["heatmap_img", "src"] = f'/files/{task_id}/Correlation_preview.png?version={heatmap_version}'
-    dp["heatmap_link", "href"] = f'/files/{task_id}/Correlation.png?version={heatmap_version}'
+        dp["heatmap_img", "src"] = f'/files/{task_id}/Correlation_preview.png?version={heatmap_version}'
+        dp["heatmap_link", "href"] = f'/files/{task_id}/Correlation.png?version={heatmap_version}'
 
-    dp["heatmap_container", "style"] = layout.SHOW
+        dp["heatmap_container", "style"] = layout.SHOW
+    else:
+        dp["heatmap_container", "style"] = layout.HIDE
 
 
 @add_processor(
@@ -1055,23 +1058,27 @@ def heatmap(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tupl
 def tree(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
     task_id = dp['task_id', 'data']
     tree_info = upd[db_key]
-    dp['tree_header', 'style'] = layout.SHOW
-    dp['tree_help', 'style'] = layout.SHOW
+    if tree_info:
+        dp['tree_header', 'style'] = layout.SHOW
+        dp['tree_help', 'style'] = layout.SHOW
 
-    kind = tree_info['kind']
-    version = f"{upd['tree_version']}_{upd.get('tree_blast_ver', 0)}"
-    shape = tree_info['shape']
+        kind = tree_info['kind']
+        version = f"{upd['tree_version']}_{upd.get('tree_blast_ver', 0)}"
+        shape = tree_info['shape']
 
-    if kind == 'interactive':
-        dp["ssr_tree_img", "src"] = ""
-        dp["ssr_tree_block", "style"] = layout.HIDE
-        dp["tree_component", "version"] = version
-        dp["tree_component", "leafCount"] = shape[0]
+        if kind == 'interactive':
+            dp["ssr_tree_img", "src"] = ""
+            dp["ssr_tree_block", "style"] = layout.HIDE
+            dp["tree_component", "version"] = version
+            dp["tree_component", "leafCount"] = shape[0]
+        else:
+            assert kind in ('svg', 'png')
+            dp["tree_component", "version"] = ""
+            dp["ssr_tree_block", "style"] = layout.SHOW
+            dp["ssr_tree_img", "src"] = f'/files/{task_id}/ssr_img.{kind}?version={version}'
     else:
-        assert kind in ('svg', 'png')
-        dp["tree_component", "version"] = ""
-        dp["ssr_tree_block", "style"] = layout.SHOW
-        dp["ssr_tree_img", "src"] = f'/files/{task_id}/ssr_img.{kind}?version={version}'
+        dp['tree_header', 'style'] = layout.HIDE
+        dp['tree_help', 'style'] = layout.HIDE
 
 
 @add_processor(

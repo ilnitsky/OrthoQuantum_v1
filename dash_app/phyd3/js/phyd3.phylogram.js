@@ -2400,14 +2400,17 @@ window.requestAnimFrame = (function(){
                             if (options.showGraphs && options.showGraphLegend) {
                                 for (var i=0; i<graph.legend.fields.length; i++) {
                                     var legendText = (graph.legend.show != 0) ? graph.legend.fields[i].name : '';
-                                    var el = vis.append("text")
-                                        .attr("class", "legend")
-                                        .attr("transform", "translate("+ parseInt(phyd3.phylogram.dx + padding + graphPadding + (i+1)*h*2)+",-10) rotate(-90)");
+                                    var el;
                                     if (options.taskid_for_links) {
-                                        el = el.append("a")
-                                            .attr("href", "/prottree?task_id="+options.taskid_for_links+"&prot_id="+legendText);
+                                        el = vis.append("a");
+                                        el.attr("xlink:href", "/prottree?task_id="+options.taskid_for_links+"&prot_id="+legendText);
+                                    }else{
+                                        el = vis;
                                     }
-                                    el.text(legendText);
+                                    el.append("text")
+                                    .attr("class", "legend")
+                                    .attr("transform", "translate("+ parseInt(phyd3.phylogram.dx + padding + graphPadding + (i+1)*h*2)+",-10) rotate(-90)")
+                                    .text(legendText);
                                 }
                             }
                             graphPadding += (graph.legend.fields.length) * (h*2) + 5;

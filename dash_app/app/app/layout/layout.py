@@ -592,6 +592,17 @@ def dashboard(task_id):
     ),
 
     og_from_input,
+    dbc.Row(
+      dbc.Col(
+        dbc.Alert(
+          id="missing_uniprot_alert",
+          is_open=False,
+          className="alert-warning",
+        ),
+        md=10, lg=8,
+      ),
+      justify='center',
+    ),
     progress_bar("vis"),
 
     html.Div(

@@ -963,17 +963,24 @@ add_processor(
     missing_prots = (
         ('missing_prot_alert', 'children'),
         ('missing_prot_alert', 'is_open'),
-    )
+    ),
+    missing_uniprot = (
+        ('missing_uniprot_alert', 'children'),
+        ('missing_uniprot_alert', 'is_open'),
+    ),
 )
 def missing_prot(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
-    # TODO: move missing_prot_alert into state hash
-    missing_prot_msg = upd.get(db_key)
-    if missing_prot_msg:
-        dp['missing_prot_alert', 'children'] = f"Unknown proteins: {missing_prot_msg}"
-        dp['missing_prot_alert', 'is_open'] = True
+    msg = upd.get(db_key)
+    if msg:
+        if db_key == "missing_prots":
+            msg = f"Unknown proteins: {msg}"
+        elif db_key == "missing_uniprot":
+            msg = f"Uniprot ACs not found for: {msg}"
+        dp[dash_keys[0]] = msg
+        dp[dash_keys[1]] = True
     else:
-        dp['missing_prot_alert', 'children'] = None
-        dp['missing_prot_alert', 'is_open'] = False
+        dp[dash_keys[0]] = None
+        dp[dash_keys[1]] = False
 
 
 @add_processor(

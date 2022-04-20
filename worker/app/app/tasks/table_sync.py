@@ -183,8 +183,6 @@ def process_prot_data(data:list[tuple[str, str, str]], output_file:str)-> pd.Dat
         data=data,
     )
 
-    uniprot_df.replace("", np.nan, inplace=True)
-    uniprot_df.dropna(axis="index", how="any", inplace=True)
     uniprot_df['is_duplicate'] = uniprot_df.duplicated(subset='label')
 
     og_list = []

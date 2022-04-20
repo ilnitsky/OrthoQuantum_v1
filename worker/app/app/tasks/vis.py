@@ -31,9 +31,16 @@ async def vis():
     )
     organisms:list[int]
     csv_data: pd.DataFrame
+    no_uniprot_idx = (csv_data['UniProt_AC']=='').index
+    if not no_uniprot_idx.empty:
+        db['missing_uniprot'] = csv_data.loc[no_uniprot_idx, "label"].str.cat(sep=", ")
+        csv_data.drop(no_uniprot_idx, inplace=True)
+    else:
+        db['missing_uniprot'] = ''
 
-    if len(csv_data) == 0: # < 2?
-        raise ReportErrorException("Not enough proteins to build correlation")
+    if len(csv_data) == 0:
+        await db.report_error("Not enough proteins to build correlation", cancel_rest=False)
+        return
 
     corr_info, prot_ids = await vis_sync.get_corr_data(csv_data)
 

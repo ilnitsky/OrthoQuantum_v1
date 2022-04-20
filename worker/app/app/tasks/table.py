@@ -320,7 +320,7 @@ async def table():
                         continue
                     # single
                     label, name = next(iter(res_dict[uniprot_id].items()))
-                    main_tbl.append([prot_id, label, name, prot_id])
+                    main_tbl.append([uniprot_id, label, name, uniprot_id])
                     db.current += 1
             if nonuniprot:
                 async with httpx.AsyncClient() as sess:

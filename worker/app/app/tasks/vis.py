@@ -31,7 +31,7 @@ async def vis():
     )
     organisms:list[int]
     csv_data: pd.DataFrame
-    no_uniprot_idx = (csv_data['UniProt_AC']=='').index
+    no_uniprot_idx = csv_data[csv_data['UniProt_AC']==''].index
     if not no_uniprot_idx.empty:
         db['missing_uniprot'] = csv_data.loc[no_uniprot_idx, "label"].str.cat(sep=", ")
         csv_data.drop(no_uniprot_idx, inplace=True)

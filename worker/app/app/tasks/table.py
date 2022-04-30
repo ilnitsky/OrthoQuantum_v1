@@ -2,7 +2,6 @@ import asyncio
 from hashlib import sha256
 import urllib.error
 import math
-import itertools
 import re
 import csv
 from collections import defaultdict
@@ -14,13 +13,12 @@ import json
 
 from aioredis.client import Pipeline
 import pandas as pd
-import anyio
 import httpx
 
 from . import table_sync
 from ..task_manager import queue_manager, get_db, ReportErrorException
-from ..redis import redis, LEVELS, enqueue, update, happend
-from ..utils import retry, case_insensitive_unique, json_minify, case_insensitive_top_trunc
+from ..redis import redis, LEVELS, enqueue, update
+from ..utils import retry, case_insensitive_top_trunc
 
 
 
@@ -119,7 +117,7 @@ async def get_gene_name_db(ortho_id, species):
         gene_names, uniprot_ids = await table_sync.orthodb_get_gene_name(ortho_id, species)
     except Exception:
         # error here probably means that nothing was found or client error
-        return '<NA in selected species>', ''
+        return 'NA', ''
 
     uniprot_id = next(filter(None, uniprot_ids), '')
     return case_insensitive_top_trunc(filter(None, gene_names)), uniprot_id
@@ -159,12 +157,12 @@ async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):
         assert pub_gene_id_col_n != -1
     except Exception:
         # error here probably means that nothing was found or client error
-        return '<NA in selected species>', ''
+        return 'NA', ''
     try:
         prot_ids, gene_names = zip(*((row[int_prot_id_col_n], row[pub_gene_id_col_n]) for row in reader))
         return case_insensitive_top_trunc(gene_names), prot_ids
     except Exception:
-        return '<NA in selected species>', ''
+        return 'NA', ''
 
 @retry
 async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_name_species):
@@ -238,11 +236,18 @@ def split_uniprot_prots(prots):
             nonuniprot.append(prot)
     return uniprot, nonuniprot
 
+def na_name_gen():
+    i = 1
+    while True:
+        yield f'<NA in selected species ({i})>'
+        i+=1
+
 @queue_manager.add_handler("/queues/table")
 async def table():
     db = get_db()
     db.current = 0
     db.msg = "Getting proteins"
+    na_name = na_name_gen()
 
     @db.transaction
     async def res(pipe: Pipeline):
@@ -320,6 +325,8 @@ async def table():
                         continue
                     # single
                     label, name = next(iter(res_dict[uniprot_id].items()))
+                    if name == 'NA':
+                        name = next(na_name)
                     main_tbl.append([uniprot_id, label, name, uniprot_id])
                     db.current += 1
             if nonuniprot:
@@ -351,12 +358,16 @@ async def table():
     for prot_id, (is_single, res) in prots.items():
         if is_single:
             # only 1 result, can directly add to the main thingy
+            if res[2] == 'NA':
+                res[2] = next(na_name)
             main_tbl.append(res)
             continue
 
         selected_ortho = selected.get(prot_id, set())
         if not regen_table:
             for row in res:
+                if row[2] == 'NA':
+                    row[2] = next(na_name)
                 if row[1] not in selected_ortho:
                     continue
 
@@ -367,6 +378,9 @@ async def table():
             has_selected = False
 
             for row in res:
+                if row[2] == 'NA':
+                    row[2] = next(na_name)
+
                 row_selected = row[1] in selected_ortho
                 has_selected = has_selected or row_selected
                 row.append(row_selected)

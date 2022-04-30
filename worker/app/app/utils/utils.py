@@ -131,7 +131,7 @@ def case_insensitive_top_trunc(data, n=5, fraction=0.8):
 
     cnt = Counter(map(process, data))
     if data_len == 0:
-        return '<NA in selected species>'
+        return 'NA'
 
     res = []
     if data_len<10:

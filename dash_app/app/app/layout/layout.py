@@ -47,18 +47,18 @@ TABLE_COLUMNS = [
     "id": i,
   }
   for i, name in enumerate((
-    "label",
-    "Name",
-    "description",
-    "clade",
-    "evolRate",
-    "totalGenesCount",
-    "multiCopyGenesCount",
-    "singleCopyGenesCount",
-    "inSpeciesCount",
+    "OG label",
+    "Gene Names",
+    "Description",
+    "Level",
+    "EvolRate",
+    "TotalGenesCount",
+    "MultiCopyCount",
+    "SingleCopyCount",
+    "Present in # species",
     # "medianExonsCount", "stddevExonsCount",
-    "medianProteinLength",
-    "stddevProteinLength"
+    "MedianProteinLength",
+    "StddevProteinLength"
   ))
 ]
 TABLE_COLUMNS[0]['type'] = 'text'

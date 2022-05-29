@@ -1476,7 +1476,7 @@ def submit(dp:DashProxy):
                     progress_table_max=len(request),
                     progress_table_msg="Building table",
                     input_proteins=dp['uniprotAC', 'value'],
-                    input_proteins_parsed=' '.join(request),
+                    input_proteins_parsed='\n'.join(request),
                     input_tax_level=dp['tax-level-dropdown', 'value'],
                     input_blast_enabled="1" if dp["blast-options", "is_open"] else "",
                     input_blast_evalue=evalue,

@@ -255,7 +255,7 @@ async def table():
         pipe.hmget(db.state_key, 'input_proteins_parsed', 'taxid_input', 'input_tax_level', 'extra_hash', 'extra_auto_select', 'extra_table_selected_rows')
 
     prot_ids_text, taxid_input, level_id, extra_hash, auto_selection, extra_table_selected_rows = (await res)[0]
-    prot_ids: list[str] = prot_ids_text.split()
+    prot_ids: list[str] = prot_ids_text.split('\n')
     if len(prot_ids) == 0:
         raise ReportErrorException('No data provided!')
     db.total = len(prot_ids)

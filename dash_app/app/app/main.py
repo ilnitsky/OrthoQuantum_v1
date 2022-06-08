@@ -31,8 +31,8 @@ app.config["COMPRESS_MIMETYPES"] = [
     'text/csv',
     'text/css',
     'text/xml',
-    'application/json',
-    'application/javascript'
+    'application/json'
+    # 'application/javascript'
 ]
 compress = Compress()
 compress.init_app(app)

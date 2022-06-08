@@ -48,7 +48,7 @@
             jQuery('#backgroundColor').val(opts.backgroundColor);
             jQuery('#foregroundColorButton').colorpicker({color: opts.foregroundColor});
             jQuery('#backgroundColorButton').colorpicker({color: opts.backgroundColor});
-            d3.select("#phyd3").text("Loading123...");
+            d3.select("#phyd3").text("Loading...");
             d3.xml("sample.xml", function(xml) {
                 d3.select("#phyd3").text(null);
                 var tree = phyd3.phyloxml.parse(xml);

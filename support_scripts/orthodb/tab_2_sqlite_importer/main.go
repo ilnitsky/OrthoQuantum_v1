@@ -175,12 +175,12 @@ func geneIDToInt(part1, part2, part3 []byte) (int64, error) {
 	}
 
 	b, err := strconv.ParseInt(string(part2), 10, 32)
-	if err != nil {
+	if err != nil || b > 0xFF {
 		return 0, fmt.Errorf(`Incorrect geneId.part2 format: "%s" %w`, part2, err)
 	}
 
 	c, err := strconv.ParseInt(string(part3), 16, 32)
-	if err != nil {
+	if err != nil || c > 0xFFFFFF {
 		return 0, fmt.Errorf(`Incorrect geneId.part3 format: "%s" %w`, part3, err)
 	}
 	return (a << (32)) | (b << 24) | c, nil

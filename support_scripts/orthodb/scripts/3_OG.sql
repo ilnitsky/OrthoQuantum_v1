@@ -1,3 +1,11 @@
+-- file: odb11v0_OG2genes.tab
+-- docker run -it --rm --user "$(id -u):$(id -g)" --entrypoint bash -v $PWD:/wd --workdir /wd nouchka/sqlite3
+-- ./tabprocessor OG2genes odb11v0_OG2genes.tab
+
+-- docker exec -it c58cdca36a1b bash
+-- sqlite3 orthodb.db <./scripts/3_OG.sql
+
+
 -- 0at100953       111167_1:000002
 -- 0at100953       1123958_1:00001c
 -- 0at100953       114102_1:000001

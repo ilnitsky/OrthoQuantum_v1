@@ -44,8 +44,12 @@ def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
                 genes.uniprot_id IN ({('?,'*len(prot_ids))[:-1]})
             ;
         """, (level_id, *prot_ids))
+        print((level_id, *prot_ids))
+
         for label, name, prot_id in cur:
-            res[prot_id][label].append(name)
+            print("*", label, name, prot_id)
+            if name:
+                res[prot_id][label].append(name)
         for prot_id in res:
             for label in res[prot_id]:
                 res[prot_id][label] = ', '.join(res[prot_id][label])

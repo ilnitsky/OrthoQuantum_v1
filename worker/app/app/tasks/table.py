@@ -167,7 +167,7 @@ async def get_gene_name(sess:httpx.AsyncClient, ortho_id, species):
 @retry
 async def search_prot(sess:httpx.AsyncClient, prot_id, level_orthodb_id, gene_name_species):
     resp = await sess.get(
-        "https://www.orthodb.org/pgrest/rpc/search",
+        "https://data.orthodb.org/v11/search",
         params={
             "query": prot_id,
             "level": level_orthodb_id,

@@ -501,8 +501,10 @@ async def table():
     except urllib.error.HTTPError as e:
         if e.code == 502:
             await db.report_error("Some data is missing: orthodb.org sparql server is down", cancel_rest=False)
-        else:
-            raise
+    except Exception:
+        await db.report_error("Unknown sparql request error", cancel_rest=False)
+        __import__("traceback").print_exc()
+
 
     og_info_df = pd.DataFrame(
         (

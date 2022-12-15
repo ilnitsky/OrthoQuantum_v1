@@ -74,14 +74,9 @@ func do() error {
 	defer w.Flush()
 	defer fmt.Print("\n")
 	switch fileKind {
-	case "gene_xrefs", "gene_xrefs_names":
+	case "gene_xrefs":
 		var expected_source []byte
-		switch fileKind {
-		case "gene_xrefs":
-			expected_source = []byte("UniProt")
-		case "gene_xrefs_names":
-			expected_source = []byte("NCBIgenename")
-		}
+		expected_source = []byte("UniProt")
 		for {
 			line, err := r.ReadBytes('\n')
 			switch err {
@@ -111,6 +106,42 @@ func do() error {
 			w.WriteString(strconv.FormatInt(gid, 10)) //nolint:errcheck
 			w.WriteByte('\t')                         //nolint:errcheck
 			w.Write(bytes.TrimSpace(xref))            //nolint:errcheck
+			err = w.WriteByte('\n')
+			if err != nil {
+				return fmt.Errorf("Write error \"%s\": %w", line, err)
+			}
+		}
+	case "gene_names":
+		for {
+			line, err := r.ReadBytes('\n')
+			switch err {
+			case nil:
+				// continue processing
+			case io.EOF:
+				return nil
+			default:
+				return fmt.Errorf("Read error: %w", err)
+			}
+			if bytes.HasPrefix(line, []byte("u_")) {
+				fmt.Fprintf(os.Stderr, "Incorrect format %s", line)
+				continue
+			}
+
+			parts, err := splitter(line, "_", ":", "\t")
+			if err != nil {
+				return fmt.Errorf("Error processing line \"%s\": %w", line, err)
+			}
+
+			gene_name := parts[3]
+
+			gid, err := geneIDToInt(parts[0], parts[1], parts[2])
+			if err != nil {
+				return fmt.Errorf("GeneID parsing error error \"%s\": %w", line, err)
+			}
+
+			w.WriteString(strconv.FormatInt(gid, 10)) //nolint:errcheck
+			w.WriteByte('\t')                         //nolint:errcheck
+			w.Write(bytes.TrimSpace(gene_name))       //nolint:errcheck
 			err = w.WriteByte('\n')
 			if err != nil {
 				return fmt.Errorf("Write error \"%s\": %w", line, err)

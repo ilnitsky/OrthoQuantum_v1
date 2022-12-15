@@ -144,23 +144,20 @@ def ortho_data_get(requested_ids:list, fields:list) -> dict[str, dict[str, str]]
     prefix : <http://purl.orthodb.org/>
     select *
     where {{
-    ?og a :OrthoGroup;
+        ?og a :OrthoGroup;
         rdfs:label ?label;
         :name ?description;
         :ogBuiltAt [up:scientificName ?clade];
         :ogEvolRate ?evolRate;
-        :ogPercentSingleCopy ?percentSingleCopy;
-        :ogPercentInSpecies ?percentInSpecies;
         :ogTotalGenesCount ?totalGenesCount;
         :ogMultiCopyGenesCount ?multiCopyGenesCount;
         :ogSingleCopyGenesCount ?singleCopyGenesCount;
-        :ogInSpeciesCount ?inSpeciesCount;
-        :cladeTotalSpeciesCount ?cladeTotalSpeciesCount .
-    optional {{ ?og :ogMedianProteinLength ?medianProteinLength}}
-    optional {{ ?og :ogStddevProteinLength ?stddevProteinLength}}
-    optional {{ ?og :ogMedianExonsCount ?medianExonsCount}}
-    optional {{ ?og :ogStddevExonsCount ?stddevExonsCount}}
-    filter (?og in ({og_string}))
+        :ogInSpeciesCount ?inSpeciesCount.
+
+        optional {{ ?og :ogMedianProteinLength ?medianProteinLength}}
+        optional {{ ?og :ogStddevProteinLength ?stddevProteinLength}}
+
+        filter (?og in ({og_string}))
     }}
     """)
     endpoint.setReturnFormat(SPARQLWrapper.JSON)

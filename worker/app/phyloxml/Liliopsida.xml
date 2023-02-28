@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<clade>
+												<name>
+													Triticum dicoccoides
+												</name>
+												<id>
+													85692
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Triticum aestivum
+												</name>
+												<id>
+													4565
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Triticum urartu
+												</name>
+												<id>
+													4572
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Aegilops tauschii subsp. strangulata
+											</name>
+											<id>
+												200361
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Hordeum vulgare subsp. vulgare
+										</name>
+										<id>
+											112509
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Brachypodium distachyon
+									</name>
+									<id>
+										15368
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Lolium rigidum
+									</name>
+									<id>
+										89674
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<name>
+										Oryza brachyantha
+									</name>
+									<id>
+										4533
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Oryza sativa Japonica Group
+									</name>
+									<id>
+										39947
+									</id>
+								</clade>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<name>
+											Panicum hallii
+										</name>
+										<id>
+											206008
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Panicum virgatum
+										</name>
+										<id>
+											38727
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<name>
+											Setaria italica
+										</name>
+										<id>
+											4555
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Setaria viridis
+										</name>
+										<id>
+											4556
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Dichanthelium oligosanthes
+									</name>
+									<id>
+										888268
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<name>
+										Sorghum bicolor
+									</name>
+									<id>
+										4558
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Zea mays
+									</name>
+									<id>
+										4577
+									</id>
+								</clade>
+							</clade>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Ananas comosus
+						</name>
+						<id>
+							4615
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Zingiber officinale
+						</name>
+						<id>
+							94328
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Musa acuminata subsp. malaccensis
+						</name>
+						<id>
+							214687
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Phoenix dactylifera
+						</name>
+						<id>
+							42345
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Elaeis guineensis
+						</name>
+						<id>
+							51953
+						</id>
+					</clade>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Dendrobium catenatum
+							</name>
+							<id>
+								906689
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Phalaenopsis equestris
+							</name>
+							<id>
+								78828
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Apostasia shenzhenica
+						</name>
+						<id>
+							1088818
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Asparagus officinalis
+					</name>
+					<id>
+						4686
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Dioscorea cayenensis subsp. rotundata
+				</name>
+				<id>
+					unknown_0
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Zostera marina
+			</name>
+			<id>
+				29655
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Liliopsida, 27 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

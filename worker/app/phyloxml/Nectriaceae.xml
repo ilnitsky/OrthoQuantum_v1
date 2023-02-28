@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Fusarium oxysporum NRRL 32931
+						</name>
+						<id>
+							660029
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Fusarium oxysporum f. sp. radicis-cucumerinum
+						</name>
+						<id>
+							327505
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Fusarium oxysporum f. sp. lycopersici 4287
+						</name>
+						<id>
+							426428
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Fusarium odoratissimum NRRL 54006
+					</name>
+					<id>
+						unknown_0
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Fusarium fujikuroi IMI 58289
+						</name>
+						<id>
+							1279085
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Fusarium mangiferae
+					</name>
+					<id>
+						192010
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium nygamai
+					</name>
+					<id>
+						42673
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium subglutinans
+					</name>
+					<id>
+						42677
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium tjaetaba
+					</name>
+					<id>
+						1567544
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium proliferatum ET1
+					</name>
+					<id>
+						1227346
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium verticillioides 7600
+					</name>
+					<id>
+						334819
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Fusarium graminearum PH-1
+						</name>
+						<id>
+							229533
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Fusarium langsethiae
+					</name>
+					<id>
+						179993
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium venenatum
+					</name>
+					<id>
+						56646
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium poae
+					</name>
+					<id>
+						36050
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium pseudograminearum CS3096
+					</name>
+					<id>
+						1028729
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Fusarium solani
+					</name>
+					<id>
+						169388
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium vanettenii 77-13-4
+					</name>
+					<id>
+						unknown_1
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Fusarium flagelliforme
+					</name>
+					<id>
+						2675880
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Fusarium coffeatum
+					</name>
+					<id>
+						231269
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Fusarium musae
+				</name>
+				<id>
+					1042133
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Fusarium avenaceum
+				</name>
+				<id>
+					40199
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Fusarium redolens
+				</name>
+				<id>
+					48865
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Neonectria ditissima
+			</name>
+			<id>
+				78410
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Ilyonectria robusta
+			</name>
+			<id>
+				1079257
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Nectriaceae, 25 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

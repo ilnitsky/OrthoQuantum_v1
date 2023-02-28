@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Anopheles farauti
+					</name>
+					<id>
+						69004
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Anopheles dirus
+					</name>
+					<id>
+						7168
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Anopheles christyi
+					</name>
+					<id>
+						43041
+					</id>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Anopheles arabiensis
+						</name>
+						<id>
+							7173
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Anopheles coluzzii
+						</name>
+						<id>
+							1518534
+						</id>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Anopheles gambiae str. PEST
+							</name>
+							<id>
+								180454
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Anopheles merus
+						</name>
+						<id>
+							30066
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Anopheles epiroticus
+					</name>
+					<id>
+						199890
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Anopheles culicifacies
+					</name>
+					<id>
+						139723
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Anopheles funestus
+					</name>
+					<id>
+						62324
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Anopheles minimus
+					</name>
+					<id>
+						112268
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Anopheles stephensi
+					</name>
+					<id>
+						30069
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Anopheles maculatus
+					</name>
+					<id>
+						74869
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Anopheles albimanus
+				</name>
+				<id>
+					7167
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Anopheles darlingi
+				</name>
+				<id>
+					43151
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Anopheles sinensis
+				</name>
+				<id>
+					74873
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Anopheles atroparvus
+				</name>
+				<id>
+					41427
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Anopheles, 17 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

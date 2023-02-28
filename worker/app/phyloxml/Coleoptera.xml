@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<name>
+					Agrilus planipennis
+				</name>
+				<id>
+					224129
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Photinus pyralis
+				</name>
+				<id>
+					7054
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Leptinotarsa decemlineata
+						</name>
+						<id>
+							7539
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Diabrotica virgifera virgifera
+						</name>
+						<id>
+							50390
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Anoplophora glabripennis
+					</name>
+					<id>
+						217634
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Sitophilus oryzae
+					</name>
+					<id>
+						7048
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Dendroctonus ponderosae
+					</name>
+					<id>
+						77166
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Harmonia axyridis
+					</name>
+					<id>
+						115357
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Coccinella septempunctata
+					</name>
+					<id>
+						41139
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Tribolium madens
+					</name>
+					<id>
+						41895
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Tribolium castaneum
+					</name>
+					<id>
+						7070
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Aethina tumida
+				</name>
+				<id>
+					116153
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Oryctes borbonicus
+				</name>
+				<id>
+					1629725
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Onthophagus taurus
+				</name>
+				<id>
+					166361
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Nicrophorus vespilloides
+			</name>
+			<id>
+				110193
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Coleoptera, 15 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

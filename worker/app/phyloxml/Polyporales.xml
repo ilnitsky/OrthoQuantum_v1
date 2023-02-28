@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Trametes cinnabarina
+					</name>
+					<id>
+						5643
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Trametes pubescens
+					</name>
+					<id>
+						154538
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Trametes coccinea BRFM310
+					</name>
+					<id>
+						1353009
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Trametes versicolor FP-101664 SS1
+					</name>
+					<id>
+						717944
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Dichomitus squalens LYAD-421 SS1
+				</name>
+				<id>
+					732165
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Ganoderma sinense ZZ0214-1
+				</name>
+				<id>
+					1077348
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Obba rivulosa
+				</name>
+				<id>
+					1052685
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Gelatoporia subvermispora B
+				</name>
+				<id>
+					914234
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Neoantrodia serialis
+				</name>
+				<id>
+					unknown_0
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Rhodofomes roseus
+				</name>
+				<id>
+					unknown_1
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Daedalea quercina L-15889
+				</name>
+				<id>
+					1314783
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Fomitopsis pinicola FP-58527 SS1
+				</name>
+				<id>
+					743788
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Phanerochaete carnosa HHB-10118-sp
+				</name>
+				<id>
+					650164
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Phlebiopsis gigantea 11061 1 CR5-6
+				</name>
+				<id>
+					unknown_2
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Fibroporia radiculosa
+			</name>
+			<id>
+				599839
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Sparassis crispa
+			</name>
+			<id>
+				139825
+			</id>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Postia placenta Mad-698-R
+				</name>
+				<id>
+					561896
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Postia placenta MAD-698-R-SB12
+				</name>
+				<id>
+					670580
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Grifola frondosa
+			</name>
+			<id>
+				5627
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Wolfiporia cocos MD-104 SS10
+			</name>
+			<id>
+				742152
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Laetiporus sulphureus 93-53
+			</name>
+			<id>
+				1314785
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Polyporales, 21 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

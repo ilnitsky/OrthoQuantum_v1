@@ -1,0 +1,1385 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Aspergillus rambellii
+							</name>
+							<id>
+								308745
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus arachidicola
+							</name>
+							<id>
+								656916
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Aspergillus clavatus NRRL 1
+								</name>
+								<id>
+									344612
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus fumigatus Af293
+								</name>
+								<id>
+									330879
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus fischeri NRRL 181
+								</name>
+								<id>
+									331117
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus melleus
+							</name>
+							<id>
+								138277
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<name>
+										Aspergillus niger CBS 101883
+									</name>
+									<id>
+										1450533
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Aspergillus niger CBS 513.88
+									</name>
+									<id>
+										425011
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<name>
+										Aspergillus flavus AF70
+									</name>
+									<id>
+										1392242
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Aspergillus flavus NRRL3357
+									</name>
+									<id>
+										332952
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus oryzae RIB40
+								</name>
+								<id>
+									510516
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus steynii IBT 23096
+								</name>
+								<id>
+									1392250
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus aculeatus ATCC 16872
+								</name>
+								<id>
+									690307
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus terreus NIH2624
+								</name>
+								<id>
+									341663
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus lentulus
+							</name>
+							<id>
+								293939
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus turcosus
+							</name>
+							<id>
+								1245748
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Aspergillus luchuensis CBS 106.47
+								</name>
+								<id>
+									1137211
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus cristatus
+							</name>
+							<id>
+								573508
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus thermomutatus
+							</name>
+							<id>
+								41047
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus tanneri
+							</name>
+							<id>
+								1220188
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus candidus
+							</name>
+							<id>
+								41067
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus puulaauensis
+							</name>
+							<id>
+								1220207
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Aspergillus calidoustus
+								</name>
+								<id>
+									454130
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus ochraceoroseus IBT 24754
+								</name>
+								<id>
+									1392256
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus versicolor CBS 583.65
+								</name>
+								<id>
+									1036611
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus sydowii CBS 593.65
+								</name>
+								<id>
+									1036612
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aspergillus nidulans FGSC A4
+								</name>
+								<id>
+									227321
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus alliaceus
+							</name>
+							<id>
+								209559
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus pseudotamarii
+							</name>
+							<id>
+								132259
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus welwitschiae
+							</name>
+							<id>
+								1341132
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus bombycis
+							</name>
+							<id>
+								109264
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus viridinutans
+							</name>
+							<id>
+								75553
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus chevalieri
+							</name>
+							<id>
+								182096
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus taichungensis
+							</name>
+							<id>
+								482145
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus udagawae
+							</name>
+							<id>
+								91492
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus pseudonomiae
+							</name>
+							<id>
+								unknown_0
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus pseudoviridinutans
+							</name>
+							<id>
+								1517512
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus tubingensis
+							</name>
+							<id>
+								5068
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus mulundensis
+							</name>
+							<id>
+								1810919
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus caelatus
+							</name>
+							<id>
+								61420
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus nomiae NRRL 13137
+							</name>
+							<id>
+								1509407
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus brunneoviolaceus CBS 621.78
+							</name>
+							<id>
+								1450534
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus sclerotioniger CBS 115572
+							</name>
+							<id>
+								1450535
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus homomorphus CBS 101889
+							</name>
+							<id>
+								1450537
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus saccharolyticus JOP 1030-1
+							</name>
+							<id>
+								1450539
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus campestris IBT 28561
+							</name>
+							<id>
+								1392248
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus novofumigatus IBT 16806
+							</name>
+							<id>
+								1392255
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus ruber CBS 135680
+							</name>
+							<id>
+								1388766
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus brasiliensis CBS 101740
+							</name>
+							<id>
+								767769
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus neoniger CBS 115656
+							</name>
+							<id>
+								1448310
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus vadensis CBS 113365
+							</name>
+							<id>
+								1448311
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus japonicus CBS 114.51
+							</name>
+							<id>
+								1448312
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus piperis CBS 112811
+							</name>
+							<id>
+								1448313
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus eucalypticola CBS 122712
+							</name>
+							<id>
+								1448314
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus uvarum CBS 121591
+							</name>
+							<id>
+								1448315
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus ibericus CBS 121593
+							</name>
+							<id>
+								1448316
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus costaricaensis CBS 115574
+							</name>
+							<id>
+								1448317
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus fijiensis CBS 313.89
+							</name>
+							<id>
+								1448319
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus heteromorphus CBS 117.55
+							</name>
+							<id>
+								1448321
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus aculeatinus CBS 121060
+							</name>
+							<id>
+								1448322
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus carbonarius ITEM 5010
+							</name>
+							<id>
+								602072
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus glaucus CBS 516.65
+							</name>
+							<id>
+								1160497
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Aspergillus wentii DTO 134E9
+							</name>
+							<id>
+								1073089
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Penicillium freii
+							</name>
+							<id>
+								48697
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium steckii
+							</name>
+							<id>
+								303698
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium decumbens
+							</name>
+							<id>
+								69771
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium vulpinum
+							</name>
+							<id>
+								29845
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium nordicum
+							</name>
+							<id>
+								229535
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium arizonense
+							</name>
+							<id>
+								1835702
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium antarcticum
+							</name>
+							<id>
+								416450
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium expansum
+							</name>
+							<id>
+								27334
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium solitum
+							</name>
+							<id>
+								60172
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium nalgiovense
+							</name>
+							<id>
+								60175
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium coprophilum
+							</name>
+							<id>
+								36646
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Penicillium digitatum PHI26
+								</name>
+								<id>
+									1170229
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Penicillium digitatum Pd1
+								</name>
+								<id>
+									1170230
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Penicillium brasilianum
+							</name>
+							<id>
+								104259
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium subrubescens
+							</name>
+							<id>
+								1316194
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium italicum
+							</name>
+							<id>
+								40296
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium flavigenum
+							</name>
+							<id>
+								254877
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium camemberti
+							</name>
+							<id>
+								5075
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium griseofulvum
+							</name>
+							<id>
+								5078
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Penicillium roqueforti FM164
+								</name>
+								<id>
+									1365484
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Penicillium oxalicum 114-2
+							</name>
+							<id>
+								933388
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium occitanis  nom. inval.
+							</name>
+							<id>
+								unknown_1
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Penicillium rubens Wisconsin 54-1255
+							</name>
+							<id>
+								500485
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Penicilliopsis zonata CBS 506.65
+						</name>
+						<id>
+							1073090
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Talaromyces amestolkiae
+								</name>
+								<id>
+									1196081
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Talaromyces verruculosus
+								</name>
+								<id>
+									198730
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Talaromyces stipitatus ATCC 10500
+								</name>
+								<id>
+									441959
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Talaromyces marneffei ATCC 18224
+								</name>
+								<id>
+									441960
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Talaromyces rugulosus
+								</name>
+								<id>
+									121627
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Talaromyces islandicus
+								</name>
+								<id>
+									28573
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Talaromyces proteolyticus
+							</name>
+							<id>
+								1131652
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Talaromyces atroroseus
+							</name>
+							<id>
+								1441469
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Rasamsonia emersonii CBS 393.64
+						</name>
+						<id>
+							1408163
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Paecilomyces variotii No. 5
+						</name>
+						<id>
+							unknown_2
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Elaphomyces granulatus
+					</name>
+					<id>
+						519963
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Histoplasma mississippiense  nom. inval.
+							</name>
+							<id>
+								unknown_3
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Histoplasma capsulatum G186AR
+							</name>
+							<id>
+								447093
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Blastomyces silverae
+							</name>
+							<id>
+								2060906
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Blastomyces parvus
+							</name>
+							<id>
+								2060905
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Blastomyces dermatitidis ATCC 26199
+								</name>
+								<id>
+									447095
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Blastomyces dermatitidis ER-3
+								</name>
+								<id>
+									559297
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Blastomyces percursus
+							</name>
+							<id>
+								1658174
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Blastomyces gilchristii SLH14081
+							</name>
+							<id>
+								559298
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Emergomyces africanus
+							</name>
+							<id>
+								unknown_4
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Emergomyces pasteurianus Ep9510
+							</name>
+							<id>
+								1447872
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Emmonsia crescens
+						</name>
+						<id>
+							73230
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Helicocarpus griseus UAMH5409
+						</name>
+						<id>
+							1447875
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Coccidioides immitis RS
+							</name>
+							<id>
+								246410
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Coccidioides posadasii C735 delta SOWgp
+							</name>
+							<id>
+								222929
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Ophidiomyces ophidiicola
+						</name>
+						<id>
+							unknown_5
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Uncinocarpus reesii 1704
+						</name>
+						<id>
+							336963
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Trichophyton rubrum CBS 118892
+								</name>
+								<id>
+									559305
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Trichophyton verrucosum HKI 0517
+							</name>
+							<id>
+								663202
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Trichophyton tonsurans CBS 112818
+							</name>
+							<id>
+								647933
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Trichophyton benhamiae CBS 112371
+							</name>
+							<id>
+								663331
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Arthroderma uncinatum
+						</name>
+						<id>
+							74035
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Nannizzia gypsea CBS 118893
+						</name>
+						<id>
+							535722
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Microsporum canis CBS 113480
+						</name>
+						<id>
+							554155
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Paracoccidioides brasiliensis Pb18
+								</name>
+								<id>
+									502780
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Paracoccidioides lutzii Pb01
+							</name>
+							<id>
+								502779
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Polytolypa hystricis UAMH7299
+						</name>
+						<id>
+							1447883
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Ascosphaera apis ARSEF 7405
+					</name>
+					<id>
+						392613
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Exophiala sideris
+							</name>
+							<id>
+								1016849
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Exophiala xenobiotica
+							</name>
+							<id>
+								348802
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Exophiala oligosperma
+							</name>
+							<id>
+								215243
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Exophiala spinifera
+							</name>
+							<id>
+								91928
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Exophiala mesophila
+							</name>
+							<id>
+								212818
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Exophiala aquamarina CBS 119918
+							</name>
+							<id>
+								1182545
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Cladophialophora immunda
+							</name>
+							<id>
+								569365
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cladophialophora bantiana CBS 173.52
+							</name>
+							<id>
+								1442370
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cladophialophora carrionii CBS 160.54
+							</name>
+							<id>
+								1279043
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cladophialophora psammophila CBS 110553
+							</name>
+							<id>
+								1182543
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cladophialophora yegresii CBS 114405
+							</name>
+							<id>
+								1182544
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Fonsecaea monophora
+							</name>
+							<id>
+								254056
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Fonsecaea nubica
+							</name>
+							<id>
+								856822
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Fonsecaea erecta
+							</name>
+							<id>
+								1367422
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Fonsecaea pedrosoi CBS 271.37
+							</name>
+							<id>
+								1442368
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Fonsecaea multimorphosa CBS 102226
+							</name>
+							<id>
+								1442371
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Phialophora attinorum
+							</name>
+							<id>
+								1664694
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Phialophora americana
+							</name>
+							<id>
+								5601
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Capronia coronata CBS 617.96
+							</name>
+							<id>
+								1182541
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Capronia epimyces CBS 606.96
+							</name>
+							<id>
+								1182542
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Rhinocladiella mackenziei CBS 650.93
+						</name>
+						<id>
+							1442369
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Cyphellophora europaea CBS 101466
+					</name>
+					<id>
+						1220924
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Phaeomoniella chlamydospora
+				</name>
+				<id>
+					158046
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Endocarpon pusillum Z07020
+				</name>
+				<id>
+					1263415
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Eurotiomycetes, 149 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

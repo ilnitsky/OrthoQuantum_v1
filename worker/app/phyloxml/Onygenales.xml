@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Coccidioides immitis RS
+					</name>
+					<id>
+						246410
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Coccidioides posadasii C735 delta SOWgp
+					</name>
+					<id>
+						222929
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Ophidiomyces ophidiicola
+				</name>
+				<id>
+					unknown_0
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Uncinocarpus reesii 1704
+				</name>
+				<id>
+					336963
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Histoplasma mississippiense  nom. inval.
+					</name>
+					<id>
+						unknown_1
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Histoplasma capsulatum G186AR
+					</name>
+					<id>
+						447093
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Blastomyces percursus
+					</name>
+					<id>
+						1658174
+					</id>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Blastomyces dermatitidis ER-3
+						</name>
+						<id>
+							559297
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Blastomyces dermatitidis ATCC 26199
+						</name>
+						<id>
+							447095
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Blastomyces parvus
+					</name>
+					<id>
+						2060905
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Blastomyces silverae
+					</name>
+					<id>
+						2060906
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Blastomyces gilchristii SLH14081
+					</name>
+					<id>
+						559298
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Emergomyces africanus
+					</name>
+					<id>
+						unknown_2
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Emergomyces pasteurianus Ep9510
+					</name>
+					<id>
+						1447872
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Emmonsia crescens
+				</name>
+				<id>
+					73230
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Helicocarpus griseus UAMH5409
+				</name>
+				<id>
+					1447875
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Paracoccidioides brasiliensis Pb18
+						</name>
+						<id>
+							502780
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Paracoccidioides lutzii Pb01
+					</name>
+					<id>
+						502779
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Polytolypa hystricis UAMH7299
+				</name>
+				<id>
+					1447883
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Trichophyton rubrum CBS 118892
+						</name>
+						<id>
+							559305
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Trichophyton verrucosum HKI 0517
+					</name>
+					<id>
+						663202
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Trichophyton benhamiae CBS 112371
+					</name>
+					<id>
+						663331
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Trichophyton tonsurans CBS 112818
+					</name>
+					<id>
+						647933
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Arthroderma uncinatum
+				</name>
+				<id>
+					74035
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Nannizzia gypsea CBS 118893
+				</name>
+				<id>
+					535722
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Microsporum canis CBS 113480
+				</name>
+				<id>
+					554155
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Ascosphaera apis ARSEF 7405
+			</name>
+			<id>
+				392613
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Onygenales, 27 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<name>
+					Trypanosoma conorhini
+				</name>
+				<id>
+					83891
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Trypanosoma theileri
+				</name>
+				<id>
+					67003
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Trypanosoma grayi
+				</name>
+				<id>
+					71804
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Trypanosoma cruzi marinkellei
+				</name>
+				<id>
+					85056
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Trypanosoma cruzi strain CL Brener
+				</name>
+				<id>
+					353153
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Trypanosoma cruzi cruzi
+				</name>
+				<id>
+					85057
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Trypanosoma rangeli SC58
+				</name>
+				<id>
+					429131
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Trypanosoma brucei gambiense DAL972
+				</name>
+				<id>
+					679716
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Trypanosoma brucei brucei TREU927
+				</name>
+				<id>
+					185431
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Trypanosoma vivax Y486
+			</name>
+			<id>
+				1055687
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Trypanosoma congolense IL3000
+			</name>
+			<id>
+				1068625
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Trypanosoma, 11 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Pisolithus tinctorius Marx 270
+					</name>
+					<id>
+						870435
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Pisolithus microcarpus 441
+					</name>
+					<id>
+						765257
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Scleroderma citrinum Foug A
+				</name>
+				<id>
+					1036808
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Serpula lacrymans var. lacrymans S7.9
+					</name>
+					<id>
+						578457
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Serpula lacrymans var. lacrymans S7.3
+					</name>
+					<id>
+						936435
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Coniophora puteana RWD-64-598 SS2
+				</name>
+				<id>
+					741705
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Suillus clintonianus
+					</name>
+					<id>
+						1904413
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus bovinus
+					</name>
+					<id>
+						48563
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus paluster
+					</name>
+					<id>
+						48578
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus subalutaceus
+					</name>
+					<id>
+						48586
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus subaureus
+					</name>
+					<id>
+						48587
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus discolor
+					</name>
+					<id>
+						1912936
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus fuscotomentosus
+					</name>
+					<id>
+						1912939
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus plorans
+					</name>
+					<id>
+						116603
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Suillus luteus UH-Slu-Lm8-n1
+					</name>
+					<id>
+						930992
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Rhizopogon vesiculosus
+					</name>
+					<id>
+						180088
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Rhizopogon vinicolor AM-OR11-026
+					</name>
+					<id>
+						1314800
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Paxillus rubicundulus Ve08.2h10
+					</name>
+					<id>
+						930991
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Paxillus involutus ATCC 200175
+					</name>
+					<id>
+						664439
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Hydnomerulius pinastri MD-312
+				</name>
+				<id>
+					994086
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Boletales, 20 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

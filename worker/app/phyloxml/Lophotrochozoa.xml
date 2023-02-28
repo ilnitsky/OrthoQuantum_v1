@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Aplysia californica
+						</name>
+						<id>
+							6500
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Biomphalaria glabrata
+						</name>
+						<id>
+							6526
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Haliotis rubra
+						</name>
+						<id>
+							36100
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Haliotis rufescens
+						</name>
+						<id>
+							6454
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Lottia gigantea
+					</name>
+					<id>
+						225164
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Gigantopelta aegis
+					</name>
+					<id>
+						1735272
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Pomacea canaliculata
+					</name>
+					<id>
+						400727
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Crassostrea virginica
+								</name>
+								<id>
+									6565
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Crassostrea gigas
+								</name>
+								<id>
+									29159
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Ostrea edulis
+							</name>
+							<id>
+								37623
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Mizuhopecten yessoensis
+							</name>
+							<id>
+								6573
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Pecten maximus
+							</name>
+							<id>
+								6579
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Mercenaria mercenaria
+					</name>
+					<id>
+						6596
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Octopus bimaculoides
+					</name>
+					<id>
+						37653
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Octopus sinensis
+					</name>
+					<id>
+						2607531
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Schistosoma mansoni
+						</name>
+						<id>
+							6183
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Schistosoma haematobium
+						</name>
+						<id>
+							6185
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Opisthorchis viverrini
+					</name>
+					<id>
+						6198
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Echinococcus granulosus
+				</name>
+				<id>
+					6210
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Helobdella robusta
+			</name>
+			<id>
+				6412
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Lingula anatina
+			</name>
+			<id>
+				7574
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Lophotrochozoa, 21 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

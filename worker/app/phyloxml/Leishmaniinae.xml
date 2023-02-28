@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<name>
+					Leptomonas pyrrhocoris
+				</name>
+				<id>
+					157538
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Leptomonas seymouri
+				</name>
+				<id>
+					5684
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Leishmania donovani
+						</name>
+						<id>
+							5661
+						</id>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Leishmania infantum JPCM5
+							</name>
+							<id>
+								435258
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Leishmania aethiopica L147
+					</name>
+					<id>
+						1206056
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Leishmania major strain Friedlin
+					</name>
+					<id>
+						347515
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Leishmania turanica
+				</name>
+				<id>
+					62297
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Leishmania tarentolae
+				</name>
+				<id>
+					5689
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Leishmania sp. MAR LEM2494
+				</name>
+				<id>
+					1303197
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Leishmania enriettii
+				</name>
+				<id>
+					5663
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Leishmania panamensis
+				</name>
+				<id>
+					5679
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Endotrypanum monterogeii
+			</name>
+			<id>
+				5705
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Crithidia fasciculata
+			</name>
+			<id>
+				5656
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Leishmaniinae, 13 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

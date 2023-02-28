@@ -1,0 +1,2807 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Campodea augens
+							</name>
+							<id>
+								438502
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Catajapyx aquilonaris
+							</name>
+							<id>
+								438503
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Orchesella cincta
+							</name>
+							<id>
+								48709
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Folsomia candida
+							</name>
+							<id>
+								158441
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Aedes aegypti
+															</name>
+															<id>
+																7159
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Aedes albopictus
+															</name>
+															<id>
+																7160
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Culex quinquefasciatus
+															</name>
+															<id>
+																7176
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Culex pipiens pallens
+															</name>
+															<id>
+																42434
+															</id>
+														</clade>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<clade>
+																<name>
+																	Anopheles farauti
+																</name>
+																<id>
+																	69004
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Anopheles dirus
+																</name>
+																<id>
+																	7168
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<clade>
+																	<name>
+																		Anopheles arabiensis
+																	</name>
+																	<id>
+																		7173
+																	</id>
+																</clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Anopheles gambiae str. PEST
+																		</name>
+																		<id>
+																			180454
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<name>
+																		Anopheles merus
+																	</name>
+																	<id>
+																		30066
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Anopheles coluzzii
+																	</name>
+																	<id>
+																		1518534
+																	</id>
+																</clade>
+															</clade>
+															<clade>
+																<name>
+																	Anopheles christyi
+																</name>
+																<id>
+																	43041
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Anopheles epiroticus
+																</name>
+																<id>
+																	199890
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<name>
+																	Anopheles stephensi
+																</name>
+																<id>
+																	30069
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Anopheles maculatus
+																</name>
+																<id>
+																	74869
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<name>
+																	Anopheles funestus
+																</name>
+																<id>
+																	62324
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Anopheles culicifacies
+																</name>
+																<id>
+																	139723
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Anopheles minimus
+																</name>
+																<id>
+																	112268
+																</id>
+															</clade>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Anopheles sinensis
+															</name>
+															<id>
+																74873
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Anopheles atroparvus
+															</name>
+															<id>
+																41427
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Anopheles albimanus
+															</name>
+															<id>
+																7167
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Anopheles darlingi
+															</name>
+															<id>
+																43151
+															</id>
+														</clade>
+													</clade>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<name>
+															Belgica antarctica
+														</name>
+														<id>
+															315563
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Clunio marinus
+														</name>
+														<id>
+															568069
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Polypedilum nubifer
+														</name>
+														<id>
+															54969
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Polypedilum vanderplanki
+														</name>
+														<id>
+															319348
+														</id>
+													</clade>
+												</clade>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<clade>
+													<name>
+														Contarinia nasturtii
+													</name>
+													<id>
+														265458
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Mayetiola destructor
+													</name>
+													<id>
+														39758
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<name>
+													Bradysia coprophila
+												</name>
+												<id>
+													38358
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<name>
+													Lutzomyia longipalpis
+												</name>
+												<id>
+													7200
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Phlebotomus papatasi
+												</name>
+												<id>
+													29031
+												</id>
+											</clade>
+										</clade>
+									</clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Bactrocera latifrons
+																		</name>
+																		<id>
+																			174628
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Bactrocera tryoni
+																		</name>
+																		<id>
+																			59916
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Bactrocera dorsalis
+																		</name>
+																		<id>
+																			27457
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<name>
+																		Bactrocera oleae
+																	</name>
+																	<id>
+																		104688
+																	</id>
+																</clade>
+															</clade>
+															<clade>
+																<name>
+																	Zeugodacus cucurbitae
+																</name>
+																<id>
+																	28588
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<name>
+																Ceratitis capitata
+															</name>
+															<id>
+																7213
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Rhagoletis pomonella
+															</name>
+															<id>
+																28610
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Rhagoletis zephyria
+															</name>
+															<id>
+																28612
+															</id>
+														</clade>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila bipectinata
+																		</name>
+																		<id>
+																			42026
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila ananassae
+																		</name>
+																		<id>
+																			7217
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila erecta
+																		</name>
+																		<id>
+																			7220
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila melanogaster
+																		</name>
+																		<id>
+																			7227
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila mauritiana
+																		</name>
+																		<id>
+																			7226
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila simulans
+																		</name>
+																		<id>
+																			7240
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila teissieri
+																		</name>
+																		<id>
+																			7243
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila yakuba
+																		</name>
+																		<id>
+																			7245
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila santomea
+																		</name>
+																		<id>
+																			129105
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila sechellia
+																		</name>
+																		<id>
+																			7238
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila kikkawai
+																		</name>
+																		<id>
+																			30033
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila serrata
+																		</name>
+																		<id>
+																			7274
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila subpulchrella
+																		</name>
+																		<id>
+																			1486046
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila suzukii
+																		</name>
+																		<id>
+																			28584
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila biarmipes
+																		</name>
+																		<id>
+																			125945
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<name>
+																		Drosophila rhopaloa
+																	</name>
+																	<id>
+																		1041015
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Drosophila elegans
+																	</name>
+																	<id>
+																		30023
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Drosophila ficusphila
+																	</name>
+																	<id>
+																		30025
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Drosophila eugracilis
+																	</name>
+																	<id>
+																		29029
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Drosophila takahashii
+																	</name>
+																	<id>
+																		29030
+																	</id>
+																</clade>
+															</clade>
+															<clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila miranda
+																		</name>
+																		<id>
+																			7229
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila pseudoobscura
+																		</name>
+																		<id>
+																			7237
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila persimilis
+																		</name>
+																		<id>
+																			7234
+																		</id>
+																	</clade>
+																</clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila subobscura
+																		</name>
+																		<id>
+																			7241
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila guanche
+																		</name>
+																		<id>
+																			7266
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila obscura
+																		</name>
+																		<id>
+																			7282
+																		</id>
+																	</clade>
+																</clade>
+															</clade>
+															<clade>
+																<name>
+																	Drosophila willistoni
+																</name>
+																<id>
+																	7260
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<clade>
+																	<name>
+																		Drosophila hydei
+																	</name>
+																	<id>
+																		7224
+																	</id>
+																</clade>
+																<clade>
+																	<clade>
+																		<name>
+																			Drosophila mojavensis
+																		</name>
+																		<id>
+																			7230
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila navojoa
+																		</name>
+																		<id>
+																			7232
+																		</id>
+																	</clade>
+																	<clade>
+																		<name>
+																			Drosophila arizonae
+																		</name>
+																		<id>
+																			7263
+																		</id>
+																	</clade>
+																</clade>
+															</clade>
+															<clade>
+																<clade>
+																	<name>
+																		Drosophila virilis
+																	</name>
+																	<id>
+																		7244
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Drosophila novamexicana
+																	</name>
+																	<id>
+																		47314
+																	</id>
+																</clade>
+															</clade>
+															<clade>
+																<name>
+																	Drosophila innubila
+																</name>
+																<id>
+																	198719
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Drosophila albomicans
+																</name>
+																<id>
+																	7291
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<name>
+																Drosophila busckii
+															</name>
+															<id>
+																30019
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Drosophila grimshawi
+															</name>
+															<id>
+																7222
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Scaptodrosophila lebanonensis
+														</name>
+														<id>
+															7225
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Teleopsis dalmanni
+													</name>
+													<id>
+														139649
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Glossina morsitans
+															</name>
+															<id>
+																7394
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Glossina austeni
+															</name>
+															<id>
+																7395
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Glossina fuscipes
+															</name>
+															<id>
+																7396
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Glossina palpalis
+															</name>
+															<id>
+																7397
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Glossina brevipalpis
+														</name>
+														<id>
+															37001
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Stomoxys calcitrans
+														</name>
+														<id>
+															35570
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Musca domestica
+														</name>
+														<id>
+															7370
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Lucilia cuprina
+														</name>
+														<id>
+															7375
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Lucilia sericata
+														</name>
+														<id>
+															13632
+														</id>
+													</clade>
+												</clade>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Hermetia illucens
+											</name>
+											<id>
+												343691
+											</id>
+										</clade>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Cotesia glomerata
+															</name>
+															<id>
+																32391
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Microplitis demolitor
+															</name>
+															<id>
+																69319
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Diachasma alloeum
+															</name>
+															<id>
+																454923
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Fopius arisanus
+															</name>
+															<id>
+																64838
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Chelonus insularis
+														</name>
+														<id>
+															460826
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Aphidius gifuensis
+														</name>
+														<id>
+															684658
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Macrocentrus cingulum
+														</name>
+														<id>
+															535359
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Venturia canescens
+													</name>
+													<id>
+														32260
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<name>
+														Trichogramma pretiosum
+													</name>
+													<id>
+														7493
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Nasonia vitripennis
+													</name>
+													<id>
+														7425
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Copidosoma floridanum
+													</name>
+													<id>
+														29053
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Ceratosolen solmsi marchali
+													</name>
+													<id>
+														326594
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<name>
+													Leptopilina heterotoma
+												</name>
+												<id>
+													63436
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<clade>
+																<name>
+																	Melipona quadrifasciata
+																</name>
+																<id>
+																	166423
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Frieseomelitta varia
+																</name>
+																<id>
+																	561572
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<name>
+																	Eufriesea mexicana
+																</name>
+																<id>
+																	516756
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Euglossa dilemma
+																</name>
+																<id>
+																	1507135
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<clade>
+																	<name>
+																		Bombus impatiens
+																	</name>
+																	<id>
+																		132113
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Bombus bifarius
+																	</name>
+																	<id>
+																		103933
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Bombus vosnesenskii
+																	</name>
+																	<id>
+																		207650
+																	</id>
+																</clade>
+																<clade>
+																	<name>
+																		Bombus vancouverensis nearcticus
+																	</name>
+																	<id>
+																		2705178
+																	</id>
+																</clade>
+															</clade>
+															<clade>
+																<name>
+																	Bombus pyrosoma
+																</name>
+																<id>
+																	396416
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Bombus terrestris
+																</name>
+																<id>
+																	30195
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<name>
+																	Apis laboriosa
+																</name>
+																<id>
+																	183418
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Apis florea
+																</name>
+																<id>
+																	7463
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Apis mellifera
+																</name>
+																<id>
+																	7460
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Apis cerana
+																</name>
+																<id>
+																	7461
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Apis dorsata
+																</name>
+																<id>
+																	7462
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<name>
+																Habropoda laboriosa
+															</name>
+															<id>
+																597456
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Ceratina calcarata
+														</name>
+														<id>
+															156304
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Megalopta genalis
+															</name>
+															<id>
+																115081
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Lasioglossum albipes
+															</name>
+															<id>
+																88501
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Dufourea novaeangliae
+														</name>
+														<id>
+															178035
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Nomia melanderi
+														</name>
+														<id>
+															2448451
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Osmia lignaria
+															</name>
+															<id>
+																473952
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Osmia bicornis bicornis
+															</name>
+															<id>
+																1437191
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Megachile rotundata
+														</name>
+														<id>
+															143995
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Colletes gigas
+													</name>
+													<id>
+														935657
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Vespa velutina
+															</name>
+															<id>
+																202808
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Vespa crabro
+															</name>
+															<id>
+																7445
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Vespa mandarinia
+															</name>
+															<id>
+																7446
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Vespula pensylvanica
+														</name>
+														<id>
+															30213
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Polistes canadensis
+														</name>
+														<id>
+															91411
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Polistes fuscatus
+														</name>
+														<id>
+															30207
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Polistes dominula
+														</name>
+														<id>
+															743375
+														</id>
+													</clade>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Nylanderia fulva
+															</name>
+															<id>
+																613905
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Lasius niger
+															</name>
+															<id>
+																67767
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Formica exsecta
+														</name>
+														<id>
+															72781
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Camponotus floridanus
+														</name>
+														<id>
+															104421
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Temnothorax curvispinosus
+															</name>
+															<id>
+																300111
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Cardiocondyla obscurior
+															</name>
+															<id>
+																286306
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<clade>
+																<name>
+																	Atta colombica
+																</name>
+																<id>
+																	520822
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Atta cephalotes
+																</name>
+																<id>
+																	12957
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<clade>
+																<name>
+																	Trachymyrmex cornetzi
+																</name>
+																<id>
+																	471704
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Trachymyrmex zeteki
+																</name>
+																<id>
+																	64791
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Trachymyrmex septentrionalis
+																</name>
+																<id>
+																	34720
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<name>
+																Cyphomyrmex costatus
+															</name>
+															<id>
+																456900
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Acromyrmex echinatior
+															</name>
+															<id>
+																103372
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Solenopsis invicta
+															</name>
+															<id>
+																13686
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Monomorium pharaonis
+															</name>
+															<id>
+																307658
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Vollenhovia emeryi
+														</name>
+														<id>
+															411798
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Pogonomyrmex barbatus
+														</name>
+														<id>
+															144034
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Wasmannia auropunctata
+														</name>
+														<id>
+															64793
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Dinoponera quadriceps
+														</name>
+														<id>
+															609295
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Harpegnathos saltator
+														</name>
+														<id>
+															610380
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Odontomachus brunneus
+														</name>
+														<id>
+															486640
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Linepithema humile
+													</name>
+													<id>
+														83485
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Pseudomyrmex gracilis
+													</name>
+													<id>
+														219809
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Ooceraea biroi
+													</name>
+													<id>
+														2015173
+													</id>
+												</clade>
+											</clade>
+										</clade>
+									</clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<name>
+														Neodiprion lecontei
+													</name>
+													<id>
+														441921
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Neodiprion virginianus
+													</name>
+													<id>
+														unknown_0
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Neodiprion pinetum
+													</name>
+													<id>
+														441929
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<name>
+													Diprion similis
+												</name>
+												<id>
+													362088
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Athalia rosae
+											</name>
+											<id>
+												37344
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Orussus abietinus
+										</name>
+										<id>
+											222816
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Cephus cinctus
+										</name>
+										<id>
+											211228
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<clade>
+																<name>
+																	Vanessa cardui
+																</name>
+																<id>
+																	171605
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Vanessa tameamea
+																</name>
+																<id>
+																	334116
+																</id>
+															</clade>
+															<clade>
+																<name>
+																	Vanessa atalanta
+																</name>
+																<id>
+																	42275
+																</id>
+															</clade>
+														</clade>
+														<clade>
+															<name>
+																Melitaea cinxia
+															</name>
+															<id>
+																113334
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Bicyclus anynana
+															</name>
+															<id>
+																110368
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Pararge aegeria
+															</name>
+															<id>
+																116150
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Maniola jurtina
+															</name>
+															<id>
+																191418
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Heliconius melpomene
+															</name>
+															<id>
+																34740
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Heliconius erato lativitta
+															</name>
+															<id>
+																246812
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Danaus plexippus plexippus
+															</name>
+															<id>
+																278856
+															</id>
+														</clade>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Colias croceus
+															</name>
+															<id>
+																72248
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Zerene cesonia
+															</name>
+															<id>
+																33412
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Pieris napi
+															</name>
+															<id>
+																78633
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Pieris rapae
+															</name>
+															<id>
+																64459
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Pieris brassicae
+															</name>
+															<id>
+																7116
+															</id>
+														</clade>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Aricia agestis
+													</name>
+													<id>
+														91739
+													</id>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Papilio xuthus
+														</name>
+														<id>
+															66420
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Papilio polytes
+														</name>
+														<id>
+															76194
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Papilio machaon
+														</name>
+														<id>
+															76193
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Papilio glaucus
+														</name>
+														<id>
+															45779
+														</id>
+													</clade>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<name>
+															Chilo suppressalis
+														</name>
+														<id>
+															168631
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Ostrinia furnacalis
+														</name>
+														<id>
+															93504
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Amyelois transitella
+														</name>
+														<id>
+															680683
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Galleria mellonella
+														</name>
+														<id>
+															7137
+														</id>
+													</clade>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<name>
+															Bombyx mori
+														</name>
+														<id>
+															7091
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Bombyx mandarina
+														</name>
+														<id>
+															7092
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Manduca sexta
+													</name>
+													<id>
+														7130
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<clade>
+														<name>
+															Spodoptera litura
+														</name>
+														<id>
+															69820
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Spodoptera frugiperda
+														</name>
+														<id>
+															7108
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<name>
+															Helicoverpa armigera
+														</name>
+														<id>
+															29058
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Helicoverpa zea
+														</name>
+														<id>
+															7113
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<name>
+														Trichoplusia ni
+													</name>
+													<id>
+														7111
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<name>
+													Operophtera brumata
+												</name>
+												<id>
+													104452
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Plutella xylostella
+											</name>
+											<id>
+												51655
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Hyposmocoma kahamanoa
+											</name>
+											<id>
+												1477025
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Leguminivora glycinivorella
+											</name>
+											<id>
+												1035111
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Limnephilus lunatus
+										</name>
+										<id>
+											1218281
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<name>
+														Leptinotarsa decemlineata
+													</name>
+													<id>
+														7539
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Diabrotica virgifera virgifera
+													</name>
+													<id>
+														50390
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<name>
+													Anoplophora glabripennis
+												</name>
+												<id>
+													217634
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<name>
+													Dendroctonus ponderosae
+												</name>
+												<id>
+													77166
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Sitophilus oryzae
+												</name>
+												<id>
+													7048
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<name>
+													Harmonia axyridis
+												</name>
+												<id>
+													115357
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Coccinella septempunctata
+												</name>
+												<id>
+													41139
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<name>
+													Tribolium castaneum
+												</name>
+												<id>
+													7070
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Tribolium madens
+												</name>
+												<id>
+													41895
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Aethina tumida
+											</name>
+											<id>
+												116153
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<clade>
+											<name>
+												Agrilus planipennis
+											</name>
+											<id>
+												224129
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Photinus pyralis
+											</name>
+											<id>
+												7054
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<clade>
+											<name>
+												Oryctes borbonicus
+											</name>
+											<id>
+												1629725
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Onthophagus taurus
+											</name>
+											<id>
+												166361
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Nicrophorus vespilloides
+										</name>
+										<id>
+											110193
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Mengenilla moldrzyki
+									</name>
+									<id>
+										1155016
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Chrysoperla carnea
+									</name>
+									<id>
+										189513
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Ctenocephalides felis
+									</name>
+									<id>
+										7515
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<clade>
+												<name>
+													Pachypsylla venusta
+												</name>
+												<id>
+													38123
+												</id>
+											</clade>
+											<clade>
+												<name>
+													Diaphorina citri
+												</name>
+												<id>
+													121845
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Myzus cerasi
+															</name>
+															<id>
+																93721
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Myzus persicae
+															</name>
+															<id>
+																13164
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Diuraphis noxia
+														</name>
+														<id>
+															143948
+														</id>
+													</clade>
+													<clade>
+														<name>
+															Acyrthosiphon pisum
+														</name>
+														<id>
+															7029
+														</id>
+													</clade>
+												</clade>
+												<clade>
+													<clade>
+														<clade>
+															<name>
+																Rhopalosiphum maidis
+															</name>
+															<id>
+																43146
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Rhopalosiphum padi
+															</name>
+															<id>
+																40932
+															</id>
+														</clade>
+													</clade>
+													<clade>
+														<name>
+															Melanaphis sacchari
+														</name>
+														<id>
+															742174
+														</id>
+													</clade>
+													<clade>
+														<clade>
+															<name>
+																Aphis glycines
+															</name>
+															<id>
+																307491
+															</id>
+														</clade>
+														<clade>
+															<name>
+																Aphis gossypii
+															</name>
+															<id>
+																80765
+															</id>
+														</clade>
+													</clade>
+												</clade>
+											</clade>
+											<clade>
+												<name>
+													Sipha flava
+												</name>
+												<id>
+													143950
+												</id>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Bemisia tabaci
+											</name>
+											<id>
+												7038
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<clade>
+											<name>
+												Nilaparvata lugens
+											</name>
+											<id>
+												108931
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Homalodisca vitripennis
+											</name>
+											<id>
+												197043
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<clade>
+											<clade>
+												<clade>
+													<name>
+														Oncopeltus fasciatus
+													</name>
+													<id>
+														7536
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Halyomorpha halys
+													</name>
+													<id>
+														286706
+													</id>
+												</clade>
+											</clade>
+											<clade>
+												<clade>
+													<name>
+														Cimex lectularius
+													</name>
+													<id>
+														79782
+													</id>
+												</clade>
+												<clade>
+													<name>
+														Rhodnius prolixus
+													</name>
+													<id>
+														13249
+													</id>
+												</clade>
+											</clade>
+										</clade>
+										<clade>
+											<name>
+												Gerris buenoi
+											</name>
+											<id>
+												56086
+											</id>
+										</clade>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<name>
+											Thrips palmi
+										</name>
+										<id>
+											161013
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Frankliniella occidentalis
+										</name>
+										<id>
+											133901
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<name>
+											Pediculus humanus corporis
+										</name>
+										<id>
+											121224
+										</id>
+									</clade>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<name>
+												Cryptotermes secundus
+											</name>
+											<id>
+												105785
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Zootermopsis nevadensis
+											</name>
+											<id>
+												136037
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Blattella germanica
+										</name>
+										<id>
+											6973
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Galloisiana yuasai
+									</name>
+									<id>
+										378494
+									</id>
+								</clade>
+								<clade>
+									<clade>
+										<clade>
+											<name>
+												Schistocerca piceifrons
+											</name>
+											<id>
+												274613
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Schistocerca americana
+											</name>
+											<id>
+												7009
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Locusta migratoria
+										</name>
+										<id>
+											7004
+										</id>
+									</clade>
+								</clade>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<name>
+											Ischnura elegans
+										</name>
+										<id>
+											197161
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Calopteryx splendens
+										</name>
+										<id>
+											52612
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Ladona fulva
+									</name>
+									<id>
+										123851
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Ephemera danica
+								</name>
+								<id>
+									1049336
+								</id>
+							</clade>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<name>
+												Homarus americanus
+											</name>
+											<id>
+												6706
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Procambarus clarkii
+											</name>
+											<id>
+												6728
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Portunus trituberculatus
+										</name>
+										<id>
+											210409
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<clade>
+										<name>
+											Penaeus monodon
+										</name>
+										<id>
+											6687
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Penaeus vannamei
+										</name>
+										<id>
+											6689
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Penaeus chinensis
+										</name>
+										<id>
+											139456
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Penaeus japonicus
+										</name>
+										<id>
+											27405
+										</id>
+									</clade>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Hyalella azteca
+								</name>
+								<id>
+									294128
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<name>
+										Tigriopus californicus
+									</name>
+									<id>
+										6832
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Lepeophtheirus salmonis
+									</name>
+									<id>
+										72036
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Eurytemora affinis
+								</name>
+								<id>
+									88015
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Pollicipes pollicipes
+								</name>
+								<id>
+									41117
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Amphibalanus amphitrite
+								</name>
+								<id>
+									1232801
+								</id>
+							</clade>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Daphnia pulex
+							</name>
+							<id>
+								6669
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Daphnia pulicaria
+							</name>
+							<id>
+								35523
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Daphnia magna
+							</name>
+							<id>
+								35525
+							</id>
+						</clade>
+					</clade>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Strigamia maritima
+				</name>
+				<id>
+					126957
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<name>
+											Dermatophagoides farinae
+										</name>
+										<id>
+											6954
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Dermatophagoides pteronyssinus
+										</name>
+										<id>
+											6956
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Euroglyphus maynei
+									</name>
+									<id>
+										6958
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Sarcoptes scabiei
+								</name>
+								<id>
+									52283
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Tetranychus urticae
+							</name>
+							<id>
+								32264
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<name>
+											Varroa jacobsoni
+										</name>
+										<id>
+											62625
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Varroa destructor
+										</name>
+										<id>
+											109461
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Tropilaelaps mercedesae
+									</name>
+									<id>
+										418985
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Galendromus occidentalis
+								</name>
+								<id>
+									34638
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<name>
+											Rhipicephalus microplus
+										</name>
+										<id>
+											6941
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Rhipicephalus sanguineus
+										</name>
+										<id>
+											34632
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Dermacentor silvarum
+									</name>
+									<id>
+										543639
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Ixodes scapularis
+								</name>
+								<id>
+									6945
+								</id>
+							</clade>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Stegodyphus mimosarum
+							</name>
+							<id>
+								407821
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Stegodyphus dumicola
+							</name>
+							<id>
+								202533
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Parasteatoda tepidariorum
+						</name>
+						<id>
+							114398
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Centruroides sculpturatus
+					</name>
+					<id>
+						218467
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Limulus polyphemus
+				</name>
+				<id>
+					6850
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Arthropoda, 291 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<name>
+				Penicillium decumbens
+			</name>
+			<id>
+				69771
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium solitum
+			</name>
+			<id>
+				60172
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium nalgiovense
+			</name>
+			<id>
+				60175
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium vulpinum
+			</name>
+			<id>
+				29845
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium flavigenum
+			</name>
+			<id>
+				254877
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium nordicum
+			</name>
+			<id>
+				229535
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium coprophilum
+			</name>
+			<id>
+				36646
+			</id>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Penicillium digitatum PHI26
+				</name>
+				<id>
+					1170229
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Penicillium digitatum Pd1
+				</name>
+				<id>
+					1170230
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Penicillium arizonense
+			</name>
+			<id>
+				1835702
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium freii
+			</name>
+			<id>
+				48697
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium antarcticum
+			</name>
+			<id>
+				416450
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium brasilianum
+			</name>
+			<id>
+				104259
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium expansum
+			</name>
+			<id>
+				27334
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium steckii
+			</name>
+			<id>
+				303698
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium camemberti
+			</name>
+			<id>
+				5075
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium griseofulvum
+			</name>
+			<id>
+				5078
+			</id>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Penicillium roqueforti FM164
+				</name>
+				<id>
+					1365484
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Penicillium subrubescens
+			</name>
+			<id>
+				1316194
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium italicum
+			</name>
+			<id>
+				40296
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium oxalicum 114-2
+			</name>
+			<id>
+				933388
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium occitanis  nom. inval.
+			</name>
+			<id>
+				unknown_0
+			</id>
+		</clade>
+		<clade>
+			<name>
+				Penicillium rubens Wisconsin 54-1255
+			</name>
+			<id>
+				500485
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Penicillium, 23 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

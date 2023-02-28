@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Verticillium longisporum
+					</name>
+					<id>
+						100787
+					</id>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Verticillium dahliae VdLs.17
+						</name>
+						<id>
+							498257
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Verticillium nonalfalfae
+					</name>
+					<id>
+						1051616
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Verticillium alfalfae VaMs.102
+					</name>
+					<id>
+						526221
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Sodiomyces alkalinus F11
+				</name>
+				<id>
+					1314773
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Colletotrichum gloeosporioides Cg-14
+						</name>
+						<id>
+							1237896
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Colletotrichum fructicola Nara gc5
+						</name>
+						<id>
+							1213859
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum siamense
+					</name>
+					<id>
+						690259
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum aenigma
+					</name>
+					<id>
+						1215731
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Colletotrichum simmondsii
+					</name>
+					<id>
+						703756
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum lupini
+					</name>
+					<id>
+						145971
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum salicis
+					</name>
+					<id>
+						1209931
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum scovillei
+					</name>
+					<id>
+						1209932
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum fioriniae PJ7
+					</name>
+					<id>
+						1445577
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Colletotrichum sublineola
+					</name>
+					<id>
+						1173701
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum graminicola M1.001
+					</name>
+					<id>
+						645133
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Colletotrichum incanum
+					</name>
+					<id>
+						1573173
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum spaethianum
+					</name>
+					<id>
+						700344
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colletotrichum tofieldiae
+					</name>
+					<id>
+						708197
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Colletotrichum orchidophilum
+				</name>
+				<id>
+					1209926
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Colletotrichum chlorophyti
+				</name>
+				<id>
+					708187
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Colletotrichum karsti
+				</name>
+				<id>
+					1095194
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Colletotrichum truncatum
+				</name>
+				<id>
+					5467
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Colletotrichum orbiculare MAFF 240422
+				</name>
+				<id>
+					1213857
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Colletotrichum higginsianum IMI 349063
+				</name>
+				<id>
+					759273
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Glomerellales, 25 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Zerene cesonia
+					</name>
+					<id>
+						33412
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Colias croceus
+					</name>
+					<id>
+						72248
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Pieris napi
+					</name>
+					<id>
+						78633
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Pieris rapae
+					</name>
+					<id>
+						64459
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Pieris brassicae
+					</name>
+					<id>
+						7116
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Vanessa atalanta
+						</name>
+						<id>
+							42275
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Vanessa tameamea
+						</name>
+						<id>
+							334116
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Vanessa cardui
+						</name>
+						<id>
+							171605
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Melitaea cinxia
+					</name>
+					<id>
+						113334
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Bicyclus anynana
+					</name>
+					<id>
+						110368
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Pararge aegeria
+					</name>
+					<id>
+						116150
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Maniola jurtina
+					</name>
+					<id>
+						191418
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Heliconius melpomene
+					</name>
+					<id>
+						34740
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Heliconius erato lativitta
+					</name>
+					<id>
+						246812
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Danaus plexippus plexippus
+					</name>
+					<id>
+						278856
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<name>
+					Papilio machaon
+				</name>
+				<id>
+					76193
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Papilio polytes
+				</name>
+				<id>
+					76194
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Papilio xuthus
+				</name>
+				<id>
+					66420
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Papilio glaucus
+				</name>
+				<id>
+					45779
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Aricia agestis
+			</name>
+			<id>
+				91739
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Papilionoidea, 20 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

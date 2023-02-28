@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Eremothecium gossypii ATCC 10895
+						</name>
+						<id>
+							284811
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Eremothecium gossypii FDAG1
+						</name>
+						<id>
+							1034331
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Eremothecium sinecaudum
+					</name>
+					<id>
+						45286
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Ashbya  aceris  nom. inval.
+					</name>
+					<id>
+						unknown_0
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Eremothecium cymbalariae DBVPG#7215
+					</name>
+					<id>
+						931890
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Naumovozyma castellii CBS 4309
+					</name>
+					<id>
+						1064592
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Naumovozyma dairenensis CBS 421
+					</name>
+					<id>
+						1071378
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Tetrapisispora blattae CBS 6284
+					</name>
+					<id>
+						1071380
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Tetrapisispora phaffii CBS 4417
+					</name>
+					<id>
+						1071381
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Kazachstania barnettii
+					</name>
+					<id>
+						61262
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Kazachstania saulgeensis
+					</name>
+					<id>
+						1789683
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Kazachstania naganishii CBS 8797
+					</name>
+					<id>
+						1071383
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Kazachstania africana CBS 2517
+					</name>
+					<id>
+						1071382
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Saccharomyces paradoxus
+					</name>
+					<id>
+						27291
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Saccharomyces eubayanus
+					</name>
+					<id>
+						1080349
+					</id>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Saccharomyces cerevisiae YJM1573
+						</name>
+						<id>
+							1294385
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Saccharomyces cerevisiae S288C
+						</name>
+						<id>
+							559292
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Saccharomyces arboricola H-6
+					</name>
+					<id>
+						1160507
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Kluyveromyces lactis
+					</name>
+					<id>
+						28985
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Kluyveromyces marxianus DMKU3-1042
+					</name>
+					<id>
+						1003335
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Kluyveromyces dobzhanskii CBS 2104
+					</name>
+					<id>
+						1427455
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Lachancea mirantina
+					</name>
+					<id>
+						1230905
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea lanzarotensis
+					</name>
+					<id>
+						1245769
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea quebecensis
+					</name>
+					<id>
+						1654605
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea fermentati
+					</name>
+					<id>
+						4955
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea dasiensis
+					</name>
+					<id>
+						unknown_1
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea thermotolerans CBS 6340
+					</name>
+					<id>
+						559295
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea nothofagi CBS 11611
+					</name>
+					<id>
+						1266666
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea meyersii CBS 8951
+					</name>
+					<id>
+						1266667
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Lachancea sp. CBS 6924
+					</name>
+					<id>
+						433476
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Torulaspora delbrueckii
+					</name>
+					<id>
+						4950
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Torulaspora globosa
+					</name>
+					<id>
+						48254
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Zygosaccharomyces rouxii
+					</name>
+					<id>
+						4956
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Zygosaccharomyces parabailii
+					</name>
+					<id>
+						1365886
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Zygotorulaspora mrakii
+				</name>
+				<id>
+					42260
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Vanderwaltozyma polyspora DSM 70294
+				</name>
+				<id>
+					436907
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Candida  glabrata
+				</name>
+				<id>
+					unknown_2
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<name>
+				Pachysolen tannophilus NRRL Y-2460
+			</name>
+			<id>
+				669874
+			</id>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Saccharomycetaceae, 38 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

@@ -1,0 +1,1179 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<name>
+										Solanum tuberosum
+									</name>
+									<id>
+										4113
+									</id>
+								</clade>
+								<clade>
+									<clade>
+										<name>
+											Solanum pennellii
+										</name>
+										<id>
+											28526
+										</id>
+									</clade>
+									<clade>
+										<name>
+											Solanum lycopersicum
+										</name>
+										<id>
+											4081
+										</id>
+									</clade>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<name>
+										Capsicum annuum
+									</name>
+									<id>
+										4072
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Capsicum chinense
+									</name>
+									<id>
+										80379
+									</id>
+								</clade>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Nicotiana sylvestris
+								</name>
+								<id>
+									4096
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Nicotiana tabacum
+								</name>
+								<id>
+									4097
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Nicotiana tomentosiformis
+								</name>
+								<id>
+									4098
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Nicotiana benthamiana
+								</name>
+								<id>
+									4100
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Nicotiana obtusifolia
+								</name>
+								<id>
+									200316
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Nicotiana attenuata
+								</name>
+								<id>
+									49451
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Petunia axillaris
+							</name>
+							<id>
+								33119
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Ipomoea nil
+							</name>
+							<id>
+								35883
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Ipomoea triloba
+							</name>
+							<id>
+								35885
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Erythranthe guttata
+						</name>
+						<id>
+							4155
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Sesamum indicum
+						</name>
+						<id>
+							4182
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Genlisea aurea
+						</name>
+						<id>
+							192259
+						</id>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Salvia hispanica
+							</name>
+							<id>
+								49212
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Salvia splendens
+							</name>
+							<id>
+								180675
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Handroanthus impetiginosus
+						</name>
+						<id>
+							429701
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Olea europaea var. sylvestris
+						</name>
+						<id>
+							158386
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Dorcoceras hygrometricum
+						</name>
+						<id>
+							472368
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Coffea arabica
+						</name>
+						<id>
+							13443
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Coffea eugenioides
+						</name>
+						<id>
+							49369
+						</id>
+					</clade>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Impatiens glandulifera
+					</name>
+					<id>
+						253017
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Camellia sinensis
+					</name>
+					<id>
+						4442
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Helianthus annuus
+							</name>
+							<id>
+								4232
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Erigeron canadensis
+							</name>
+							<id>
+								72917
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Lactuca sativa
+						</name>
+						<id>
+							4236
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Cynara cardunculus var. scolymus
+						</name>
+						<id>
+							59895
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Daucus carota subsp. sativus
+					</name>
+					<id>
+						79200
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Juglans microcarpa x Juglans regia
+								</name>
+								<id>
+									2249226
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Juglans regia
+								</name>
+								<id>
+									51240
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Carya illinoinensis
+							</name>
+							<id>
+								32201
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Quercus lobata
+							</name>
+							<id>
+								97700
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Quercus suber
+							</name>
+							<id>
+								58331
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Trema orientale
+							</name>
+							<id>
+								63057
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Parasponia andersonii
+							</name>
+							<id>
+								3476
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cannabis sativa
+							</name>
+							<id>
+								3483
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Rosa chinensis
+								</name>
+								<id>
+									74649
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Fragaria vesca subsp. vesca
+								</name>
+								<id>
+									101020
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<name>
+										Malus domestica
+									</name>
+									<id>
+										3750
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Pyrus x bretschneideri
+									</name>
+									<id>
+										225117
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<name>
+										Prunus dulcis
+									</name>
+									<id>
+										3755
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Prunus persica
+									</name>
+									<id>
+										3760
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Prunus mume
+									</name>
+									<id>
+										102107
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Prunus avium
+									</name>
+									<id>
+										42229
+									</id>
+								</clade>
+							</clade>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Morus notabilis
+						</name>
+						<id>
+							981085
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Ziziphus jujuba var. spinosa
+						</name>
+						<id>
+							714518
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Jatropha curcas
+								</name>
+								<id>
+									180498
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Hevea brasiliensis
+								</name>
+								<id>
+									3981
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Manihot esculenta
+								</name>
+								<id>
+									3983
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Ricinus communis
+							</name>
+							<id>
+								3988
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Populus trichocarpa
+							</name>
+							<id>
+								3694
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Populus alba
+							</name>
+							<id>
+								43335
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Populus euphratica
+							</name>
+							<id>
+								75702
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<name>
+												Vigna umbellata
+											</name>
+											<id>
+												87088
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Vigna angularis
+											</name>
+											<id>
+												3914
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Vigna unguiculata
+											</name>
+											<id>
+												3917
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Vigna radiata var. radiata
+											</name>
+											<id>
+												3916
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Cajanus cajan
+										</name>
+										<id>
+											3821
+										</id>
+									</clade>
+									<clade>
+										<clade>
+											<name>
+												Glycine max
+											</name>
+											<id>
+												3847
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Glycine soja
+											</name>
+											<id>
+												3848
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Phaseolus vulgaris
+										</name>
+										<id>
+											3885
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Abrus precatorius
+									</name>
+									<id>
+										3816
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<clade>
+									<clade>
+										<clade>
+											<name>
+												Trifolium pratense
+											</name>
+											<id>
+												57577
+											</id>
+										</clade>
+										<clade>
+											<name>
+												Trifolium subterraneum
+											</name>
+											<id>
+												3900
+											</id>
+										</clade>
+									</clade>
+									<clade>
+										<name>
+											Medicago truncatula
+										</name>
+										<id>
+											3880
+										</id>
+									</clade>
+								</clade>
+								<clade>
+									<name>
+										Cicer arietinum
+									</name>
+									<id>
+										3827
+									</id>
+								</clade>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Arachis hypogaea
+								</name>
+								<id>
+									3818
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Arachis duranensis
+								</name>
+								<id>
+									130453
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Arachis ipaensis
+								</name>
+								<id>
+									130454
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Lupinus angustifolius
+							</name>
+							<id>
+								3871
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Prosopis alba
+						</name>
+						<id>
+							207710
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Cucumis melo
+								</name>
+								<id>
+									3656
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Cucumis sativus
+								</name>
+								<id>
+									3659
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Benincasa hispida
+							</name>
+							<id>
+								102211
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Cucurbita maxima
+							</name>
+							<id>
+								3661
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cucurbita moschata
+							</name>
+							<id>
+								3662
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Cucurbita pepo subsp. pepo
+							</name>
+							<id>
+								3664
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Momordica charantia
+						</name>
+						<id>
+							3673
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Cephalotus follicularis
+					</name>
+					<id>
+						3775
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Tripterygium wilfordii
+					</name>
+					<id>
+						458696
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<clade>
+									<name>
+										Arabidopsis thaliana
+									</name>
+									<id>
+										3702
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Arabidopsis lyrata subsp. lyrata
+									</name>
+									<id>
+										81972
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Camelina sativa
+								</name>
+								<id>
+									90675
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Capsella rubella
+								</name>
+								<id>
+									81985
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<clade>
+								<clade>
+									<name>
+										Brassica napus
+									</name>
+									<id>
+										3708
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Brassica rapa
+									</name>
+									<id>
+										3711
+									</id>
+								</clade>
+								<clade>
+									<name>
+										Brassica oleracea var. oleracea
+									</name>
+									<id>
+										109376
+									</id>
+								</clade>
+							</clade>
+							<clade>
+								<name>
+									Raphanus sativus
+								</name>
+								<id>
+									3726
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Arabis alpina
+							</name>
+							<id>
+								50452
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Eutrema salsugineum
+							</name>
+							<id>
+								72664
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Carica papaya
+						</name>
+						<id>
+							3649
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Tarenaya hassleriana
+						</name>
+						<id>
+							28532
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Mangifera indica
+							</name>
+							<id>
+								29780
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Pistacia vera
+							</name>
+							<id>
+								55513
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Citrus sinensis
+							</name>
+							<id>
+								2711
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Citrus clementina
+							</name>
+							<id>
+								85681
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<name>
+								Eucalyptus grandis
+							</name>
+							<id>
+								71139
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Rhodamnia argentea
+							</name>
+							<id>
+								178133
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Punica granatum
+						</name>
+						<id>
+							22663
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Gossypium arboreum
+								</name>
+								<id>
+									29729
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Gossypium raimondii
+								</name>
+								<id>
+									29730
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Gossypium hirsutum
+								</name>
+								<id>
+									3635
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Hibiscus syriacus
+							</name>
+							<id>
+								106335
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Theobroma cacao
+							</name>
+							<id>
+								3641
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Herrania umbratica
+							</name>
+							<id>
+								108875
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<name>
+								Corchorus olitorius
+							</name>
+							<id>
+								93759
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Corchorus capsularis
+							</name>
+							<id>
+								210143
+							</id>
+						</clade>
+					</clade>
+					<clade>
+						<name>
+							Durio zibethinus
+						</name>
+						<id>
+							66656
+						</id>
+					</clade>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<name>
+						Vitis vinifera
+					</name>
+					<id>
+						29760
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Vitis riparia
+					</name>
+					<id>
+						96939
+					</id>
+				</clade>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Chenopodium quinoa
+					</name>
+					<id>
+						63459
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Spinacia oleracea
+					</name>
+					<id>
+						3562
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Beta vulgaris subsp. vulgaris
+				</name>
+				<id>
+					3555
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Eudicotyledons, 116 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

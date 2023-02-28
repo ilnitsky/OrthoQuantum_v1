@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="ASCII"?>
+<phyloxml xmlns="http://www.phyloxml.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.phyloxml.org http://www.phyloxml.org/1.00/phyloxml.xsd">
+	<phylogeny rooted="true">
+		<clade>
+			<clade>
+				<name>
+					Nilaparvata lugens
+				</name>
+				<id>
+					108931
+				</id>
+			</clade>
+			<clade>
+				<name>
+					Homalodisca vitripennis
+				</name>
+				<id>
+					197043
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<name>
+						Pachypsylla venusta
+					</name>
+					<id>
+						38123
+					</id>
+				</clade>
+				<clade>
+					<name>
+						Diaphorina citri
+					</name>
+					<id>
+						121845
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Rhopalosiphum maidis
+								</name>
+								<id>
+									43146
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Rhopalosiphum padi
+								</name>
+								<id>
+									40932
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Melanaphis sacchari
+							</name>
+							<id>
+								742174
+							</id>
+						</clade>
+						<clade>
+							<clade>
+								<name>
+									Aphis glycines
+								</name>
+								<id>
+									307491
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Aphis gossypii
+								</name>
+								<id>
+									80765
+								</id>
+							</clade>
+						</clade>
+					</clade>
+					<clade>
+						<clade>
+							<clade>
+								<name>
+									Myzus cerasi
+								</name>
+								<id>
+									93721
+								</id>
+							</clade>
+							<clade>
+								<name>
+									Myzus persicae
+								</name>
+								<id>
+									13164
+								</id>
+							</clade>
+						</clade>
+						<clade>
+							<name>
+								Diuraphis noxia
+							</name>
+							<id>
+								143948
+							</id>
+						</clade>
+						<clade>
+							<name>
+								Acyrthosiphon pisum
+							</name>
+							<id>
+								7029
+							</id>
+						</clade>
+					</clade>
+				</clade>
+				<clade>
+					<name>
+						Sipha flava
+					</name>
+					<id>
+						143950
+					</id>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Bemisia tabaci
+				</name>
+				<id>
+					7038
+				</id>
+			</clade>
+		</clade>
+		<clade>
+			<clade>
+				<clade>
+					<clade>
+						<name>
+							Cimex lectularius
+						</name>
+						<id>
+							79782
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Rhodnius prolixus
+						</name>
+						<id>
+							13249
+						</id>
+					</clade>
+				</clade>
+				<clade>
+					<clade>
+						<name>
+							Oncopeltus fasciatus
+						</name>
+						<id>
+							7536
+						</id>
+					</clade>
+					<clade>
+						<name>
+							Halyomorpha halys
+						</name>
+						<id>
+							286706
+						</id>
+					</clade>
+				</clade>
+			</clade>
+			<clade>
+				<name>
+					Gerris buenoi
+				</name>
+				<id>
+					56086
+				</id>
+			</clade>
+		</clade>
+		<name>
+			Phylogenetic tree
+		</name>
+		<description>
+			Hemiptera, 20 species
+		</description>
+	</phylogeny>
+	<taxonomies>
+		<taxonomy code="mam">
+			<color>
+				0x06D6A0
+			</color>
+		</taxonomy>
+		<taxonomy code="nem">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="art">
+			<color>
+				0xEE6C4D
+			</color>
+		</taxonomy>
+		<taxonomy code="pro">
+			<color>
+				0x073B4C
+			</color>
+		</taxonomy>
+		<taxonomy code="act">
+			<color>
+				0x118AB2
+			</color>
+		</taxonomy>
+		<taxonomy code="sau">
+			<color>
+				0xB98B73
+			</color>
+		</taxonomy>
+		<taxonomy code="api">
+			<color>
+				0xCB997E
+			</color>
+		</taxonomy>
+		<taxonomy code="cil">
+			<color>
+				0xDDBEA9
+			</color>
+		</taxonomy>
+		<taxonomy code="str">
+			<color>
+				0x6B705C
+			</color>
+		</taxonomy>
+		<taxonomy code="cni">
+			<color>
+				0xB8F2E6
+			</color>
+		</taxonomy>
+		<taxonomy code="lop">
+			<color>
+				0xAED9E0
+			</color>
+		</taxonomy>
+		<taxonomy code="met">
+			<color>
+				0xB7B7A4
+			</color>
+		</taxonomy>
+		<taxonomy code="amo">
+			<color>
+				0x9C6644
+			</color>
+		</taxonomy>
+		<taxonomy code="bas">
+			<color>
+				0x8342A0
+			</color>
+		</taxonomy>
+		<taxonomy code="asc">
+			<color>
+				0x6C3DBE
+			</color>
+		</taxonomy>
+		<taxonomy code="chl">
+			<color>
+				0x4DEDD5
+			</color>
+		</taxonomy>
+		<taxonomy code="str_0">
+			<color>
+				0x32E875
+			</color>
+		</taxonomy>
+		<taxonomy code="rho">
+			<color>
+				0x006D77
+			</color>
+		</taxonomy>
+		<taxonomy code="dis">
+			<color>
+				0x8D99AE
+			</color>
+		</taxonomy>
+		<taxonomy code="fun">
+			<color>
+				0xB5838D
+			</color>
+		</taxonomy>
+	</taxonomies>
+</phyloxml>

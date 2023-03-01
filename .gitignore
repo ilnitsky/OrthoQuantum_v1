@@ -287,3 +287,5 @@ tabprocessor
 .env
 secrets/
 deploy.sh
+stuff
+.vscode

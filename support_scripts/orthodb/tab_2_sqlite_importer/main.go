@@ -14,6 +14,13 @@ import (
 )
 
 // CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOAMD64=v1 go build -ldflags="-s -w" -trimpath -a
+/*
+./tabprocessor gene_xrefs other/odb11v0_gene_xrefs.tab
+ && ./tabprocessor gene_names odb11v0_genenames_all.tab && ./tabprocessor OG2genes odb11v0_OG2genes.tab
+
+sqlite3 orthodb.db <./scripts/1_uniprot.sql && sqlite3 orthodb.db <./scripts/2_gene_names.sql && sqlite3 orthodb.db <./scripts/3_OG.sql
+*/
+
 const fifo_file = "/tmp/import_data.tab"
 
 func prepare_progress(size int64) *mpb.Bar {

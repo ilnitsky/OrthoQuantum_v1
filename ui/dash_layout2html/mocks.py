@@ -60,7 +60,9 @@ class Base():
             cls.extend(('d-flex', f'justify-content-{j}'))
 
         if cls:
-            self.kwargs['class'] = ' '.join(uniq(cls))
+            res_class = ' '.join(uniq(cls)).strip()
+            if res_class:
+                self.kwargs['class'] = res_class
 
         for name in ('options', 'columns'):
             if o := self.kwargs.pop(name, None):

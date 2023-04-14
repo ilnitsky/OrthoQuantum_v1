@@ -1,0 +1,9 @@
+// Variable overrides
+$web-font-path: false;
+$font-family-sans-serif: sans-serif;
+$table-active-bg: #fcf2ed;
+$tooltip-max-width: 400px;
+
+@import 'bootswatch/dist/united/variables';
+@import 'bootstrap/scss/bootstrap';
+@import 'bootswatch/dist/united/bootswatch';

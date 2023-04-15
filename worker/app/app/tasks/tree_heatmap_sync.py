@@ -90,6 +90,8 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
     ],as_cmap=True)
 
     items_count = df.shape[1]
+    # tweaking values a bit to avoid devision by zero in .corr()
+    df.loc[0, df.std(axis=0)==0] += 0.00001
     corr = df.corr()
     prots_to_exclude = None
 

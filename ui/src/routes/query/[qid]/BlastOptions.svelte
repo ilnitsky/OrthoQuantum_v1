@@ -4,7 +4,6 @@
 	import PercentField from '$lib/components/PercentField.svelte';
 
 	export let blastEnabled: boolean;
-
 </script>
 
 <Collapse id="blast-options" isOpen={blastEnabled}>

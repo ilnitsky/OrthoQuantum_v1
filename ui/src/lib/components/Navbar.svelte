@@ -10,7 +10,6 @@
 	$: if (!isCollapsed) {
 		isOpen = false;
 	}
-
 </script>
 
 <svelte:window bind:innerWidth />
@@ -30,17 +29,16 @@
 		<!-- Hack to prevent invalid animation on load (thanks sveltestrap) -->
 		<div class="d-none d-sm-block">
 			<Collapse isOpen navbar>
-				<NavbarContents/>
+				<NavbarContents />
 			</Collapse>
 		</div>
 		<div class="d-sm-none" style:display="contents">
 			<Collapse {isOpen} navbar>
-				<NavbarContents/>
+				<NavbarContents />
 			</Collapse>
 		</div>
 	</div>
 </nav>
-
 
 <!-- $: showClose = dismissible || toggle;
 $: handleToggle = toggle || (() => (isOpen = false));

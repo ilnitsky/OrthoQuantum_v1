@@ -5,10 +5,10 @@ import type { RequestHandler } from '@sveltejs/kit';
 
 export const GET: RequestHandler = ({ url, request, params }) => {
 	const sseStartTime = url.searchParams.get('sse');
-	if(!sseStartTime || request.headers.get("accept") !== "text/event-stream" || !params.qid){
+	if (!sseStartTime || request.headers.get('accept') !== 'text/event-stream' || !params.qid) {
 		return new Response(null, {
-      status: 500
-    });
+			status: 500
+		});
 	}
 	const lastEventID = request.headers.get('Last-Event-ID');
 
@@ -16,7 +16,7 @@ export const GET: RequestHandler = ({ url, request, params }) => {
 	const clientGonePromise = new Promise<never>((resolve, reject) => {
 		clientGone = reject;
 	});
-	const qid = new ObjectId(params.qid)
+	const qid = new ObjectId(params.qid);
 	const stream = new ReadableStream({
 		async start(controller) {
 			try {
@@ -24,8 +24,8 @@ export const GET: RequestHandler = ({ url, request, params }) => {
 					lastEventID || sseStartTime,
 					controller,
 					clientGonePromise,
-					(startTime)=>getUpdates(qid, startTime),
-					()=>getFullData(qid)
+					(startTime) => getUpdates(qid, startTime),
+					() => getFullData(qid)
 				);
 				await sender.updateLoop(lastEventID === null);
 			} catch {
@@ -46,22 +46,22 @@ export const GET: RequestHandler = ({ url, request, params }) => {
 	});
 };
 
-export const POST: RequestHandler = (async ({request, params}) => {
+export const POST: RequestHandler = async ({ request, params }) => {
 	try {
-		if (!params.qid){
-			throw "Missing qid";
+		if (!params.qid) {
+			throw 'Missing qid';
 		}
 		const req = await request.json();
 		console.log(req);
-		if (req.title === "Cancel"){
-			throw "Invalid title";
+		if (req.title === 'Cancel') {
+			throw 'Invalid title';
 		}
 		await setTitle(params.qid, req.title);
 		return new Response('{"ok":true}');
 	} catch (err) {
 		console.error(err);
 		return new Response('{"ok":false}', {
-      status: 500
-    });
+			status: 500
+		});
 	}
-});
+};

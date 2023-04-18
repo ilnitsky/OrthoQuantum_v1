@@ -9,7 +9,7 @@
 
 	function onValueChange() {
 		if (value !== internalValue) {
-			if (validateNum(value) !== null){
+			if (validateNum(value) !== null) {
 				internalValue = value;
 			}
 			valueInput = value.toString();

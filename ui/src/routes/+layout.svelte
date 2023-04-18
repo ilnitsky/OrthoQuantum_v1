@@ -3,7 +3,6 @@
 	import { Alert, Col, Container, Row } from 'sveltestrap';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import CookieConsent from '$lib/components/CookieConsent.svelte';
-
 </script>
 
 <Navbar />

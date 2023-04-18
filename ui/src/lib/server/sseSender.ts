@@ -1,65 +1,120 @@
-import type { Data, InitData } from "$lib/dbTypes";
-import type { Document, ChangeStream, ChangeStreamDocument } from "mongodb";
+import type { Data, InitData } from '$lib/dbTypes';
+import type { Document, ChangeStream, ChangeStreamDocument, UpdateDescription } from 'mongodb';
 
 export const ClientUninterested = Symbol('ClientUninterested');
 export const Invalidate = Symbol('MongoInvalidate');
 
 const retryTimeoutMs = 300;
 
+function formatChanges(upd: UpdateDescription<Document>) {
+	const paths = upd.disambiguatedPaths || {};
+	const input = [];
+	const output = [];
+	function getPath(path: string): string[] {
+		return paths[path] || path.split('.');
+	}
+	for (const [key, val] of Object.entries(upd.updatedFields || {})) {
+		const path = getPath(key);
+		switch (path.shift()) {
+			case 'input':
+				input.push({ op: 'add', path: path, val: val });
+				break;
+			case 'output':
+				output.push({ op: 'add', path: path, val: val });
+				break;
+		}
+	}
+	for (const item of upd.removedFields || []) {
+		const path = getPath(item);
+		switch (path.shift()) {
+			case 'input':
+				input.push({ op: 'delete', path: path });
+				break;
+			case 'output':
+				output.push({ op: 'delete', path: path });
+				break;
+		}
+	}
+	for (const item of upd.truncatedArrays || []) {
+		const path = getPath(item.field);
+		switch (path.shift()) {
+			case 'input':
+				path.push('length');
+				input.push({ op: 'add', path: path, val: item.newSize });
+				break;
+			case 'output':
+				path.push('length');
+				output.push({ op: 'add', path: path, val: item.newSize });
+				break;
+		}
+	}
+	return { input, output };
+}
+
 export class SSESender<D extends Data> {
 	controller: ReadableStreamDefaultController<unknown>;
 	startTime: string;
 	// reject when client goes out
 	#clientInterested: Promise<never>;
-  #getUpdates: (startTime: string)=>ChangeStream<Document, ChangeStreamDocument<Document>>;
-  #getFullData: ()=>Promise<InitData<D>>;
+	#getUpdates: (startTime: string) => ChangeStream<Document, ChangeStreamDocument<Document>>;
+	#getFullData: () => Promise<InitData<D>>;
 
 	constructor(
 		startTime: string,
 		controller: ReadableStreamDefaultController<unknown>,
 		clientInterested: Promise<never>,
-    getUpdates: (startTime: string)=>ChangeStream<Document, ChangeStreamDocument<Document>>,
-    getFullData: ()=>Promise<InitData<D>>,
+		getUpdates: (startTime: string) => ChangeStream<Document, ChangeStreamDocument<Document>>,
+		getFullData: () => Promise<InitData<D>>
 	) {
 		console.log('SSE from', startTime);
 		this.startTime = startTime;
 		this.controller = controller;
 		this.#clientInterested = clientInterested;
-    this.#getUpdates = getUpdates;
-    this.#getFullData = getFullData;
+		this.#getUpdates = getUpdates;
+		this.#getFullData = getFullData;
 	}
 
 	async updates() {
-		const cursor = this.#getUpdates(this.startTime);
+		let cursor: ChangeStream<Document, ChangeStreamDocument<Document>> | undefined;
 		try {
+			cursor = this.#getUpdates(this.startTime);
 			while (await Promise.race([this.#clientInterested, cursor.hasNext()])) {
 				const doc = await cursor.next();
-				console.log("DB update", doc);
+				console.log('DB update', doc);
 				switch (doc.operationType) {
 					case 'update':
-						if (doc.clusterTime) {
-							this.startTime = doc.clusterTime.add(1).toString();
+						{
+							if (doc.clusterTime) {
+								this.startTime = doc.clusterTime.add(1).toString();
+							}
+							const updates = formatChanges(doc.updateDescription);
+							if (updates.input.length + updates.output.length != 0) {
+								this.controller.enqueue(
+									`id: ${this.startTime}\ndata: ${JSON.stringify(updates)}\n\n`
+								);
+							}
 						}
-						this.controller.enqueue(
-							`id: ${this.startTime}\ndata: ${JSON.stringify(doc.updateDescription)}\n\n`
-						);
 						break;
-          case 'replace':
-            if (doc.clusterTime) {
-							this.startTime = doc.clusterTime.add(1).toString();
+					case 'replace':
+						{
+							if (doc.clusterTime) {
+								this.startTime = doc.clusterTime.add(1).toString();
+							}
+							const update = {
+								input: doc.fullDocument.input,
+								output: doc.fullDocument.output
+							};
+							this.controller.enqueue(
+								`id: ${this.startTime}\nevent: fullData\ndata: ${JSON.stringify(update)}\n\n`
+							);
 						}
-            delete doc.fullDocument["_id"];
-						this.controller.enqueue(
-							`id: ${this.startTime}\nevent: fullData\ndata: ${JSON.stringify(doc.fullDocument)}\n\n`
-						);
 						break;
 					case 'invalidate':
 						throw Invalidate;
 				}
 			}
-		}
-    finally {
-			await cursor.close();
+		} finally {
+			await cursor?.close();
 		}
 	}
 
@@ -100,5 +155,3 @@ export class SSESender<D extends Data> {
 		}
 	}
 }
-
-

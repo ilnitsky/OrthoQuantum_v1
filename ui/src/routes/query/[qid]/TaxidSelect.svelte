@@ -1,57 +1,148 @@
 <script lang="ts">
-	import { keyToStore } from '$lib/sseStore';
 	import Select from 'svelte-select';
+	import type { Species, Taxon } from '$lib/dbTypes';
+	import { keyToStore } from '$lib/valtioUtil';
 	import { getStore } from './store';
 
-	let tax_id = [
-		{ value: 1, label: 'one111' },
-		{ value: 2, label: 'two' },
-		{ value: 3, label: 'three' }
-	];
-	let filterText = '';
-	let items = tax_id;
+	export let taxon: Taxon | undefined;
+	let selectedSpecies: Species['species'][number] | undefined;
+	let speciesCache = new Map<Taxon['id'], Species['species']>();
+	export let initSpecies: Species | undefined;
+	if (initSpecies) {
+		speciesCache.set(initSpecies.taxon_id, initSpecies.species);
+	}
 
+	// init bg fetch for all species to fill speciesCache
+	// TODO: put in localstoreage?
+	fetch('/api/getSpecies')
+		.then((r) => {
+			if (!r.ok) {
+				throw new Error(`Request not ok: ${r.status} ${r.statusText}`);
+			}
+			return r.json();
+		})
+		.then((json) => {
+			if (!json.ok) {
+				throw new Error(`JSON not ok: ${json}`);
+			}
+			const res = json.data as Species[];
+			for (const sp of res) {
+				speciesCache.set(sp.taxon_id, sp.species);
+			}
+		})
+		.catch((err) => {
+			console.error('Failed to get all spicies:', err);
+		});
+
+	let speciesColl: Species['species'] | undefined;
+
+	function updateSpecies(new_taxon?: Taxon) {
+		if (!new_taxon) {
+			speciesColl = undefined;
+			return;
+		}
+		const cached = speciesCache.get(new_taxon.id);
+		if (cached) {
+			speciesColl = cached;
+			return;
+		}
+		// no species array cached - get it from api
+		speciesColl = undefined;
+		fetch('/api/getSpecies?' + new URLSearchParams([['taxon_id', new_taxon.id]]))
+			.then((r) => {
+				if (!r.ok) {
+					throw new Error(`Request not ok: ${r.status} ${r.statusText}`);
+				}
+				return r.json();
+			})
+			.then((json) => {
+				if (!json.ok) {
+					throw new Error(`JSON not ok: ${json}`);
+				}
+				const res = json.data as Species;
+				speciesCache.set(res.taxon_id, res.species);
+				if (new_taxon.id === taxon?.id) {
+					speciesColl = res.species;
+				}
+			})
+			.catch((err) => {
+				console.error('Species get failed:', err);
+			});
+	}
+
+	function onSpeceiesCollUpdate() {
+		// update selectedSpecies when new collection is loaded
+		if (!speciesColl || !selectedSpecies) {
+			return;
+		}
+		const tgt = selectedSpecies?.taxid;
+		selectedSpecies = speciesColl.find((sp) => sp.taxid == tgt);
+	}
+
+	$: updateSpecies(taxon);
+	$: speciesColl, onSpeceiesCollUpdate();
+	$: currentSpeciesColl = speciesColl;
+
+	const store = getStore();
+	keyToStore(store.input, 'species').subscribe((v) => {
+		if (!v) {
+			selectedSpecies = undefined;
+			return;
+		}
+		const sel = speciesColl?.find((it) => it.taxid == v);
+		if (sel) {
+			selectedSpecies = sel;
+			return;
+		}
+		selectedSpecies = {
+			taxid: v,
+			name: 'Loading...'
+		};
+	});
+
+	let filterText = '';
 	// if filterText is a number - generate a matching entry
 	function handleFilter() {
+		if (!currentSpeciesColl || !speciesColl) {
+			return;
+		}
 		const num = parseInt(filterText);
 
-		if (items === tax_id) {
+		if (currentSpeciesColl === speciesColl) {
 			// items was not modified
 			if (Number.isInteger(num)) {
 				// adding extra value to represent the entered number
-				items = [...tax_id, { value: num, label: filterText }];
+				currentSpeciesColl = [...speciesColl, { taxid: num, name: filterText }];
 			}
 		} else {
 			// items were modified
 			if (Number.isInteger(num)) {
 				// filterText is an integer, updating the last value
-				const last = items.length - 1;
-				if (items[last].label == filterText){
+				const last = currentSpeciesColl.length - 1;
+				if (currentSpeciesColl[last].name == filterText) {
 					return;
 				}
-				items[last].value = num;
-				items[last].label = filterText;
-				items = items;
+				currentSpeciesColl[last].taxid = num;
+				currentSpeciesColl[last].name = filterText;
+				currentSpeciesColl = currentSpeciesColl;
 			} else {
 				// filterText is not an integer, removing extra value
-				items = tax_id;
+				currentSpeciesColl = speciesColl;
 			}
 		}
 	}
-	const store = getStore()
-	let species: (typeof tax_id[number])|undefined;
-	keyToStore(store.input, 'species').subscribe((v)=>{
-		species = tax_id.find((it)=>it.value == v)
-	});
 </script>
 
-<!-- id="taxid-input" -->
 <Select
 	class="mt-2 form-control my-select-style"
 	on:filter={handleFilter}
-	bind:value={species}
+	bind:value={selectedSpecies}
 	bind:filterText
-	{items}
+	items={currentSpeciesColl}
+	itemId="taxid"
+	label="name"
+	disabled={!taxon || !currentSpeciesColl}
+	loading={taxon && !currentSpeciesColl}
 	placeholder="Select species/enter taxid"
 	--border-hover="1px solid #ced4da"
 	--border-focused="1px solid #f4aa90"

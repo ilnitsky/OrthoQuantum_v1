@@ -1,20 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Tooltip from '$lib/components/tutorial/Tooltip.svelte';
-	import { keyToStore } from '$lib/sseStore';
 	import { getStore } from './store';
 
 	export let title: string;
 	const store = getStore();
 	let editing = false;
 
-
 	let ref: HTMLInputElement;
 	let height = 48;
 
-	function commit(e?: any) {
-		console.log("commit", e);
-
+	function commit() {
 		if (!editing) {
 			return;
 		}
@@ -25,7 +21,7 @@
 			return;
 		}
 		store.input.title = title;
-		if ($page.params.qid === "new"){
+		if ($page.params.qid === 'new') {
 			return;
 		}
 		fetch($page.url, {
@@ -34,7 +30,7 @@
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-				title: title
+				title
 			})
 		})
 			.then((r) => {
@@ -54,13 +50,13 @@
 			});
 	}
 
-	function focus(el:HTMLInputElement){
-    el.focus();
-    el.select();
-  }
+	function focus(el: HTMLInputElement) {
+		el.focus();
+		el.select();
+	}
 </script>
 
-<div class="mt-3 mb-2">
+<div class="mb-2">
 	{#if editing}
 		<input
 			class="form-control text-center w-100 m-0"
@@ -70,8 +66,8 @@
 			bind:value={title}
 			on:blur={commit}
 			on:change={commit}
-			on:keydown={(e)=>{
-				if (e.code === 'Escape'){
+			on:keydown={(e) => {
+				if (e.code === 'Escape') {
 					e.preventDefault();
 					title = '';
 					commit();
@@ -86,11 +82,12 @@
 			role="button"
 			tabindex="0"
 			on:click={() => (editing = true)}
-			on:keydown={(e)=> {
-				if (e.code === 'Space'){
+			on:keydown={(e) => {
+				if (e.code === 'Space') {
 					e.preventDefault();
 					editing = true;
-				}}}
+				}
+			}}
 			bind:clientHeight={height}
 		>
 			{title}

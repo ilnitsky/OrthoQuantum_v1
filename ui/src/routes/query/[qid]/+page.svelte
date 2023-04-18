@@ -14,38 +14,143 @@
 
 	import type { PageData } from './$types';
 	import { page } from '$app/stores';
-	import { setStore } from './store';
-	import { keyToStore, toStore } from '$lib/sseStore';
-	import { onMount } from 'svelte';
-	import { addAlert, updateAlert } from "$lib/components/Alerts.svelte";
-
+	import { storeKey } from './store';
+	import { keyToStore, proxy, toStore } from '$lib/valtioUtil';
+	import type { Query, Store, Taxon } from '$lib/dbTypes';
+	import { onMount, setContext } from 'svelte';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
+	import rdiff, { type rdiffResult } from 'recursive-diff';
+	import { browser } from '$app/environment';
 
 	export let data: PageData;
-	const isNew = $page.params.qid === "new";
-	const store = setStore(data, $page.url, isNew);
 
-	let collection = [
-		{ value: "1", label: 'one' },
-		{ value: "2", label: 'two' },
-		{ value: "3", label: 'three' }
-	];
+	const store = initMainStore();
+
+	function initMainStore() {
+		const store = {
+			// Reflects the state stored in the db, updates via SSE
+			db_input: data.pageData.data.input,
+			// Reflects user's modifications to the state,
+			// updated by user changes *and* SSE
+			input: proxy(data.pageData.data.input),
+			output: proxy(data.pageData.data.output)
+		} as Store<typeof data.pageData.data>;
+		setContext(storeKey, store);
+
+		let storeReady = true;
+		let sse: EventSource | undefined;
+		let unsubTimer: ReturnType<typeof setTimeout> | undefined;
+
+		function unsubscribe() {
+			if (sse) {
+				sse.close();
+				sse = undefined;
+			}
+		}
+
+		function onMessage(ev: MessageEvent<string>) {
+			const update = JSON.parse(ev.data) as {
+				input: rdiffResult[];
+				output: rdiffResult[];
+			};
+			rdiff.applyDiff(store.input, update.input);
+			rdiff.applyDiff(store.db_input, update.input);
+			rdiff.applyDiff(store.output, update.output);
+			data.pageData.ts = ev.lastEventId;
+		}
+		function onFullData(ev: MessageEvent<string>) {
+			const update = JSON.parse(ev.data) as Query;
+			rdiff.applyDiff(store.input, rdiff.getDiff(store.input, update.input));
+			store.db_input = update.input;
+			rdiff.applyDiff(store.output, rdiff.getDiff(store.output, update.output));
+			data.pageData.ts = ev.lastEventId;
+		}
+		function subscribe() {
+			if (!storeReady || !browser) {
+				return;
+			}
+			unsubscribe();
+			const qid = $page.params.qid;
+			if (qid === 'new') {
+				return;
+			}
+			const url = new URL($page.url);
+			url.search = `?sse=${data.pageData.ts}`;
+			sse = new EventSource(url, { withCredentials: true });
+			sse.addEventListener('message', onMessage);
+			sse.addEventListener('fullData', onFullData);
+			sse.onopen = (e) => {
+				console.log('SSE open', e);
+			};
+			sse.onerror = (e) => {
+				console.log('SSE error', e);
+			};
+		}
+		function onvisibilitychange() {
+			clearTimeout(unsubTimer);
+			switch (document.visibilityState) {
+				case 'visible':
+					if (!sse) {
+						subscribe();
+					}
+					break;
+				case 'hidden':
+					// unsubscribe if the page is hidden for a bit, since SSE have strict limits on open connections
+					if (sse) {
+						unsubTimer = setTimeout(unsubscribe, 30 * 1000);
+					}
+					break;
+			}
+		}
+		beforeNavigate(() => {
+			unsubscribe();
+			storeReady = false;
+			// TODO: prevent movement on unsent data?
+			// if ($page.params.qid === 'new') {
+			// {and data changed?}
+			// nav.cancel();
+			// }
+		});
+		afterNavigate(() => {
+			// if this is called by server navigation - always apply diffs
+			if (browser && storeReady) {
+				return; // already handeled
+			}
+			unsubscribe();
+			rdiff.applyDiff(store.input, rdiff.getDiff(store.input, data.pageData.data.input));
+			store.db_input = data.pageData.data.input;
+			rdiff.applyDiff(store.output, rdiff.getDiff(store.output, data.pageData.data.output));
+			storeReady = true;
+			subscribe();
+		});
+
+		onMount(() => {
+			document.addEventListener('visibilitychange', onvisibilitychange);
+			return () => {
+				document.removeEventListener('visibilitychange', onvisibilitychange);
+			};
+		});
+
+		return store;
+	}
 
 	let title: typeof store.input.title;
 	let query: typeof store.input.query;
 	let blastEnabled: typeof store.input.blast.enabled;
 	let max_prots: typeof store.input.max_prots;
+
 	toStore(store.input).subscribe((input) => {
 		({
 			title,
 			query,
-			blast: {enabled: blastEnabled},
+			blast: { enabled: blastEnabled },
 			max_prots
-		} = input)
+		} = input);
 	});
 
-	let taxon_id: (typeof collection[number]) | undefined;
-	keyToStore(store.input, 'taxon_id').subscribe((v)=>{
-		taxon_id = collection.find((it)=>it.value == v);
+	let taxon: Taxon | undefined;
+	keyToStore(store.input, 'taxon_id').subscribe((v) => {
+		taxon = data.taxons.find((it) => it.id == v);
 	});
 
 	// function beforeunload(e:BeforeUnloadEvent) {
@@ -63,8 +168,10 @@
 <Title bind:title />
 <Select
 	id="tax-dropdown-container"
-	items={collection}
-	bind:value={taxon_id}
+	items={data.taxons}
+	itemId="id"
+	label="name"
+	bind:value={taxon}
 	placeholder="Select a taxon (level of orthology)"
 	class="mt-2 form-control"
 	--border-hover="1px solid #ced4da"
@@ -80,7 +187,7 @@
 	taxonomic level.
 </Tooltip>
 
-<TaxidSelect />
+<TaxidSelect {taxon} initSpecies={data.species} />
 
 <Input
 	id="uniprotAC"
@@ -147,7 +254,7 @@
 <PhyloPlot url="/tree.xml" taskid="" leafCound={239} />
 
 <style>
-	:global(.svelte-select.focused){
+	:global(.svelte-select.focused) {
 		box-shadow: 0 0 0 0.25rem rgb(233 84 32 / 25%);
 	}
 </style>

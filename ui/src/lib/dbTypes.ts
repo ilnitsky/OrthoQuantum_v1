@@ -20,6 +20,19 @@ export const QUEUE = 1;
 export const ERROR = 2;
 export const PROGRESS = 3;
 
+export type Taxon = {
+	name: string;
+	id: string;
+};
+
+export type Species = {
+	taxon_id: string;
+	species: {
+		name: string;
+		taxid: number;
+	}[];
+};
+
 export type ProgressBar = {
 	kind: number;
 	message: string;
@@ -33,7 +46,7 @@ export type Query = {
 		taxon_id: string | null;
 		species: number | null;
 		query: string;
-    max_prots: number;
+		max_prots: number;
 		blast: {
 			enabled: boolean;
 			evalue: string;
@@ -69,46 +82,3 @@ export type Query = {
 		};
 	};
 };
-
-// export type QueryData = InitData<Query>;
-// export type QueryStore = Store<Query>;
-
-const defaultPB: ProgressBar = {
-  kind: HIDDEN,
-  message: '',
-  val: 0,
-  max: 0
-};
-export const defaultQuery: Query = {
-  input: {
-    title: 'New Query',
-    taxon_id: "1", // TODO: set to vertebrata
-    species: 1,
-    query: 'Some query',
-    max_prots: 650,
-    blast: {
-      enabled: false,
-      evalue: '1e-5',
-      seqident: 80,
-      qcov: 80
-    },
-    auto_select: true,
-    multi_ortho_selection: null
-  },
-  output: {
-    rid: '',
-    unknown_proteins: [],
-    multi_ortho: [],
-    progress_prottable: defaultPB,
-    progress_heatmap: defaultPB,
-    prot_table_data: [],
-    missing_uniprot: [],
-    corr_map_ver: '',
-    corr_table: [],
-    progress_tree: defaultPB,
-    tree: {
-      version: '',
-      blasted: 0
-    }
-  }
-}

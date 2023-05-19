@@ -289,3 +289,4 @@ secrets/
 deploy.sh
 stuff
 .vscode
+*.code-workspace

@@ -7,5 +7,15 @@ test('real bundled datasets have complete valid trees and exact matrix dimension
 test('reject malformed or mismatched datasets instead of misaligning heatmap rows',()=>{const d=sample();d.counts[0]=[];assert.throws(()=>validateDataset(d),/Counts/);const duplicate=sample();duplicate.species[1].id='1';assert.throws(()=>validateDataset(duplicate),/unique/);const missing=sample();missing.tree.children.pop();assert.throws(()=>validateDataset(missing),/missing from the tree/);const nan=sample();nan.counts[0][0]=NaN;assert.throws(()=>validateDataset(nan),/finite/);});
 test('filter prunes empty clades while preserving matrix indices and tree order',()=>{const view=prepareTree(validateDataset(sample()),'beta');assert.equal(view.leaves.length,1);assert.equal(view.leaves[0].id,'2');assert.equal(view.leaves[0].index,1);assert.equal(prepareTree(sample(),'no match').leaves.length,0);});
 test('visible range stays bounded under repeated overscroll',()=>{assert.deepEqual(visibleRange(0,200,20,100),[0,12]);for(const offset of [0,200,1800,2000,1e9]){const [start,end]=visibleRange(offset,200,20,100);assert.ok(end<=100);assert.ok(start<=end,'Empty overscroll must not create an inverted render range');}});
-test('Pearson treats presence and copy counts differently and does not invent constant-profile correlations',()=>{const d=sample();const binary=correlate(d,'presence'),copies=correlate(d,'copies');assert.equal(binary.matrix[0][0],1);assert.equal(binary.matrix[2][2],null);assert.equal(binary.matrix[0][2],null);assert.notEqual(binary.matrix[0][1],copies.matrix[0][1]);assert.deepEqual([...binary.order].sort(),[0,1,2]);assert.equal(binary.pairs.length,1);});
+test('binary Pearson ignores gene copy magnitudes and keeps constants undefined and last',()=>{
+ const d=sample(),binary=correlate(d),changed=sample();changed.counts=[[0,0,7],[100,6,2],[3,0,20]];
+ const rescaled=correlate(changed),legacyMode=correlate(d,'copies');
+ assert.deepEqual(binary.matrix,rescaled.matrix);assert.deepEqual(binary.matrix,legacyMode.matrix);
+ assert.equal(binary.mode,'presence');assert.equal(binary.matrix[0][0],1);assert.equal(binary.matrix[0][1],.5);
+ assert.equal(binary.matrix[2][2],null);assert.equal(binary.matrix[0][2],null);
+ assert.deepEqual(binary.constantGroups,[2]);assert.equal(binary.order.at(-1),2);assert.equal(binary.pairs.length,1);
+ assert.equal(binary.clusterTree.height,1-binary.matrix[0][1]);
+ const constant=correlate({species:[{},{}],groups:[{},{}],counts:[[0,2],[0,9]]});
+ assert.equal(constant.clusterTree,null);assert.deepEqual(constant.order,[0,1]);assert.ok(constant.matrix.flat().every(v=>v===null));
+});
 test('CSV round trip keeps commas, quotes, IDs and numeric counts; identifies missing topology',()=>{const d=sample();d.species[0].name='Alpha, "quoted"';const restored=datasetFromCSV(csvText(d));assert.deepEqual(restored.species,d.species);assert.deepEqual(restored.counts,d.counts);assert.match(restored.source.notes[0],/no phylogeny/);});

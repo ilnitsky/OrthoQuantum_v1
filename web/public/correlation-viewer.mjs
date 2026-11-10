@@ -13,8 +13,8 @@ export function cellAt(view,x,y,n,order){
   return col>=0&&col<n&&row>=0&&row<n?{a:order[col],b:order[row]}:null;
 }
 function cellRGB(v){
-  if(v===null)return[221,214,223];
-  const t=(v+1)/2,stops=[[247,37,133],[65,20,158],[76,201,240]],a=t<.5?0:1,f=t<.5?t*2:(t-.5)*2;
+  if(v===null)return[156,163,175];
+  const t=(v+1)/2,stops=[[33,102,172],[247,247,247],[178,24,43]],a=t<.5?0:1,f=t<.5?t*2:(t-.5)*2;
   return stops[a].map((x,i)=>Math.round(x+(stops[a+1][i]-x)*f));
 }
 function color(v){return `rgb(${cellRGB(v).join(',')})`;}

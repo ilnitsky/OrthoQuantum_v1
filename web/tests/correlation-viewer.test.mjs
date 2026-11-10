@@ -16,7 +16,7 @@ test('extreme zoom and pan remain bounded without losing the matrix',()=>{
   assert.deepEqual(zoomAt({zoom:4,x:-1,y:-2},.001),{zoom:1,x:0,y:0});
 });
 test('average-linkage dendrogram leaves match the order on both heatmap axes',()=>{
-  const result=correlate({species:[{}, {}, {}],groups:[{}, {}, {}],counts:[[0,0,1],[1,1,0],[1,1,1]]},'copies');
+  const result=correlate({species:[{}, {}, {}],groups:[{}, {}, {}],counts:[[0,0,1],[1,1,0],[1,1,1]]});
   const leaves=[];function walk(node){if(node.children){assert.ok(node.height>=Math.max(...node.children.map(c=>c.height)));node.children.forEach(walk);}else leaves.push(node.leaf);}walk(result.clusterTree);
   assert.deepEqual(leaves,result.order);assert.equal(result.clusterTree.children.length,2);assert.deepEqual([...leaves].sort(),[0,1,2]);
 });

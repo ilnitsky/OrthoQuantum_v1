@@ -57,9 +57,10 @@ the tested legacy cached runtimes; see the root README's runtime limitation.
 This implementation does not yet have complete scientific parity with legacy Dash.
 
 - Branches show **topology only**, not branch-length-scaled evolutionary distances.
-- Cluster ordering and **Gene copy counts** are the defaults. The selected view
-  also controls Pearson correlation (raw counts or binary presence). Clustering
-  continues to use binary-profile distances. Species search filters the viewport
+- Cluster ordering and **Gene copy counts** are the profile display defaults.
+  Correlations always use binary presence (zero versus one-or-more), independent
+  of that display setting. Average-linkage clustering uses distance **1 − r**
+  from the same binary Pearson matrix; constant profiles are undefined and last. Species search filters the viewport
   and whole SVG image; dataset JSON/CSV and correlations retain all species.
 - Fit whole plot compresses both axes and automatically hides species labels below
   12 pixels per row and column labels below 8 pixels per column. Subpixel cells
@@ -184,10 +185,12 @@ now exercises real demos and main application flows.
 
 ## Correlation clustermap
 
-Both axes default to average-linkage ordering on binary presence/absence profile
-distances; matching dendrograms show that hierarchy. Pearson colors still use the
-selected presence or gene-copy-count mode. Undefined constant-profile correlations
-remain gray. The first-160-group limit is unchanged and explicitly reported.
+Both axes default to average-linkage ordering using **1 − binary Pearson r**;
+matching dendrograms show that hierarchy. Gene-copy magnitudes never affect the
+correlations: 0 means absent, and any positive count becomes 1. The profile
+display mode changes only the phylogenetic profile. Constant profiles have
+undefined correlations, remain gray and are appended after clustered profiles.
+The zero-centered palette is blue (−1), white (0), red (+1). The first-160-group limit is unchanged and explicitly reported.
 
 Use the mouse wheel or +/− buttons to zoom, drag to pan, and Fit/double-click/zero
 to reset. Labels appear as cells become large enough; hover always gives full

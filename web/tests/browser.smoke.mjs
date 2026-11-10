@@ -21,7 +21,7 @@ try{
   await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===4&&window.__orthoLite.state.correlation);
   assert.equal(await page.inputValue('#group-order'),'cluster');
   assert.equal(await page.inputValue('#count-mode'),'copies');
-  assert.equal(await page.evaluate(()=>window.__orthoLite.state.correlation.mode),'copies');
+  assert.equal(await page.evaluate(()=>window.__orthoLite.state.correlation.mode),'presence');
   const beforeColumn=await page.evaluate(()=>window.__orthoLite.viewer.cellWidth);
   await page.click('#column-plus');assert.equal(await page.evaluate(()=>window.__orthoLite.viewer.cellWidth),beforeColumn+4);
   await page.click('#column-minus');
@@ -42,7 +42,7 @@ try{
   let atBottom=await page.evaluate(()=>window.__orthoLite.viewer.lastMetrics);assert.ok(atBottom.visibleRows>0);assert.ok(atBottom.visibleRows<80);
   await page.locator('#viewport').evaluate(el=>{for(let i=0;i<50;i++){el.scrollTop=1e9;el.scrollLeft=1e9;}el.scrollTop-=44;});await page.waitForTimeout(100);assert.ok((await page.evaluate(()=>window.__orthoLite.viewer.lastMetrics)).visibleRows>0);
   await page.fill('#species-filter','Homo sapiens');await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__orthoLite.viewer.layout.leaves.length),1);await page.fill('#species-filter','');
-  await page.selectOption('#count-mode','copies');await page.waitForFunction(()=>window.__orthoLite.state.correlation?.mode==='copies');
+  await page.selectOption('#count-mode','copies');await page.waitForFunction(()=>window.__orthoLite.state.correlation?.mode==='presence');
   await page.selectOption('#group-order','cluster');
   const downloadWait=page.waitForEvent('download');await page.click('#export-json');const download=await downloadWait;const exportPath=await download.path();const exported=JSON.parse(await readFile(exportPath,'utf8'));assert.equal(exported.groups.length,4);
   await page.setInputFiles('#file-input',{name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});await page.waitForFunction(()=>document.getElementById('message').textContent.includes('Opened roundtrip'));

@@ -157,3 +157,14 @@ again after Fit. Explicit bright/dark/undefined-cell fixtures verify black/white
 contrast and the undefined em dash. Existing zoom, pan, hover, axis ordering and
 mobile checks also passed with no runtime errors. A focused screenshot is saved
 locally at `artifacts/clustermap-coefficients.png` (not committed).
+
+## Binary correlations and correlation-distance hierarchy
+
+Twelve Node checks passed after making Pearson strictly binary (count > 0).
+Changing nonzero copy magnitudes does not change the matrix; the hierarchy uses
+1 − r and excludes constant profiles from its tree, appending them last. Tests
+cover mixed/all-constant datasets without inventing numeric correlations.
+The live browser fixture confirmed that switching the profile display between
+presence and copy counts leaves its correlation matrix unchanged. Existing
+clustering, zoom/pan, coefficient, contrast and mobile checks passed with no
+runtime errors. Screenshots show the new zero-centered blue/white/red palette.

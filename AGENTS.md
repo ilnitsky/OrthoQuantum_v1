@@ -15,6 +15,10 @@ Validate main changes with `node --test web/tests/*.test.mjs` and
 in `web/tests/browser.smoke.mjs`. Keep reference files read-only and do not move
 or restart detached database builders when restructuring frontend code.
 
+Main-app correlations must always use binary presence (0 absent, 1 for any
+positive count), independently of profile display mode. Cluster using average
+linkage on 1 − binary Pearson r; undefined constant profiles stay gray and last.
+
 The following detailed project guide documents legacy Dash modules and data
 tooling retained on this branch; its deployment commands explicitly use the
 legacy Compose files. Main-app defaults are described above.

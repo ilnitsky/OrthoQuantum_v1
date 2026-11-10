@@ -124,7 +124,7 @@ function computeCorrelation(){
   state.worker=new Worker('/compute-worker.mjs',{type:'module'});
   state.worker.onmessage=({data})=>{if(data.error){$('correlation-status').textContent=data.error;return;}state.correlation=data;showCorrelation();if($('group-order').value==='cluster')viewer.setOrder(data.order);};
   state.worker.onerror=()=>{$('correlation-status').textContent='Correlation calculation unavailable; profiles remain interactive.';};
-  state.worker.postMessage({dataset:state.data,mode:$('count-mode').value});
+  state.worker.postMessage({dataset:state.data});
 }
 function showCorrelation(){const data=state.correlation;if(!data)return;$('correlation-status').textContent=`${data.groupCount} groups · ${data.milliseconds.toFixed(0)} ms${data.limited?' · first 160 groups only':''}`;drawCorrelation();renderPairs();}
 function drawCorrelation(){if(!state.correlation)return;correlationViewer.load(state.correlation,state.data);correlationViewer.setOrder($('correlation-order').value);}
@@ -144,7 +144,7 @@ $('tree-select').addEventListener('change',populateSpecies);$('cancel').addEvent
 $('reset').addEventListener('click',async()=>{await cancel();$('identifiers').value='';$('choices-section').hidden=true;$('results').hidden=true;state.worker?.terminate();state.data=null;state.views={};state.activeView=null;$('profile-views').hidden=true;state.candidates=[];state.selection.clear();message('');});
 $('load-demo').addEventListener('click',async()=>{await cancel();try{message('Loading bundled reference example…');const kind=$('demo-select').value;const response=await fetch(`/data/demo-${kind}.json`);if(!response.ok)throw new Error('Bundled demo is unavailable.');const data=await response.json();$('identifiers').value=data.source?.query||'';if(data.source?.treeId){$('tree-select').value=data.source.treeId;populateSpecies();}$('choices-section').hidden=true;await showDataset(data);message('Demo loaded from a bundled, real-data snapshot. Submit a query to resolve fresh data.');$('results').scrollIntoView({behavior:'smooth',block:'start'});}catch(error){report(error);}});
 $('species-filter').addEventListener('input',event=>viewer.setFilter(event.target.value));$('group-filter').addEventListener('input',renderAnnotations);
-$('count-mode').addEventListener('change',()=>{viewer.setMode($('count-mode').value);computeCorrelation();});
+$('count-mode').addEventListener('change',()=>{viewer.setMode($('count-mode').value);});
 $('group-order').addEventListener('change',()=>{if(!state.data)return;const mode=$('group-order').value;if(mode==='cluster'){if(state.correlation)viewer.setOrder(state.correlation.order);else message('Clustering is still calculating in the background.');}else if(mode==='coverage'){viewer.setOrder(state.data.groups.map((_,i)=>i).sort((a,b)=>state.data.counts.reduce((sum,row)=>sum+Number(row[b]>0)-Number(row[a]>0),0)));}else viewer.setOrder(state.data.groups.map((_,i)=>i));});
 $('column-minus').addEventListener('click',()=>viewer.columnSpacing(-4));$('column-plus').addEventListener('click',()=>viewer.columnSpacing(4));$('fit-whole').addEventListener('click',()=>viewer.fitWhole());
 $('export-whole').addEventListener('click',async()=>{if(!state.data)return;const button=$('export-whole');button.disabled=true;try{await viewer.downloadWholeSVG();}catch(error){message(error.message,true);}finally{button.disabled=false;}});

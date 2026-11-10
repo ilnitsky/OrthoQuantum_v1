@@ -52,9 +52,9 @@ export function prepareTree(data,filter='') {
   maxDepth=1;depths(root);
   return {root,leaves:ordered,maxDepth};
 }
-export function correlate(data,mode='presence') {
+export function correlate(data) {
   const n=data.species.length,m=Math.min(data.groups.length,160),sums=new Float64Array(m),squares=new Float64Array(m);
-  const columns=Array.from({length:m},(_,j)=>Float64Array.from(data.counts,row=>mode==='copies'?row[j]:Number(row[j]>0)));
+  const columns=Array.from({length:m},(_,j)=>Float64Array.from(data.counts,row=>Number(row[j]>0)));
   for(let j=0;j<m;j++) for(const v of columns[j]) {sums[j]+=v;squares[j]+=v*v;}
   const matrix=Array.from({length:m},()=>Array(m).fill(null)),pairs=[];
   for(let a=0;a<m;a++) for(let b=a;b<m;b++) {
@@ -65,12 +65,12 @@ export function correlate(data,mode='presence') {
     if(a!==b && value!==null) pairs.push({a,b,value});
   }
   pairs.sort((a,b)=>b.value-a.value);
-  // Deterministic average-linkage clustering on binary Euclidean distances.
-  // Kept separate from Pearson: constant columns have undefined correlation.
-  const binary=Array.from({length:m},(_,j)=>Uint8Array.from(data.counts,row=>Number(row[j]>0)));
+  // Cluster the same binary Pearson relationships shown by the heatmap.
+  // Constant profiles have undefined r; append them without inventing distances.
+  const variable=[...matrix.keys()].filter(i=>matrix[i][i]!==null),constant=[...matrix.keys()].filter(i=>matrix[i][i]===null);
   const distances=new Map();const key=(a,b)=>a<b?`${a}:${b}`:`${b}:${a}`;
-  for(let a=0;a<m;a++) for(let b=a+1;b<m;b++) {let distance=0;for(let i=0;i<n;i++)distance+=(binary[a][i]-binary[b][i])**2;distances.set(key(a,b),Math.sqrt(distance));}
-  let next=m;const clusters=new Map(Array.from({length:m},(_,i)=>[i,{size:1,order:[i],tree:{leaf:i,height:0}}]));
+  for(let a=0;a<variable.length;a++)for(let b=a+1;b<variable.length;b++){const i=variable[a],j=variable[b];distances.set(key(i,j),1-matrix[i][j]);}
+  let next=m;const clusters=new Map(variable.map(i=>[i,{size:1,order:[i],tree:{leaf:i,height:0}}]));
   while(clusters.size>1) {
     const ids=[...clusters.keys()];let best=Infinity,left,right;
     for(let a=0;a<ids.length;a++)for(let b=a+1;b<ids.length;b++){const value=distances.get(key(ids[a],ids[b]));if(value<best){best=value;left=ids[a];right=ids[b];}}
@@ -78,7 +78,7 @@ export function correlate(data,mode='presence') {
     for(const id of ids) if(id!==left && id!==right) distances.set(key(next,id),(distances.get(key(left,id))*a.size+distances.get(key(right,id))*b.size)/merged.size);
     clusters.delete(left);clusters.delete(right);clusters.set(next++,merged);
   }
-  return {matrix,pairs,clusterTree:clusters.size?[...clusters.values()][0].tree:null,order:clusters.size?[...clusters.values()][0].order:[],mode,limited:data.groups.length>m,groupCount:m};
+  return {matrix,pairs,clusterTree:clusters.size?[...clusters.values()][0].tree:null,order:[...(clusters.size?[...clusters.values()][0].order:[]),...constant],mode:'presence',clusteringMetric:'1 - binary Pearson r',constantGroups:constant,limited:data.groups.length>m,groupCount:m};
 }
 export function csvText(data) {
   const quote=v=>'"'+String(v??'').replaceAll('"','""')+'"';

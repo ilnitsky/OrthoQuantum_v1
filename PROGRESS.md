@@ -458,3 +458,22 @@ durable interruption/resume and pinned-cache reuse without network access.
 Preserved failed logs as `orthodb-v13-symbol-repair-lock-failure`; restarted the
 normal named repair using the existing inputs. Use report files/logs for progress,
 not SQL scans of active builds.
+
+
+## 17. Binary-only correlation and a zero-centered diverging palette
+
+Pearson correlations now always use 0 for absence and 1 for any positive gene
+count. Profile count/presence display no longer recalculates or changes them.
+Average-linkage clustering uses 1 − r from that same binary correlation matrix;
+constant profiles remain undefined and are placed last without invented distances.
+Changed the clustermap/legend to blue (−1), white (0), red (+1), with distinct gray
+for undefined values. Coefficient text contrast adapts to the new colors.
+
+Updated model/worker/UI, model regression checks, browser display-mode invariance
+checks and documentation. Twelve Node checks passed, including invariance to
+nonzero count magnitudes and explicit constant handling. Rebuilt main on 8050;
+legacy and database jobs untouched.
+
+Browser validation also passed: toggling profile copy-count/presence display leaves
+the correlation matrix unchanged. New palette/contrast, clustered ordering,
+zoom/pan, coefficient labels, Fit and mobile layout all passed without errors.

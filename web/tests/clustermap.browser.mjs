@@ -15,6 +15,9 @@ try{
  await page.waitForFunction(()=>window.__orthoLite?.state.correlation?.groupCount===160);
  await page.locator('#correlation-canvas').scrollIntoViewIfNeeded();await page.waitForTimeout(150);
  const fit=await page.evaluate(()=>{const v=window.__orthoLite.correlationViewer,p=v.canvas.parentElement;return{view:v.view,order:v.order,expected:window.__orthoLite.state.correlation.order,sh:p.scrollHeight,ch:p.clientHeight,sw:p.scrollWidth,cw:p.clientWidth,box:v.box};});
+ assert.equal(await page.evaluate(()=>window.__orthoLite.state.correlation.mode),'presence');
+ const originalMatrix=await page.evaluate(()=>JSON.stringify(window.__orthoLite.state.correlation.matrix));await page.selectOption('#count-mode','presence');await page.selectOption('#count-mode','copies');
+ assert.equal(await page.evaluate(()=>JSON.stringify(window.__orthoLite.state.correlation.matrix)),originalMatrix,'Profile display must not change binary correlations');
  assert.deepEqual(fit.order,fit.expected);assert.equal(fit.view.zoom,1);assert.ok(fit.sh<=fit.ch+1&&fit.sw<=fit.cw+1,'No plot scrollbars');assert.ok(fit.box>100);
  const annotations=()=>page.evaluate(()=>{
    const v=window.__orthoLite.correlationViewer,c=v.canvas.getContext('2d'),original=c.fillText,labels=[];
@@ -41,8 +44,8 @@ try{
  // contrast branches with explicit bright/dark/undefined rendering fixtures.
  await page.evaluate(()=>{const v=window.__orthoLite.correlationViewer;window.__savedCorrelation={result:v.result,data:v.data,view:{...v.view},mode:v.orderMode};v.load({matrix:[[1,0],[0,null]],order:[0,1]},{groups:[{name:'Bright'},{name:'Dark'}]});});
  const contrast=await annotations();
- assert.ok(contrast.some(l=>l.text==='1.00'&&l.ink==='#000000'));
- assert.ok(contrast.some(l=>l.text==='0.00'&&l.ink==='#ffffff'));
+ assert.ok(contrast.some(l=>l.text==='1.00'&&l.ink==='#ffffff'));
+ assert.ok(contrast.some(l=>l.text==='0.00'&&l.ink==='#000000'));
  assert.ok(contrast.some(l=>l.text==='—'&&l.ink==='#000000'));
  await page.evaluate(()=>{const v=window.__orthoLite.correlationViewer,s=window.__savedCorrelation;v.load(s.result,s.data);v.setOrder(s.mode);v.restore(s.view);delete window.__savedCorrelation;});
  await page.screenshot({path:artifacts+'clustermap-zoom.png',fullPage:true});

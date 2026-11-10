@@ -34,6 +34,52 @@ class SymbolTests(unittest.TestCase):
             path.write_bytes(gzip.compress(b'9606\t1\n'))
             with self.assertRaisesRegex(RuntimeError,'16-column'):symbols.load_gene_info(db,path)
 
+    def test_staging_reader_does_not_block_symbol_batch_commits(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'staging.sqlite';db=symbols.open_staging(path)
+            try:
+                db.execute('PRAGMA busy_timeout=100')
+                self.assertEqual(db.execute('PRAGMA journal_mode').fetchone()[0],'wal')
+                db.executescript('CREATE TABLE i(gene_id INTEGER,orthodb_id INTEGER,PRIMARY KEY(gene_id,orthodb_id)) WITHOUT ROWID; CREATE TABLE n(orthodb_id INTEGER,value TEXT,PRIMARY KEY(orthodb_id,value)) WITHOUT ROWID; CREATE TABLE gene_info(gene_id INTEGER PRIMARY KEY,taxid INTEGER,symbol TEXT,authority_symbol TEXT);')
+                db.execute('INSERT INTO i VALUES (?,?)',(1,(9606<<32)|1));db.execute("INSERT INTO gene_info VALUES(1,9606,'AGO1','AGO1')");db.commit()
+                reader=sqlite3.connect(path.as_uri()+'?mode=ro',uri=True)
+                try:
+                    reader.execute('BEGIN');self.assertEqual(reader.execute('SELECT count(*) FROM n').fetchone()[0],0)
+                    counts=symbols.match_symbols(db,batch_size=1)
+                    self.assertEqual(counts['sources_checked'],1);self.assertEqual(db.execute('SELECT count(*) FROM n').fetchone()[0],1)
+                    self.assertEqual(reader.execute('SELECT count(*) FROM n').fetchone()[0],0)
+                finally:reader.close()
+            finally:db.close()
+
+    def test_matching_resumes_after_an_interruption_without_skipping_or_duplicating(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db=symbols.open_staging(Path(tmp)/'stage.sqlite')
+            try:
+                db.executescript('CREATE TABLE i(gene_id INTEGER,orthodb_id INTEGER,PRIMARY KEY(gene_id,orthodb_id)) WITHOUT ROWID;CREATE TABLE n(orthodb_id INTEGER,value TEXT,PRIMARY KEY(orthodb_id,value)) WITHOUT ROWID;CREATE TABLE gene_info(gene_id INTEGER PRIMARY KEY,taxid INTEGER,symbol TEXT,authority_symbol TEXT);')
+                db.executemany('INSERT INTO i VALUES (?,?)',[(i,(9606<<32)|i) for i in range(1,6)])
+                db.executemany('INSERT INTO gene_info VALUES (?,?,?,?)',[(1,9606,'A','A'),(2,9606,'B','B'),(3,9606,'C','C'),(4,10090,'MouseOnly','MouseOnly')]);db.commit()
+                def interrupted(counts):raise RuntimeError('simulated interruption after durable checkpoint')
+                with self.assertRaisesRegex(RuntimeError,'simulated interruption'):
+                    symbols.match_symbols(db,batch_size=2,on_checkpoint=interrupted)
+                self.assertEqual(db.execute('SELECT count(*) FROM n').fetchone()[0],2)
+                messages=[];counts=symbols.match_symbols(db,messages.append,batch_size=2)
+                self.assertIn('2/5',messages[0]);self.assertEqual(counts['sources_checked'],5)
+                self.assertEqual(counts['matched_gene_links'],3);self.assertEqual(counts['unresolved_gene_links'],1);self.assertEqual(counts['taxid_mismatches'],1)
+                self.assertEqual(db.execute('SELECT value FROM n ORDER BY value').fetchall(),[('A',),('B',),('C',)])
+                again=symbols.match_symbols(db,batch_size=2);self.assertEqual(again,counts)
+            finally:db.close()
+
+    def test_complete_pinned_ncbi_archive_is_reused_without_network(self):
+        import hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'gene.gz';content=gzip.compress(gene_line(9606,1,'AGO1').encode());path.write_bytes(content)
+            metadata={'url':symbols.URL,'bytes':len(content),'sha256':hashlib.sha256(content).hexdigest(),'headers':{'last-modified':'previous snapshot'}}
+            Path(str(path)+'.source.json').write_text(json.dumps(metadata))
+            with patch.object(symbols.subprocess,'check_output',side_effect=AssertionError('Network must not be used')):
+                self.assertEqual(symbols.fetch_gene_info(path,''),metadata)
+            path.write_bytes(b'x'*len(content))
+            with self.assertRaisesRegex(RuntimeError,'checksum changed'):symbols.fetch_gene_info(path,'')
+
     @unittest.skipUnless(STREAMER.exists(),'Compile streamer first')
     def test_completed_aliases_are_reused_and_candidate_published_only_after_validation(self):
         with tempfile.TemporaryDirectory() as tmp:

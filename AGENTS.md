@@ -376,3 +376,12 @@ selected species and taxid translations, so releases and tree selections do not
 share incompatible cached results. UI labels are applied after cache retrieval.
 Worker logs report cached/loaded group counts and elapsed load time. The live
 reference database remains read-only; no additional live indexes are required.
+
+### Safe database-build progress checks
+
+Read the `.build.json` / `.repair.json` sidecars and container logs. Do not run
+long COUNT/join queries on active SQLite build/staging files, even read-only:
+DELETE-journal readers can block commits. An external progress count previously
+caused a repair timeout. Symbol staging now uses WAL and durable per-batch cursors;
+matching progress is in `symbol_stages.matched.sources_checked/total_links`.
+Live databases and candidate membership data must stay unchanged during recovery.

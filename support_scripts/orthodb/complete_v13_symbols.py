@@ -19,6 +19,16 @@ URL='https://ftp.ncbi.nlm.nih.gov/gene/DATA/gene_info.gz'
 
 def fetch_gene_info(path,proxy):
     """Pin the daily source by HTTP metadata + local SHA256; reject changed resumes."""
+    meta=Path(str(path)+'.source.json')
+    if path.exists() and meta.exists():
+        cached=json.loads(meta.read_text())
+        if cached.get('sha256'):
+            if cached.get('url')!=URL or path.stat().st_size!=cached['bytes']:raise RuntimeError('Cached NCBI source identity changed')
+            digest=hashlib.sha256()
+            with path.open('rb') as source:
+                for block in iter(lambda:source.read(4*1024*1024),b''):digest.update(block)
+            if digest.hexdigest()!=cached['sha256']:raise RuntimeError('Cached NCBI source checksum changed')
+            return cached
     common=['curl','--fail','--silent','--show-error','--location','--retry','4','--connect-timeout','20']
     if proxy:common+=['--proxy',proxy]
     headers={}
@@ -72,24 +82,59 @@ def load_gene_info(db,path,progress=lambda _:None):
     return rows
 
 
-def match_symbols(db,progress=lambda _:None):
-    """Require exact GeneID AND species. Keep symbols normalized in n."""
-    counts={'matched_gene_links':0,'taxid_mismatches':0,'unresolved_gene_links':0,'symbol_records':0}
-    # Separate read cursor and batched inserts; input tables are never modified here.
-    rows=db.execute('SELECT i.orthodb_id,g.taxid,g.symbol,g.authority_symbol,g.synonyms FROM i LEFT JOIN gene_info g ON g.gene_id=i.gene_id ORDER BY i.gene_id,i.orthodb_id')
-    batch=[]
-    for packed,taxid,symbol,authority,synonyms in rows:
-        if taxid is None:counts['unresolved_gene_links']+=1;continue
-        if packed>>32!=taxid:counts['taxid_mismatches']+=1;continue
-        counts['matched_gene_links']+=1
-        names={v.strip() for v in [symbol,authority] if v and v.strip() and v.strip()!='-'}
-        for name in names:batch.append((packed,name))
-        if len(batch)>=100000:
-            before=db.total_changes;db.executemany('INSERT OR IGNORE INTO n VALUES (?,?)',batch);counts['symbol_records']+=db.total_changes-before;batch.clear();db.commit()
-            progress(f"Gene symbols: {counts['matched_gene_links']:,} exact-species links matched")
-    if batch:
-        before=db.total_changes;db.executemany('INSERT OR IGNORE INTO n VALUES (?,?)',batch);counts['symbol_records']+=db.total_changes-before
-    db.commit();return counts
+def open_staging(path):
+    """WAL is confined to disposable staging; readers cannot block batch commits."""
+    db=sqlite3.connect(path,timeout=300,uri=True)
+    mode=db.execute('PRAGMA journal_mode=WAL').fetchone()[0]
+    if mode.lower()!='wal':db.close();raise RuntimeError('Cannot enable staging WAL')
+    db.executescript('PRAGMA busy_timeout=300000; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-65536; PRAGMA temp_store=FILE;')
+    return db
+
+
+def match_symbols(db,progress=lambda _:None,batch_size=100000,total=None,on_checkpoint=lambda counts:None):
+    """Exact-species join; commit symbols and the resume cursor atomically."""
+    if total is None:total=db.execute('SELECT count(*) FROM i').fetchone()[0]
+    db.execute('CREATE TABLE IF NOT EXISTS symbol_match_checkpoint(id INTEGER PRIMARY KEY CHECK(id=1),last_gene_id INTEGER,last_orthodb_id INTEGER,counts_json TEXT)')
+    db.commit()
+    saved=db.execute('SELECT last_gene_id,last_orthodb_id,counts_json FROM symbol_match_checkpoint WHERE id=1').fetchone()
+    counts={'sources_checked':0,'matched_gene_links':0,'taxid_mismatches':0,'unresolved_gene_links':0,'links_with_symbols':0,'symbol_records':0,'existing_symbol_hits':0,'total_links':total}
+    last_gene,last_packed=-1,-1
+    if saved:
+        last_gene,last_packed,encoded=saved;counts=json.loads(encoded)
+        if counts['total_links']!=total:raise RuntimeError('Symbol checkpoint input count changed')
+        progress(f"Resuming symbol matching at {counts['sources_checked']:,}/{total:,} checked links")
+    else:progress(f'Symbol matching: {total:,} input links; retaining all already committed symbols during replay')
+    # i is immutable and indexed by this compound key. Each durable cursor moves
+    # only after its n inserts commit, including unmatched/mismatched input rows.
+    rows=db.execute('SELECT i.gene_id,i.orthodb_id,g.taxid,g.symbol,g.authority_symbol FROM i LEFT JOIN gene_info g ON g.gene_id=i.gene_id WHERE (i.gene_id,i.orthodb_id)>(?,?) ORDER BY i.gene_id,i.orthodb_id',(last_gene,last_packed))
+    batch=[];pending=0
+    def flush():
+        nonlocal pending
+        before=db.total_changes
+        if batch:db.executemany('INSERT OR IGNORE INTO n VALUES (?,?)',batch)
+        added=db.total_changes-before;counts['symbol_records']+=added;counts['existing_symbol_hits']+=len(batch)-added
+        db.execute('INSERT OR REPLACE INTO symbol_match_checkpoint VALUES (1,?,?,?)',(last_gene,last_packed,json.dumps(counts)))
+        db.commit();batch.clear();pending=0
+        on_checkpoint(dict(counts))
+        percent=counts['sources_checked']/total*100 if total else 100
+        progress(f"GeneID links checked: {counts['sources_checked']:,}/{total:,} ({percent:.1f}%); {counts['matched_gene_links']:,} exact-species matches; {counts['existing_symbol_hits']:,} existing symbol hits reused")
+    try:
+        for gene,packed,taxid,symbol,authority in rows:
+            last_gene,last_packed=gene,packed;counts['sources_checked']+=1;pending+=1
+            if taxid is None:counts['unresolved_gene_links']+=1
+            elif packed>>32!=taxid:counts['taxid_mismatches']+=1
+            else:
+                counts['matched_gene_links']+=1
+                names={v.strip() for v in (symbol,authority) if v and v.strip() and v.strip()!='-'}
+                if names:counts['links_with_symbols']+=1
+                batch.extend((packed,name) for name in names)
+            if pending>=batch_size:flush()
+        if pending:flush()
+        if counts['sources_checked']!=total:raise RuntimeError('Symbol checkpoint count differs from complete input')
+        return counts
+    except BaseException:
+        db.rollback();raise
+    finally:rows.close()
 
 
 def main():
@@ -121,7 +166,7 @@ def main():
     try:
         progress('Downloading NCBI gene_info while streaming v13 GeneID links; reusing completed UniProt aliases')
         ncbi=args.sources/'gene_info.gz';download=pool.submit(fetch_gene_info,ncbi,args.proxy)
-        db=sqlite3.connect(mapping,uri=True);db.executescript('PRAGMA journal_mode=DELETE; PRAGMA synchronous=NORMAL; PRAGMA cache_size=-65536; PRAGMA temp_store=FILE;')
+        db=open_staging(mapping)
         # Large throwaway inputs can be removed after their deduplicated aliases exist.
         tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         if not {'u','n'}.issubset(tables):raise RuntimeError('Alias staging is not at the audited pre-validation checkpoint')
@@ -154,13 +199,21 @@ def main():
             db.execute('INSERT OR IGNORE INTO i SELECT gene_id,orthodb_id FROM raw_i ORDER BY gene_id,orthodb_id');db.execute('DROP TABLE raw_i');db.commit()
             stages['geneids']={**stats_data,'status':'complete'};progress('NCBI GeneID links ready')
         progress('Waiting for the verified NCBI gene_info download')
-        report['ncbi_source']=download.result()
+        cached_source=download.result()
+        previous_source=report.get('ncbi_source')
+        if previous_source and previous_source.get('sha256')!=cached_source.get('sha256'):raise RuntimeError('NCBI source differs from loaded checkpoint')
+        report['ncbi_source']=cached_source
         if stages.get('gene_info',{}).get('status')!='complete':
             progress('Loading NCBI primary symbols and authority names')
             count=load_gene_info(db,ncbi,progress);stages['gene_info']={'rows':count,'status':'complete'};progress('NCBI symbols loaded; gzip checksum verified')
         if stages.get('matched',{}).get('status')!='complete':
             progress('Matching GeneIDs to v13 genes with exact species agreement')
-            counts=match_symbols(db,progress);stages['matched']={**counts,'status':'complete'};progress('Species-checked gene symbols staged')
+            total=stages['geneids'].get('unique_rows')
+            if total is None:
+                progress('Counting immutable input links before matching writes begin')
+                total=db.execute('SELECT count(*) FROM i').fetchone()[0];stages['geneids']['unique_rows']=total
+            def checkpoint(counts):stages['matched']={**counts,'status':'matching'}
+            counts=match_symbols(db,progress,total=total,on_checkpoint=checkpoint);stages['matched']={**counts,'status':'complete'};progress('Species-checked gene symbols staged')
         db.execute('ATTACH DATABASE ? AS baseline',(candidate.as_uri()+'?mode=ro',))
         samples=verify_samples(db,'baseline',aliases=True)
         if not any(row[2]==args.expected_ago_group for row in samples['Q9UL18']):raise RuntimeError('AGO1 group differs from independently verified v13 API group')

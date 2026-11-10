@@ -440,3 +440,21 @@ Deployed on main port 8050 and browser-verified: labels appear at readable zoom,
 match matrix values, use appropriate contrast on bright/dark cells, show an em
 dash for undefined values, and disappear in dense Fit view. No runtime errors;
 existing interaction and mobile checks passed. Legacy/database jobs unchanged.
+
+## 16. Recover symbol matching after a reader-induced lock timeout
+
+An external progress COUNT held a staging read lock and caused a symbol-batch
+commit to time out at roughly 11.9 million matched links. Completed GeneID/NCBI
+imports and committed symbols were retained. Added staging-only WAL, a longer
+busy timeout, and a compound input cursor/counters committed atomically with each
+symbol batch. Exact checked/total progress replaces an unknowable target of
+successful matches. Completed NCBI sources are validated/reused locally without
+fetching the changing daily endpoint. The first recovery replays the old
+uncheckpointed matching prefix idempotently; subsequent restarts seek directly
+to their saved cursor. Candidate/live apply safeguards remain unchanged.
+
+Nine fixtures passed, including a held read transaction during batch commits,
+durable interruption/resume and pinned-cache reuse without network access.
+Preserved failed logs as `orthodb-v13-symbol-repair-lock-failure`; restarted the
+normal named repair using the existing inputs. Use report files/logs for progress,
+not SQL scans of active builds.

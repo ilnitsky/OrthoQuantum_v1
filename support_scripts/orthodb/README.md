@@ -210,3 +210,30 @@ read-only. Download/streaming, symbols and validation have separate checkpoints.
 An interrupted `mapping_ready` stage can use `repair_v13_mappings.py --resume-staged`;
 it honors the recorded prepared symbols file. Earlier committed symbol stages
 can be reused by rerunning the symbol recovery after inspecting the failure.
+
+### Lock recovery and accurate matching progress
+
+A long external read-only COUNT on active DELETE-journal staging held a read lock
+and made a symbol-batch commit exceed SQLite's default timeout. Imports and prior
+committed symbol batches were preserved. Staging now uses WAL and a five-minute
+busy timeout; neither live nor candidate journaling is changed by that setting.
+Regression fixtures hold a reader snapshot while symbol commits proceed.
+
+Each matching batch now commits a compound `(GeneID, packed OrthoDB ID)` cursor
+and counters in the same transaction as its symbol inserts. Further interruptions
+resume from that cursor. The first recovery from the older, uncheckpointed pass
+replays its input and reuses existing symbols with INSERT OR IGNORE; it does not
+reload the 74,130,707 NCBI records or the 38,025,313 unique GeneID links. Completed
+NCBI archives are reused after local SHA-256 validation without contacting the
+mutable daily endpoint again.
+
+Progress reports `sources_checked / total_links`, matched links, mismatches,
+unresolved links and existing symbol hits. Exact-species matches are an outcome,
+not the denominator: some source links cannot match. Read the JSON report/logs
+for progress, rather than running COUNT/join queries on active build databases.
+The failed container's original logs remain under
+`orthodb-v13-symbol-repair-lock-failure`; the resumed job retains the normal name.
+
+Nine importer/repair fixtures now cover the full pipeline, concurrent staging
+readers, interruption/resume without missing or duplicating symbols, and reuse of
+pinned input without network access.

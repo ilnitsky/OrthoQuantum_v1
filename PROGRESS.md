@@ -395,3 +395,13 @@ Port swap completed and verified: main /api/health on 8050, legacy Dash HTML on
 8051, and the main site's HTTPS Origin all returned HTTP 200. Nine Node checks
 passed. Only frontend services were stopped/recreated; background jobs were not
 restarted. Main smoke-test defaults now use 8050.
+
+## 13. Restore descriptive copy and remove public stress tests
+
+Restored the previous "Explore phylogenetic profiles" heading and biological
+introductory/About copy in the lightweight main site. Removed the public stress
+controls and synthetic-data generator, plus its obsolete browser UI steps.
+Historical benchmark results remain documented. No BLAST availability claim was
+restored while BLAST is disabled. Changed `web/public/{index.html,app.mjs}`,
+browser smoke steps and web README; JS syntax and diff checks passed. Deploys
+only the main frontend, leaving legacy and database jobs alone.

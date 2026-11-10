@@ -87,15 +87,6 @@ try{
   const benchmark=async()=>page.evaluate(async()=>{const v=window.__orthoLite.viewer,p=v.viewport,times=[];for(let i=0;i<60;i++){p.scrollTop=(i*779)%(p.scrollHeight-p.clientHeight);p.scrollLeft=(i*101)%(Math.max(1,p.scrollWidth-p.clientWidth));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));times.push(v.lastMetrics.renderMs);}const sorted=times.sort((a,b)=>a-b);return{frames:times.length,p50:sorted[30],p95:sorted[57],max:sorted.at(-1),visibleRows:v.lastMetrics.visibleRows,totalRows:v.lastMetrics.totalRows,canvasCount:document.querySelectorAll('canvas').length};});
   timings.realKegg=await benchmark();
   await page.selectOption('#demo-select','interpro');await page.click('#load-demo');await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===5);
-  await page.locator('.about details').evaluate(el=>{el.open=true;});await page.click('#stress-large');await page.waitForFunction(()=>window.__orthoLite.state.data?.species.length===20000,null,{timeout:60000});
-  timings.synthetic=await benchmark();assert.ok(timings.synthetic.visibleRows<100);assert.equal(timings.synthetic.canvasCount,2);
-  await page.locator('#viewport').evaluate(el=>{el.scrollTop=1e9;});await page.waitForTimeout(100);assert.ok((await page.evaluate(()=>window.__orthoLite.viewer.lastMetrics)).visibleRows>0);
-  await page.click('#fit-whole');await page.waitForTimeout(300);
-  assert.equal(await page.evaluate(()=>window.__orthoLite.viewer.lastMetrics.visibleRows),20000);
-  assert.ok(await page.evaluate(()=>{const v=window.__orthoLite.viewer;return v.spacer.offsetHeight<=v.viewport.clientHeight+1&&v.spacer.offsetWidth<=v.viewport.clientWidth+1;}));
-  await page.screenshot({path:path.join(artifacts,'overview.png'),fullPage:true});
-  await page.click('#reset-view');
-  await page.screenshot({path:path.join(artifacts,'stress.png'),fullPage:true});
   // Mobile: no body-wide overflow, viewer has its own scrolling surface.
   await page.setViewportSize({width:390,height:844});await page.selectOption('#demo-select','uniprot');await page.click('#load-demo');await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===4);await page.waitForTimeout(300);
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Unexpected mobile page overflow');

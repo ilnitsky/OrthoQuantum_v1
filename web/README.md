@@ -51,7 +51,6 @@ the tested legacy cached runtimes; see the root README's runtime limitation.
   SVG image with readable names/counts and the current species filter/column order.
 - Fifteen datasets retained in browser IndexedDB; newest ten shown. Imported files
   are parsed locally and are not uploaded to the server.
-- Explicit synthetic stress examples: 5,000 × 100 and 20,000 × 200 cells.
 
 ## Important scientific/feature boundaries
 
@@ -160,7 +159,7 @@ PLAYWRIGHT_MODULE=/tmp/ortho-lite-browser/node_modules/playwright/index.mjs \
 
 The browser test covers demo loading, scroll bounds/reversal, search, counts,
 clustering, export/import roundtrip, real UniProt lookup, real SESN2 PANTHER data,
-20,000 × 200 synthetic navigation and mobile overflow. Measurements are saved to
+real-data navigation and mobile overflow. Measurements are saved to
 `artifacts/browser-results.json`, with desktop/mobile/PANTHER/stress screenshots.
 They measure draw work on this machine, not a guarantee of end-to-end FPS on
 other hardware. See `VALIDATION.md` for the final recorded run and limitations.
@@ -176,3 +175,7 @@ opened profile. Another PANTHER gene replaces that PANTHER slot while keeping th
 orthogroup view. A new query result, demo, imported file or history selection
 starts a new pair; Reset clears it. This linked pair lasts for the page session;
 saved datasets remain individually available through Recent datasets.
+
+The public stress-test controls and synthetic-data generator have been removed.
+Historical stress measurements remain in VALIDATION.md; the browser smoke suite
+now exercises real demos and main application flows.

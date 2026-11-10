@@ -69,7 +69,9 @@ This implementation does not yet have complete scientific parity with legacy Das
   files can still be demanding for external image viewers.
 - Correlations/clustering are limited to the first **160 groups**, with an explicit
   status note for larger matrices. The tree/grid still displays all loaded groups.
-  The correlation plot does not reproduce Seaborn's dendrogram presentation.
+  The correlation clustermap orders both axes by the same average-linkage tree
+  and draws matching dendrograms. Wheel/buttons zoom; drag pans; Fit restores the
+  complete matrix without scrollbars. Query order is available separately.
 - Fresh lookups build up to 200 profiles; candidate selection is capped at 100
   matches. Broad searches report truncation instead of claiming complete results.
   KEGG strings are delegated to OrthoDB's search endpoint, not resolved through
@@ -179,3 +181,21 @@ saved datasets remain individually available through Recent datasets.
 The public stress-test controls and synthetic-data generator have been removed.
 Historical stress measurements remain in VALIDATION.md; the browser smoke suite
 now exercises real demos and main application flows.
+
+## Correlation clustermap
+
+Both axes default to average-linkage ordering on binary presence/absence profile
+distances; matching dendrograms show that hierarchy. Pearson colors still use the
+selected presence or gene-copy-count mode. Undefined constant-profile correlations
+remain gray. The first-160-group limit is unchanged and explicitly reported.
+
+Use the mouse wheel or +/− buttons to zoom, drag to pan, and Fit/double-click/zero
+to reset. Labels appear as cells become large enough; hover always gives full
+group names and the correct reordered cell value. The square plot fits its card
+without nested scrollbars. Orthogroup/PANTHER view switching retains its order
+and zoom/pan position. Browser interaction check:
+
+```bash
+PLAYWRIGHT_MODULE=/tmp/ortho-lite-browser/node_modules/playwright/index.mjs \
+  node web/tests/clustermap.browser.mjs
+```

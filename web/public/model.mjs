@@ -70,15 +70,15 @@ export function correlate(data,mode='presence') {
   const binary=Array.from({length:m},(_,j)=>Uint8Array.from(data.counts,row=>Number(row[j]>0)));
   const distances=new Map();const key=(a,b)=>a<b?`${a}:${b}`:`${b}:${a}`;
   for(let a=0;a<m;a++) for(let b=a+1;b<m;b++) {let distance=0;for(let i=0;i<n;i++)distance+=(binary[a][i]-binary[b][i])**2;distances.set(key(a,b),Math.sqrt(distance));}
-  let next=m;const clusters=new Map(Array.from({length:m},(_,i)=>[i,{size:1,order:[i]}]));
+  let next=m;const clusters=new Map(Array.from({length:m},(_,i)=>[i,{size:1,order:[i],tree:{leaf:i,height:0}}]));
   while(clusters.size>1) {
     const ids=[...clusters.keys()];let best=Infinity,left,right;
     for(let a=0;a<ids.length;a++)for(let b=a+1;b<ids.length;b++){const value=distances.get(key(ids[a],ids[b]));if(value<best){best=value;left=ids[a];right=ids[b];}}
-    const a=clusters.get(left),b=clusters.get(right),merged={size:a.size+b.size,order:[...a.order,...b.order]};
+    const a=clusters.get(left),b=clusters.get(right),merged={size:a.size+b.size,order:[...a.order,...b.order],tree:{height:best,children:[a.tree,b.tree]}};
     for(const id of ids) if(id!==left && id!==right) distances.set(key(next,id),(distances.get(key(left,id))*a.size+distances.get(key(right,id))*b.size)/merged.size);
     clusters.delete(left);clusters.delete(right);clusters.set(next++,merged);
   }
-  return {matrix,pairs,order:clusters.size?[...clusters.values()][0].order:[],mode,limited:data.groups.length>m,groupCount:m};
+  return {matrix,pairs,clusterTree:clusters.size?[...clusters.values()][0].tree:null,order:clusters.size?[...clusters.values()][0].order:[],mode,limited:data.groups.length>m,groupCount:m};
 }
 export function csvText(data) {
   const quote=v=>'"'+String(v??'').replaceAll('"','""')+'"';

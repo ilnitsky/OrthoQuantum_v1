@@ -136,3 +136,15 @@ hosts/origins. Live main health, legacy Dash HTML and the public Host/HTTPS Orig
 probe each returned HTTP 200 after the swap. Only the two frontend containers
 were recreated; workers, Redis, database builders and reference mounts were not
 changed. Smoke-test defaults now target main port 8050.
+
+## Zoomable correlation clustermap
+
+Twelve Node checks passed, including reordered hit-testing under anchored zoom,
+extreme pan/zoom bounds, and dendrogram leaves matching the shared axis order.
+The 160-column browser fixture passed after the real reference configuration
+loaded: clustered axes, no nested scrollbars, +/−/wheel zoom, full-name tooltip,
+bounded drag, Fit, query-order switching and mobile layout. No runtime errors.
+Screenshots/report: `artifacts/clustermap-{fit,zoom,mobile}.png` and
+`artifacts/clustermap-results.json`. Synthetic data exists only inside this test;
+no public stress-test controls were restored. Browser libraries/tooling are under
+/tmp, with no host package installation or runtime dependency added.

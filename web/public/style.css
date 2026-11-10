@@ -8,3 +8,5 @@
 
 .profile-views{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0 0 15px}.profile-views button[aria-pressed="true"]{background:#f5eaf4;border-color:#ba93c4;color:#753e73;font-weight:700}.profile-views button:disabled{cursor:default}.profile-views .help{margin:0}
 .profile-views button{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.correlation-scroll{max-height:none;overflow:hidden;aspect-ratio:1;width:100%}.correlation-scroll canvas{width:100%;height:100%;max-width:none;touch-action:none;cursor:grab}.correlation-scroll canvas:active{cursor:grabbing}.correlation-toolbar{margin:0 0 12px}.correlation-toolbar .help{margin:0}

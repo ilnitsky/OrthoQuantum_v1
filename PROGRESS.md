@@ -405,3 +405,24 @@ Historical benchmark results remain documented. No BLAST availability claim was
 restored while BLAST is disabled. Changed `web/public/{index.html,app.mjs}`,
 browser smoke steps and web README; JS syntax and diff checks passed. Deploys
 only the main frontend, leaving legacy and database jobs alone.
+
+
+## 14. Zoomable clustered correlation heatmap
+
+The previous heatmap drew query-order axes even when the main profile was
+clustered. It now defaults to the same hierarchical order on both axes with
+matching dendrograms. `model.mjs` retains the average-linkage merge tree;
+`correlation-viewer.mjs` supplies bounded wheel/button zoom, drag pan, keyboard
+controls, Fit/double-click reset, responsive labels and reordered-cell tooltips.
+The square canvas fits its card without an inner scrollbar. Query order remains
+selectable. The Pearson view mode and first-160-group limit remain explicit.
+Linked orthogroup/PANTHER views preserve correlation order and zoom/pan state.
+
+Affected: web public app/model/index/style and new correlation viewer; three
+geometry/hierarchy tests plus a browser interaction fixture. Twelve Node checks
+passed. The main frontend was rebuilt on 8050; legacy and database jobs were
+not restarted.
+
+Chromium validation passed for the 160-column test fixture after reference startup,
+covering clustered axes, scrollbar-free desktop/mobile layout, zoom, tooltip,
+bounded drag, Fit and query order. No browser runtime errors were recorded.

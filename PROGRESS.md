@@ -426,3 +426,17 @@ not restarted.
 Chromium validation passed for the 160-column test fixture after reference startup,
 covering clustered axes, scrollbar-free desktop/mobile layout, zoom, tooltip,
 bounded drag, Fit and query order. No browser runtime errors were recorded.
+
+## 15. Correlation coefficients inside zoomed cells
+
+Added automatic two-decimal coefficient labels once correlation cells are large
+enough. Text uses black/white contrast selected from the background luminance;
+undefined correlations show an em dash and hover retains five decimals. Dense
+fit views remain unlabelled. Updated the existing browser interaction fixture to
+check label visibility, matrix-derived values, contrast and hiding after Fit.
+Changed correlation viewer, help copy, browser checks and documentation.
+
+Deployed on main port 8050 and browser-verified: labels appear at readable zoom,
+match matrix values, use appropriate contrast on bright/dark cells, show an em
+dash for undefined values, and disappear in dense Fit view. No runtime errors;
+existing interaction and mobile checks passed. Legacy/database jobs unchanged.

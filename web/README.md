@@ -199,3 +199,8 @@ and zoom/pan position. Browser interaction check:
 PLAYWRIGHT_MODULE=/tmp/ortho-lite-browser/node_modules/playwright/index.mjs \
   node web/tests/clustermap.browser.mjs
 ```
+
+Correlation cells display coefficients to two decimal places once zoom makes the
+cells large enough. Text switches between black and white for contrast; undefined
+values show an em dash. Hover retains five-decimal precision. Fit hides the
+numbers again when the matrix is dense.

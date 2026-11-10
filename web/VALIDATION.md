@@ -148,3 +148,12 @@ Screenshots/report: `artifacts/clustermap-{fit,zoom,mobile}.png` and
 `artifacts/clustermap-results.json`. Synthetic data exists only inside this test;
 no public stress-test controls were restored. Browser libraries/tooling are under
 /tmp, with no host package installation or runtime dependency added.
+
+## Coefficient annotations at readable zoom
+
+Browser checks passed for automatic two-decimal cell labels after zoom, no labels
+in the dense fitted matrix, values drawn from the correlation matrix, and hiding
+again after Fit. Explicit bright/dark/undefined-cell fixtures verify black/white
+contrast and the undefined em dash. Existing zoom, pan, hover, axis ordering and
+mobile checks also passed with no runtime errors. A focused screenshot is saved
+locally at `artifacts/clustermap-coefficients.png` (not committed).

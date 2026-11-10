@@ -12,7 +12,17 @@ export function cellAt(view,x,y,n,order){
   const col=Math.floor((x-view.x)/view.zoom*n),row=Math.floor((y-view.y)/view.zoom*n);
   return col>=0&&col<n&&row>=0&&row<n?{a:order[col],b:order[row]}:null;
 }
-function color(v){if(v===null)return'#ddd6df';const t=(v+1)/2,stops=[[247,37,133],[65,20,158],[76,201,240]],a=t<.5?0:1,f=t<.5?t*2:(t-.5)*2;return`rgb(${stops[a].map((x,i)=>Math.round(x+(stops[a+1][i]-x)*f)).join(',')})`;}
+function cellRGB(v){
+  if(v===null)return[221,214,223];
+  const t=(v+1)/2,stops=[[247,37,133],[65,20,158],[76,201,240]],a=t<.5?0:1,f=t<.5?t*2:(t-.5)*2;
+  return stops[a].map((x,i)=>Math.round(x+(stops[a+1][i]-x)*f));
+}
+function color(v){return `rgb(${cellRGB(v).join(',')})`;}
+function coefficientInk(v){
+  const linear=cellRGB(v).map(channel=>{const s=channel/255;return s<=.04045?s/12.92:((s+.055)/1.055)**2.4;});
+  const luminance=.2126*linear[0]+.7152*linear[1]+.0722*linear[2];
+  return luminance>.179?'#000000':'#ffffff';
+}
 export class CorrelationViewer{
   constructor(canvas,tooltip,onZoom){
     this.canvas=canvas;this.tooltip=tooltip;this.onZoom=onZoom;this.view=boundedView();this.orderMode='cluster';this.pad=96;
@@ -42,6 +52,15 @@ export class CorrelationViewer{
     const firstCol=clamp(Math.floor(-x*n/zoom),0,n),lastCol=clamp(Math.ceil((1-x)*n/zoom),0,n),firstRow=clamp(Math.floor(-y*n/zoom),0,n),lastRow=clamp(Math.ceil((1-y)*n/zoom),0,n);
     c.save();c.beginPath();c.rect(pad,pad,box,box);c.clip();
     for(let row=firstRow;row<lastRow;row++)for(let col=firstCol;col<lastCol;col++){c.fillStyle=color(this.result.matrix[this.order[col]][this.order[row]]);c.fillRect(xx(col),yy(row),step+.2,step+.2);}
+    // Keep dense overviews uncluttered; annotate only when a cell can hold the number.
+    if(step>=32){
+      c.font=`${clamp(Math.floor(step/4),9,14)}px "JetBrainsMono Nerd Font",monospace`;c.textAlign='center';c.textBaseline='middle';
+      for(let row=firstRow;row<lastRow;row++)for(let col=firstCol;col<lastCol;col++){
+        const value=this.result.matrix[this.order[col]][this.order[row]],label=value===null?'—':(Math.round(value*100)/100).toFixed(2);
+        if(c.measureText(label).width>step-4)continue;
+        c.fillStyle=coefficientInk(value);c.fillText(label,xx(col+.5),yy(row+.5));
+      }
+    }
     c.restore();c.fillStyle='#795e76';c.font='9px "JetBrainsMono Nerd Font",monospace';
     if(step>=10){
       c.save();c.beginPath();c.rect(pad,30,box,pad-30);c.clip();for(let col=firstCol;col<lastCol;col++){c.save();c.translate(xx(col+.5),pad-5);c.rotate(-Math.PI/2);c.fillText(shortLabel(this.data.groups[this.order[col]].name,10),0,0);c.restore();}c.restore();

@@ -2,9 +2,9 @@
 
 The main application is now `web/` (vanilla JavaScript/Canvas, Node HTTP server,
 read-only Python SQLite adapter). The root `docker-compose.yml` starts that app
-on loopback 8051 with its own Xray relay on 10810. Use `./compose.sh` to retain
+on loopback 8050 with its own Xray relay on 10810. Use `./compose.sh` to retain
 project `orthoquantum_lite`; `./rebuild.sh` rebuilds only that project. The existing
-Dash deployment on 8050 is preserved in `docker-compose.legacy.yml`, with legacy
+Dash deployment on 8051 is preserved in `docker-compose.legacy.yml`, with legacy
 development config `docker-compose.legacy-test.yml`. No automatic database or
 Redis-session migration occurs. See README.md and web/README.md for current run
 commands and scientific limits. `snapshot/dash-and-lite` preserves the parent
@@ -32,8 +32,8 @@ record, affected files, commented operational commands and v13 build snapshot.
 
 The main JavaScript/Canvas application is under
 [`web/`](web/README.md).
-It uses its own `orthoquantum_lite` Compose project and loopback port 8051;
-the retained legacy Dash deployment remains on 8050. Its Node server/Python standard-library adapter reads
+It uses its own `orthoquantum_lite` Compose project and loopback port 8050;
+the retained legacy Dash deployment is now on 8051. Its Node server/Python standard-library adapter reads
 reference databases only, without production Redis/session/queue access. See its
 README and VALIDATION.md for tests, measured draw times and scientific limitations.
 
@@ -52,7 +52,7 @@ older builds; their age and status do not establish which source is deployed.
 
 | Compose service | Purpose | Network/storage |
 | --- | --- | --- |
-| `web` | Flask/Dash UI served by Gunicorn with the Meinheld worker | Production binds host `127.0.0.1:8050` to container port 8050; shares `/app/user_data` with worker |
+| `web` | Flask/Dash UI served by Gunicorn with the Meinheld worker | Legacy binds host `127.0.0.1:8051` to container port 8050; shares `/app/user_data` with worker |
 | `worker` | Async Redis queue consumer; queries reference data and generates analysis files | Uses Redis and the Xray relay; mounts reference databases and shared results |
 | `redis` | Sessions/task metadata, job streams, progress updates, cache, and Lua scripts | Redis 6.2 Alpine; AOF enabled; persistent `/data`; no published host port |
 | `xray-relay` | Forwards the worker SOCKS connection to host Xray at `127.0.0.1:10808` | Reuses the worker image with host networking; binds Docker gateway `172.17.0.1:10809` |
@@ -112,8 +112,8 @@ docker compose -f docker-compose.legacy.yml up -d
 docker compose -f docker-compose.legacy-test.yml up --build -d
 ```
 
-Run production and development configurations deliberately: both publish port
-8050. Building/recreating services changes deployment state. Do not use
+The retained legacy development configuration publishes 8050; choose another
+port before running it alongside the lightweight main application. Building/recreating services changes deployment state. Do not use
 `rebuild.sh` merely to inspect the project, and do not remove persistent volumes
 as a troubleshooting shortcut.
 

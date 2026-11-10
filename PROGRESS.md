@@ -376,3 +376,22 @@ rebuilt through the new root wrapper. Live proxy-free checks cover health,
 frontend modules/demos and read-only configuration; the independent relay reached
 OrthoDB with HTTP 200. Browser tooling was no longer present in /tmp, so the full
 browser suite was not repeated during promotion; its earlier report is retained.
+
+
+## 12. Main/legacy frontend port swap
+
+The lightweight main application now binds host loopback 8050 (container 8051).
+Legacy Dash moves to host loopback 8051 (container 8050). Existing site proxies
+targeting 8050 therefore reach the main application. Root and compatibility
+Compose mappings/documentation were updated; the legacy host port is overridable
+through LEGACY_ORTHOQUANTUM_PORT. No database/worker/Redis volumes are changed.
+
+The main server accepts configured PUBLIC_ORIGINS, defaulting in Compose to HTTP
+and HTTPS orthoq.bioinf.fbb.msu.ru. This handles both preserved and loopback-rewritten
+Host headers behind a proxy while rejecting unrelated hosts/origins. Focused HTTP
+checks cover both schemes and proxy behavior.
+
+Port swap completed and verified: main /api/health on 8050, legacy Dash HTML on
+8051, and the main site's HTTPS Origin all returned HTTP 200. Nine Node checks
+passed. Only frontend services were stopped/recreated; background jobs were not
+restarted. Main smoke-test defaults now use 8050.

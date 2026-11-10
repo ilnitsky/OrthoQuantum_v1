@@ -9,18 +9,18 @@ are in the [root README](../README.md). Reference databases remain read-only.
 ./compose.sh up -d --build
 ./compose.sh logs --tail=50 lite
 # Or directly, without a frontend build/npm installation:
-ORTHODB_PROXY=socks5h://127.0.0.1:10808 node web/server.mjs
+ORTHODB_PROXY=socks5h://127.0.0.1:10808 PORT=8050 node web/server.mjs
 ```
 
-Open http://127.0.0.1:8051 on the server, or forward it:
+Open http://127.0.0.1:8050 on the server, or forward it:
 
 ```bash
-ssh -N -L 8051:127.0.0.1:8051 ilnitsky@calculator
+ssh -N -L 8050:127.0.0.1:8050 ilnitsky@calculator
 ```
 
 The old standalone `web/compose.yml` remains a compatibility configuration using
 relay port 10809; new deployments should use the root configuration and wrapper,
-which provide an independent relay on 10810. Both use the same app/project/8051
+which provide an independent relay on 10810. Both use the same app/project/main
 port and must not be started as competing deployments. The Dockerfile still uses
 the tested legacy cached runtimes; see the root README's runtime limitation.
 

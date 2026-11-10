@@ -3,7 +3,7 @@ services:
   web:
     build: ./dash_app
     ports:
-      - "127.0.0.1:8050:8050"
+      - "127.0.0.1:${LEGACY_ORTHOQUANTUM_PORT:-8051}:8050"
     restart: unless-stopped
     volumes:
       - "user_data_v2:/app/user_data"

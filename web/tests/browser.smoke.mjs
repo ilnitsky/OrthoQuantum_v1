@@ -1,5 +1,5 @@
 // Run with PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs.
-// The prototype must already be listening on LITE_URL (default loopback 8051).
+// The prototype must already be listening on LITE_URL (default loopback 8050).
 import assert from 'node:assert/strict';
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -8,12 +8,12 @@ const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const ROOT=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const artifacts=path.join(ROOT,'artifacts');await mkdir(artifacts,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox'],env:process.env});
-const context=await browser.newContext({viewport:{width:1440,height:1050},deviceScaleFactor:1,baseURL:process.env.LITE_URL||'http://127.0.0.1:8051'});
+const context=await browser.newContext({viewport:{width:1440,height:1050},deviceScaleFactor:1,baseURL:process.env.LITE_URL||'http://127.0.0.1:8050'});
 const page=await context.newPage();const errors=[];const failures=[];
 page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('favicon.ico'))failures.push([r.status(),r.url()]);});
 const timings={};
 try{
-  await page.goto(process.env.LITE_URL||'http://127.0.0.1:8051',{waitUntil:'networkidle'});
+  await page.goto(process.env.LITE_URL||'http://127.0.0.1:8050',{waitUntil:'networkidle'});
   await page.waitForFunction(()=>window.__orthoLite?.state.config);
   assert.match(await page.locator('#connection-status').textContent(),/connected/);
   assert.equal(await page.locator('#species-select option').first().textContent(),'Homo sapiens');

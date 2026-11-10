@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Keep the established 8051 deployment separate from the legacy Dash project.
+# Keep the main application deployment separate from the legacy Dash project.
 set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$script_dir"

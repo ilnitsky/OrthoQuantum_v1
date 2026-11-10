@@ -1,4 +1,4 @@
-# Default application: JavaScript + Canvas on loopback 8051.
+# Default application: JavaScript + Canvas on loopback 8050.
 # Use ./compose.sh to retain the existing orthoquantum_lite deployment identity.
 version: '2.4'
 services:
@@ -6,12 +6,13 @@ services:
     build: ./web
     image: orthoquantum-lite:test
     ports:
-      - '127.0.0.1:${ORTHOQUANTUM_PORT:-8051}:8051'
+      - '127.0.0.1:${ORTHOQUANTUM_PORT:-8050}:8051'
     environment:
       ORTHODB_PATH: /reference/orthodb.db
       PANTHER_PATH: /reference/panther.sqlite
       PANTHER_BUNDLE_DIR: /reference/panther_v19
       ORTHODB_RELEASE: v11
+      PUBLIC_ORIGINS: '${ORTHOQUANTUM_PUBLIC_ORIGINS:-http://orthoq.bioinf.fbb.msu.ru,https://orthoq.bioinf.fbb.msu.ru}'
       ORTHODB_PROXY: '${LITE_ORTHODB_PROXY-socks5h://host.docker.internal:10810}'
     extra_hosts:
       - host.docker.internal:host-gateway

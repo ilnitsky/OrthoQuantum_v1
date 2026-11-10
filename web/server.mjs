@@ -69,7 +69,11 @@ async function runNext() {
   child.stdin.on('error', () => {});
   child.stdin.end(JSON.stringify(job.request));
 }
-export function createApp() {
+export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||''}={}) {
+  const origins=new Set(publicOrigins.split(',').map(v=>v.trim()).filter(Boolean).map(value=>{
+    const url=new URL(value);if(!['http:','https:'].includes(url.protocol))throw new Error('PUBLIC_ORIGINS must contain HTTP(S) origins');return url.origin;
+  }));
+  const publicHosts=new Set([...origins].map(value=>new URL(value).hostname));
   return http.createServer(async (req,res) => {
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Referrer-Policy','no-referrer');
@@ -77,8 +81,9 @@ export function createApp() {
     try {
       const url = new URL(req.url, 'http://localhost');
       const hostname = new URL(`http://${req.headers.host || 'invalid'}`).hostname;
-      if (!['localhost','127.0.0.1','[::1]'].includes(hostname)) return send(res,403,{error:'This experiment is available only through a local host name.'});
-      if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) return send(res,403,{error:'Use OrthoQuantum from its own origin.'});
+      const local=['localhost','127.0.0.1','[::1]'].includes(hostname);
+      if (!local&&!publicHosts.has(hostname)) return send(res,403,{error:'Unknown site host.'});
+      if (req.headers.origin&&!origins.has(req.headers.origin)&&!(local&&req.headers.origin===`http://${req.headers.host}`)) return send(res,403,{error:'Use OrthoQuantum from its own origin.'});
       if (url.pathname === '/api/health') return send(res,200,{status:'ok',application:'orthoquantum',implementation:'javascript-canvas',activeJobs:Number(active)});
       if (url.pathname === '/api/jobs' && req.method === 'POST') {
         if (!String(req.headers['content-type']).startsWith('application/json')) return send(res,415,{error:'JSON required'});

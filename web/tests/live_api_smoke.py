@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import urllib.request
 
-BASE=os.environ.get('LITE_URL','http://127.0.0.1:8051')
+BASE=os.environ.get('LITE_URL','http://127.0.0.1:8050')
 OPEN=urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 

@@ -1,5 +1,5 @@
 # Optional main-app source bind: ./compose.sh -f docker-compose.test.yml up -d
-# Extends the default Compose file included by compose.sh; uses the same 8051 service.
+# Extends the default Compose file included by compose.sh; uses the same main service.
 version: '2.4'
 services:
   lite:

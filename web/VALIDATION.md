@@ -126,3 +126,13 @@ Live health/static/configuration checks and the independent 10810 Xray relay
 were checked separately. The full browser suite was not repeated for this
 promotion because its temporary tooling was unavailable; earlier browser reports
 above apply to the same viewer behavior before relocation.
+
+## Main/legacy port swap
+
+Lightweight main now maps loopback 8050 to its internal 8051; legacy Dash maps
+loopback 8051 to internal 8050. Nine Node checks passed, including configured
+HTTP/HTTPS origins, proxy-rewritten Host handling and rejection of unrelated
+hosts/origins. Live main health, legacy Dash HTML and the public Host/HTTPS Origin
+probe each returned HTTP 200 after the swap. Only the two frontend containers
+were recreated; workers, Redis, database builders and reference mounts were not
+changed. Smoke-test defaults now target main port 8050.

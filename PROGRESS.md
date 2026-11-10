@@ -349,3 +349,30 @@ file after a ready checkpoint. Six tests passed, including unchanged live bytes,
 schema/membership checks, taxonomy rejection and rollback. A detached
 `orthodb-v13-symbol-repair` job was started; completion still requires actual
 full-data validation. See the orthodb README for commented commands.
+
+## 11. Branch snapshot and lightweight app promotion
+
+Created `snapshot/dash-and-lite` to preserve the complete current
+source state, then derived active branch `main/lightweight` directly from it.
+Secrets, local databases/input tables, screenshots and review PDFs were excluded.
+
+On the derived branch, promoted `experiments/orthoquantum-lite/` to `web/` and
+made it the root Compose default. Added `compose.sh` to retain the existing
+`orthoquantum_lite` project/port 8051 and updated `rebuild.sh` to use it without an
+automatic Git pull. Preserved Dash configs as `docker-compose.legacy.yml` and
+`docker-compose.legacy-test.yml`, with explicit `rebuild-legacy.sh`. The default
+test override now binds main web source. Existing Dash on 8050 was not cut over.
+
+The main stack now supplies its own Xray relay on Docker gateway port 10810;
+legacy remains on 10809. Both forward to host Xray 10808. The relay helper accepts
+an optional port setting while keeping the old default. Updated app branding,
+health metadata, moved tree-export paths, root README and current branch guide.
+Database IDs/releases, detached database jobs, Redis and legacy result volumes
+were not migrated or removed.
+
+Validation: eight Node and five Python checks passed from the new `web/` path;
+Compose configuration and shell/Python/JS syntax checks passed. Main image was
+rebuilt through the new root wrapper. Live proxy-free checks cover health,
+frontend modules/demos and read-only configuration; the independent relay reached
+OrthoDB with HTTP 200. Browser tooling was no longer present in /tmp, so the full
+browser suite was not repeated during promotion; its earlier report is retained.

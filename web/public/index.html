@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="An isolated OrthoQuantum experiment for exploring protein presence and PANTHER subfamilies.">
-<title>OrthoQuantum · Lite experiment</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/style.css">
+<meta name="description" content="Explore protein presence, orthogroups and PANTHER profiles with OrthoQuantum.">
+<title>OrthoQuantum · Phylogenetic profiles</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/style.css">
 <script type="module" src="/app.mjs"></script>
 </head>
 <body>
 <div class="institution"><span>ORTHOQUANTUM</span><span>Protein presence · Orthology · Phylogenetic profiles</span></div>
-<header class="navigation"><a href="/" class="brand"><span class="qmark">Q</span> OrthoQuantum <small>Lite</small></a><span class="test-badge">Separate test version</span><a href="#about">About this experiment</a></header>
+<header class="navigation"><a href="/" class="brand"><span class="qmark">Q</span> OrthoQuantum</a><a href="#about">About OrthoQuantum</a></header>
 <main>
 <section class="hero"><div><span class="eyebrow">COMPARATIVE GENOMICS</span><h1>Explore more. Wait less.</h1><p>Protein presence across species, with a compact tree and room to investigate paralogs.</p></div><div class="hero-actions"><label for="demo-select" class="sr-only">Choose demo</label><select id="demo-select"><option value="uniprot">Demo · UniProt IDs</option><option value="kegg">Demo · KEGG ko04010</option><option value="interpro">Demo · InterPro IPR003165</option></select><button id="load-demo" class="primary">Load demo</button></div></section>
 <div id="message" class="message" role="status" aria-live="polite" hidden></div>
@@ -38,7 +38,7 @@
 <section class="correlation-grid"><div class="card"><div class="card-heading"><div><h3>Profile correlation</h3><p class="help" id="correlation-status">Calculating…</p></div><span class="gradient-key">−1 <i></i> +1</span></div><div class="correlation-scroll"><canvas id="correlation-canvas" aria-label="Pairwise profile correlation heatmap"></canvas></div><p class="help">Pearson across all dataset species, using the selected presence/count mode. Gray = undefined for a constant profile.</p></div><div class="card"><div class="card-heading"><h3>Strongest correlations</h3><button id="export-correlations" class="quiet">Download CSV</button></div><div class="table-scroll"><table><thead><tr><th scope="col">Group A</th><th scope="col">Group B</th><th scope="col">r</th></tr></thead><tbody id="pairs"></tbody></table></div></div></section>
 <details class="card provenance"><summary>Dataset source &amp; interpretation</summary><pre id="provenance"></pre></details>
 </section>
-<section class="card about" id="about"><h2>About this experiment</h2><p>A separate interface for testing a lighter interaction model. The live OrthoQuantum site runs independently.</p><p>Bundled examples contain real OrthoDB v11 memberships from the project’s local database. Fresh queries use the configured read-only reference databases. Tree branches show topology, not evolutionary distance. PANTHER and OrthoDB profiles remain distinct datasets.</p><details><summary>Stress-test the viewer</summary><p>Generate a clearly labeled synthetic matrix to test navigation. It contains no biological evidence.</p><div class="actions"><button id="stress-small" class="quiet">5,000 species × 100 groups</button><button id="stress-large" class="quiet">20,000 species × 200 groups</button></div></details></section>
-</main><footer class="site-footer">OrthoQuantum Lite · Independent prototype · <span id="connection-status">Checking reference data…</span></footer>
+<section class="card about" id="about"><h2>About OrthoQuantum</h2><p>Explore orthogroups, gene-level profiles and correlations with the lightweight JavaScript viewer.</p><p>Bundled examples contain real OrthoDB v11 memberships from the project’s local database. Fresh queries use the configured read-only reference databases. Tree branches show topology, not evolutionary distance. PANTHER and OrthoDB profiles remain distinct datasets.</p><details><summary>Stress-test the viewer</summary><p>Generate a clearly labeled synthetic matrix to test navigation. It contains no biological evidence.</p><div class="actions"><button id="stress-small" class="quiet">5,000 species × 100 groups</button><button id="stress-large" class="quiet">20,000 species × 200 groups</button></div></details></section>
+</main><footer class="site-footer">OrthoQuantum · Phylogenetic profiles · <span id="connection-status">Checking reference data…</span></footer>
 <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
 </body></html>

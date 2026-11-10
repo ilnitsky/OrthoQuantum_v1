@@ -32,7 +32,7 @@ class Server(socketserver.ThreadingTCPServer):
 
 if __name__ == '__main__':
     # Bind only Docker's host gateway, never all host interfaces.
-    address = (os.environ.get('XRAY_RELAY_BIND', '172.17.0.1'), 10809)
+    address = (os.environ.get('XRAY_RELAY_BIND', '172.17.0.1'), int(os.environ.get('XRAY_RELAY_PORT', '10809')))
     with Server(address, Relay) as server:
         print(f'Xray relay listening on {address[0]}:{address[1]}', flush=True)
         server.serve_forever()

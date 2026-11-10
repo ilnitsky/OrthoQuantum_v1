@@ -1,3 +1,24 @@
+# Current branch: main/lightweight
+
+The main application is now `web/` (vanilla JavaScript/Canvas, Node HTTP server,
+read-only Python SQLite adapter). The root `docker-compose.yml` starts that app
+on loopback 8051 with its own Xray relay on 10810. Use `./compose.sh` to retain
+project `orthoquantum_lite`; `./rebuild.sh` rebuilds only that project. The existing
+Dash deployment on 8050 is preserved in `docker-compose.legacy.yml`, with legacy
+development config `docker-compose.legacy-test.yml`. No automatic database or
+Redis-session migration occurs. See README.md and web/README.md for current run
+commands and scientific limits. `snapshot/dash-and-lite` preserves the parent
+snapshot before this promotion.
+
+Validate main changes with `node --test web/tests/*.test.mjs` and
+`python3 -m unittest discover -s web/tests -p 'test_*.py' -v`; browser checks are
+in `web/tests/browser.smoke.mjs`. Keep reference files read-only and do not move
+or restart detached database builders when restructuring frontend code.
+
+The following detailed project guide documents legacy Dash modules and data
+tooling retained on this branch; its deployment commands explicitly use the
+legacy Compose files. Main-app defaults are described above.
+
 # Project guide
 
 PANTHER v19 candidate tooling is in `support_scripts/panther/`: `build_v19.py`
@@ -9,10 +30,10 @@ release-specific caches must agree before a production migration.
 See [PROGRESS.md](PROGRESS.md) for the November 2026 interface/backend change
 record, affected files, commented operational commands and v13 build snapshot.
 
-The isolated JavaScript/Canvas prototype is under
-[`experiments/orthoquantum-lite/`](experiments/orthoquantum-lite/README.md).
+The main JavaScript/Canvas application is under
+[`web/`](web/README.md).
 It uses its own `orthoquantum_lite` Compose project and loopback port 8051;
-production remains on 8050. Its Node server/Python standard-library adapter reads
+the retained legacy Dash deployment remains on 8050. Its Node server/Python standard-library adapter reads
 reference databases only, without production Redis/session/queue access. See its
 README and VALIDATION.md for tests, measured draw times and scientific limitations.
 
@@ -56,8 +77,8 @@ Typical flow:
 
 | File | Role |
 | --- | --- |
-| `docker-compose.yml` | Production stack, restart policies, required environment, named volumes, and host reference-data mounts |
-| `docker-compose.test.yml` | Separate development configuration: DEBUG build arguments, host port 8050, worker port 5678, bind-mounted results/reference data; it does not itself run a test suite |
+| `docker-compose.legacy.yml` | Production stack, restart policies, required environment, named volumes, and host reference-data mounts |
+| `docker-compose.legacy-test.yml` | Separate development configuration: DEBUG build arguments, host port 8050, worker port 5678, bind-mounted results/reference data; it does not itself run a test suite |
 | `rebuild.sh` | Changes to repository directory, runs `git pull`, builds images, and force-recreates Compose containers; optionally follows logs when `PS1` is set. It has no `set -e`, so a failed step can be followed by another step |
 | `.env` and local variants | Deployment configuration/secrets; never copy values into documentation, logs, or commits |
 | `.python-version`, `.pylintrc`, `.gitignore`, `.dockerignore` | Local Python/tooling and ignore configuration; Dockerfiles explicitly build Python 3.9.5 runtimes |
@@ -84,11 +105,11 @@ Useful commands from the repository root (the existing helper uses legacy
 `docker-compose`; use `docker compose` where the Compose plugin is installed):
 
 ```sh
-docker compose ps
-docker compose logs --tail=100 web worker redis xray-relay
-docker compose build
-docker compose up -d
-docker compose -f docker-compose.test.yml up --build -d
+docker compose -f docker-compose.legacy.yml ps
+docker compose -f docker-compose.legacy.yml logs --tail=100 web worker redis xray-relay
+docker compose -f docker-compose.legacy.yml build
+docker compose -f docker-compose.legacy.yml up -d
+docker compose -f docker-compose.legacy-test.yml up --build -d
 ```
 
 Run production and development configurations deliberately: both publish port

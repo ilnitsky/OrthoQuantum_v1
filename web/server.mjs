@@ -44,7 +44,7 @@ async function runNext() {
   const timer = setTimeout(() => {job.error = 'Query exceeded the 180-second job budget.'; child.kill();}, 180_000);
   child.stdout.on('data', chunk => {
     total += chunk.length;
-    if (total > MAX_OUTPUT) {job.error = 'Result exceeds prototype size limit.'; child.kill(); return;}
+    if (total > MAX_OUTPUT) {job.error = 'Result exceeds the dataset size limit.'; child.kill(); return;}
     pending += chunk.toString();
     let end;
     while ((end=pending.indexOf('\n'))>=0) {
@@ -78,8 +78,8 @@ export function createApp() {
       const url = new URL(req.url, 'http://localhost');
       const hostname = new URL(`http://${req.headers.host || 'invalid'}`).hostname;
       if (!['localhost','127.0.0.1','[::1]'].includes(hostname)) return send(res,403,{error:'This experiment is available only through a local host name.'});
-      if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) return send(res,403,{error:'Use this prototype from its own local origin.'});
-      if (url.pathname === '/api/health') return send(res,200,{status:'ok',prototype:true,activeJobs:Number(active)});
+      if (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`) return send(res,403,{error:'Use OrthoQuantum from its own origin.'});
+      if (url.pathname === '/api/health') return send(res,200,{status:'ok',application:'orthoquantum',implementation:'javascript-canvas',activeJobs:Number(active)});
       if (url.pathname === '/api/jobs' && req.method === 'POST') {
         if (!String(req.headers['content-type']).startsWith('application/json')) return send(res,415,{error:'JSON required'});
         let raw='';req.setEncoding('utf8');

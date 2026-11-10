@@ -1,10 +1,5 @@
-#!/bin/bash
-cd "$( dirname "${BASH_SOURCE[0]}" )"
-
-echo "** Pulling from git **"
-git pull
-echo "** Building **"
-docker-compose build
-echo "** Recreating **"
-docker-compose up --build -d --force-recreate
-if [ ! -z "$PS1" ]; then docker-compose logs -f; fi
+#!/usr/bin/env bash
+# Rebuild only this branch's main application; never pull or switch branches.
+set -euo pipefail
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec "$script_dir/compose.sh" up -d --build

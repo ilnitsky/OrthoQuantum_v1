@@ -5,8 +5,8 @@ test('isolated HTTP API serves assets, rejects bad requests and completes a real
   const server=createApp();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base=`http://127.0.0.1:${server.address().port}`;
   try{
-    const home=await fetch(base);assert.equal(home.status,200);assert.match(await home.text(),/Separate test version/);
-    assert.equal((await fetch(base+'/api/health').then(r=>r.json())).prototype,true);
+    const home=await fetch(base);assert.equal(home.status,200);assert.match(await home.text(),/OrthoQuantum/);
+    assert.equal((await fetch(base+'/api/health').then(r=>r.json())).implementation,'javascript-canvas');
     assert.equal((await fetch(base+'/bridge.py')).status,404);
     assert.equal((await fetch(base+'/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:'{'})).status,400);
     assert.equal((await fetch(base+'/api/jobs',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://unrelated.example'},body:'{}'})).status,403);

@@ -1,6 +1,12 @@
+# Promotion note
+
+On `main/lightweight`, the previously isolated implementation is now `web/` and
+the root Compose default. Earlier measurements below describe the same viewer
+before promotion. The legacy Dash service remains on 8050.
+
 # Validation record — 10 November 2026
 
-The experiment is isolated in `experiments/orthoquantum-lite`, with its own
+The experiment is isolated in `web`, with its own
 `orthoquantum_lite_lite_1` container and loopback port 8051. Production services,
 Redis queues and database contents were not migrated or rewritten.
 
@@ -111,3 +117,12 @@ filter, column order, row/column spacing and scroll position. Switching back to
 PANTHER retains its separate species filter and spacing. Existing export,
 overview, data-loading and mobile checks also passed with no runtime errors or
 failed requests. The latest report is `artifacts/browser-results.json`.
+
+## Main-application promotion
+
+After relocation to `web/`, eight Node and five Python checks passed. Root Compose
+and shell syntax validated; the main image was rebuilt on its existing 8051 port.
+Live health/static/configuration checks and the independent 10810 Xray relay
+were checked separately. The full browser suite was not repeated for this
+promotion because its temporary tooling was unavailable; earlier browser reports
+above apply to the same viewer behavior before relocation.

@@ -1,51 +1,28 @@
-# OrthoQuantum Lite — separate experiment
+# OrthoQuantum web application
 
-A runnable test interface, isolated from the production Flask/Dash application.
-No production source, Redis queues, result directories or database files are
-modified by this prototype. Its default port is **127.0.0.1:8051**; production
-continues using 8050.
-
-## Run
-
-From the repository root, with Node 18+ and Python 3.9+ available:
+This is the main JavaScript/Canvas implementation on `main/lightweight`, promoted
+from the isolated 8051 experiment. Default deployment and branch/legacy details
+are in the [root README](../README.md). Reference databases remain read-only.
 
 ```bash
-# No npm install or frontend build step is required.
-# curl is used only for optional online OrthoDB identifier searches.
-ORTHODB_PROXY=socks5h://127.0.0.1:10808 \
-  node experiments/orthoquantum-lite/server.mjs
+# From the repository root:
+./compose.sh up -d --build
+./compose.sh logs --tail=50 lite
+# Or directly, without a frontend build/npm installation:
+ORTHODB_PROXY=socks5h://127.0.0.1:10808 node web/server.mjs
 ```
 
-Open **http://127.0.0.1:8051** on the server. From your own computer, forward a
-local port over SSH:
+Open http://127.0.0.1:8051 on the server, or forward it:
 
 ```bash
 ssh -N -L 8051:127.0.0.1:8051 ilnitsky@calculator
-# Then open http://localhost:8051 in your local browser.
 ```
 
-For a persistent, separately named Docker deployment:
-
-```bash
-# These commands manage only the orthoquantum_lite Compose project.
-# Cached Node/Python images are reused; no npm dependencies are installed.
-docker-compose -p orthoquantum_lite \
-  -f experiments/orthoquantum-lite/compose.yml up -d --build
-
-docker-compose -p orthoquantum_lite \
-  -f experiments/orthoquantum-lite/compose.yml logs --tail=50 lite
-
-# Stop this experiment when finished (no production containers are affected).
-docker-compose -p orthoquantum_lite \
-  -f experiments/orthoquantum-lite/compose.yml down
-```
-
-The image uses cached legacy runtimes for this local experiment; it is not a
-production deployment recommendation. The container binds only loopback, runs as
-an unprivileged user, has a read-only root filesystem/reference mount and bounded
-memory/CPU. Its optional online search uses the existing host Xray relay at
-`host.docker.internal:10809`. Override `LITE_ORTHODB_PROXY` to change or disable
-that proxy. Direct host execution uses `ORTHODB_PROXY` instead.
+The old standalone `web/compose.yml` remains a compatibility configuration using
+relay port 10809; new deployments should use the root configuration and wrapper,
+which provide an independent relay on 10810. Both use the same app/project/8051
+port and must not be started as competing deployments. The Dockerfile still uses
+the tested legacy cached runtimes; see the root README's runtime limitation.
 
 ## What is implemented
 
@@ -78,7 +55,7 @@ that proxy. Direct host execution uses `ORTHODB_PROXY` instead.
 
 ## Important scientific/feature boundaries
 
-This is an experiment, not complete scientific parity with the production app.
+This implementation does not yet have complete scientific parity with legacy Dash.
 
 - Branches show **topology only**, not branch-length-scaled evolutionary distances.
 - Cluster ordering and **Gene copy counts** are the defaults. The selected view
@@ -135,7 +112,7 @@ The synthetic stress matrices are deterministic random data, never biological ev
 
 ```bash
 # Rebuild the v11-compatible bundled snapshots only when deliberately refreshing them.
-python3 experiments/orthoquantum-lite/build_demos.py
+python3 web/build_demos.py
 ```
 
 ## Files
@@ -161,14 +138,14 @@ Fonts retain their original license files in `public/fonts/`.
 
 ```bash
 # Node 18+; HTTP tests bind an ephemeral loopback port.
-node --test experiments/orthoquantum-lite/tests/*.test.mjs
+node --test web/tests/*.test.mjs
 
 # Standard-library Python fixtures; verify writes are rejected and source bytes unchanged.
-python3 -m unittest discover -s experiments/orthoquantum-lite/tests -p 'test_*.py' -v
+python3 -m unittest discover -s web/tests -p 'test_*.py' -v
 
 # Optional external API smoke: fresh InterPro and KEGG searches plus profile reads.
 # Requires the running test server, local reference DB and a working proxy/network.
-python3 experiments/orthoquantum-lite/tests/live_api_smoke.py
+python3 web/tests/live_api_smoke.py
 
 # Optional browser test. Playwright is test tooling, not a runtime dependency.
 # Install it in a temporary directory if desired:
@@ -178,7 +155,7 @@ node /tmp/ortho-lite-browser/node_modules/playwright/cli.js install chromium --o
 # Start the prototype before running this. Supply browser libraries through
 # LD_LIBRARY_PATH if your host lacks them; no host package installation is required.
 PLAYWRIGHT_MODULE=/tmp/ortho-lite-browser/node_modules/playwright/index.mjs \
-  node experiments/orthoquantum-lite/tests/browser.smoke.mjs
+  node web/tests/browser.smoke.mjs
 ```
 
 The browser test covers demo loading, scroll bounds/reversal, search, counts,

@@ -63,10 +63,19 @@ async function refreshHistory(){state.history=await historyList();$('history').r
 function download(content,name,type){const blob=content instanceof Blob?content:new Blob([content],{type});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),2000);}
 function renderAnnotations(){
   if(!state.data)return;const query=$('group-filter').value.trim().toLowerCase(),fragment=document.createDocumentFragment();
+  const familyView=state.data.source?.provider==='PANTHER',directView=state.data.source?.provider==='PANTHER orthologs';
+  $('annotation-group-heading').textContent=familyView?'Subfamily IDs':directView?'Query protein':'Group';$('annotation-name-heading').textContent=familyView?'Subfamily name':directView?'Direct ortholog profile':'Genes · PANTHER ↗';
+  $('panther-view-note').textContent=familyView?`Family ${state.data.source.familyId||''}: separate columns by subfamily name, including rare and paralogous subfamilies.`:directView?'Direct orthologs only: one column per query protein. Use the family subfamily view to compare named paralogous subfamilies across the whole family.':'';
+  const currentFamily=familyView&&state.data.source?.grouping==='subfamily_name';
+  $('annotations').closest('.annotation-card').classList.toggle('named-subfamilies',familyView);
+  if(familyView)$('panther-mode').value='subfamilies';else if(directView)$('panther-mode').value=state.data.source.relationTypes?.length===1?'ldo':'all';
+  $('panther-family-view').hidden=!directView&&(!familyView||currentFamily);$('panther-family-view').textContent=directView?'Compare named family subfamilies':'Refresh named family subfamilies';
+  if(familyView&&!currentFamily)$('panther-view-note').textContent='Saved subfamily profile. Refresh the family view to include every named subfamily without the old support cutoff.';
   state.data.groups.forEach((group,j)=>{
     if(query&&!`${group.id} ${group.name} ${group.description||''}`.toLowerCase().includes(query))return;
     const row=document.createElement('tr'),id=document.createElement('td');
     if(/^\d+at\d+$/.test(group.id)&&state.data.source?.release==='v11'){const link=text('a',group.id);link.href='https://data.orthodb.org/v11/group?id='+encodeURIComponent(group.id);link.target='_blank';link.rel='noopener noreferrer';id.append(link);}else id.textContent=group.id;
+    if(familyView&&group.subfamilyIds?.length)id.textContent=group.subfamilyIds.map(value=>`${group.familyId}:${value}`).join(', ');
     row.append(id);const genes=document.createElement('td');
     if(group.genes?.length){for(const gene of group.genes.slice(0,6)){const button=text('button',gene,'gene-button');button.title='Open the selected PANTHER view for '+gene;button.addEventListener('click',()=>loadPanther(gene));genes.append(button);}genes.append(text('span','PANTHER profiles ↗','panther-label'));if(group.genes.length>6)genes.append(text('span',`+${group.genes.length-6} names in dataset`,'help'));}
     else genes.textContent=group.name;
@@ -83,7 +92,7 @@ async function loadPanther(gene,family){
   try{
     message('Loading PANTHER profile for '+gene+'…');
     const mode=$('panther-mode').value;
-    const data=await job(mode==='subfamilies'?{action:'panther',gene,...(family?{family}:{})}:{action:'panther_orthologs',gene,taxid:$('species-select').value,mode});
+    const data=await job(mode==='subfamilies'?{action:'panther',gene,taxid:$('species-select').value,...(family?{family}:{})}:{action:'panther_orthologs',gene,taxid:$('species-select').value,mode});
     if(data.familyOptions){
       const panel=$('cell-detail');panel.replaceChildren(text('strong','Choose a PANTHER family for '+gene+': '));panel.hidden=false;
       for(const option of data.familyOptions){const button=text('button',String(option.id),'gene-button');button.addEventListener('click',()=>loadPanther(gene,option.id));panel.append(button);}
@@ -124,7 +133,7 @@ async function showDataset(data,save=true,{linked=false,restore=null}={}){
   $('provenance').textContent=JSON.stringify(data.source||{},null,2);$('cell-detail').hidden=true;$('species-filter').value='';$('group-filter').value='';$('group-order').value='cluster';$('count-mode').value='copies';$('legacy-legend').hidden=!data.statuses?.some(r=>r.some(v=>v===1||v===2));
   viewer.filter='';viewer.mode='copies';viewer.reset();viewer.load(data);
   if(restore?.settings){const s=restore.settings;
-    $('species-filter').value=s.filter;$('group-filter').value=s.groupFilter;$('group-order').value=s.orderMode;$('count-mode').value=s.mode;$('panther-mode').value=s.pantherMode;$('correlation-order').value=s.correlationOrder||'cluster';
+    $('species-filter').value=s.filter;$('group-filter').value=s.groupFilter;$('group-order').value=s.orderMode;$('count-mode').value=s.mode;$('correlation-order').value=s.correlationOrder||'cluster';
     viewer.setFilter(s.filter);viewer.setMode(s.mode);viewer.rowHeight=s.rowHeight;viewer.cellWidth=s.cellWidth;viewer.treeWidth=s.treeWidth;viewer.overview=s.overview;viewer.selectedGroup=s.selectedGroup;viewer.setOrder(s.order);viewer.size();viewer.viewport.scrollLeft=s.left;viewer.viewport.scrollTop=s.top;viewer.requestDraw();
   }
   renderAnnotations();if(restore?.settings)$('annotations').closest('.table-scroll').scrollTop=restore.settings.tableTop;
@@ -155,6 +164,8 @@ function showMatches(result){
 $('query-form').addEventListener('submit',async event=>{event.preventDefault();message('');try{const result=await job({action:'resolve',inputs:$('identifiers').value,treeId:$('tree-select').value,taxid:$('species-select').value});showMatches(result);}catch(error){report(error);}});
 $('build').addEventListener('click',async()=>{try{const groups=state.candidates.filter((_,i)=>state.selection.has(i));const input=$('identifiers').value;const data=await job({action:'profiles',groups,treeId:$('tree-select').value,taxid:$('species-select').value,inputs:input,title:`'${shortLabel(input.split('\n')[0],30)}' · ${groups.length} groups`});await showDataset(data);message('Profiles ready.');$('results').scrollIntoView({behavior:'smooth',block:'start'});}catch(error){report(error);}});
 $('select-all').addEventListener('click',()=>{state.selection=state.selection.size===state.candidates.length?new Set():new Set(state.candidates.map((_,i)=>i));renderChoices();});
+$('panther-mode').addEventListener('change',()=>{if(state.activeView==='panther'&&state.data?.source?.query)loadPanther(state.data.source.query,$('panther-mode').value==='subfamilies'?state.data.source.familyId:undefined);});
+$('panther-family-view').addEventListener('click',()=>{if(!state.data?.source?.query)return;$('panther-mode').value='subfamilies';loadPanther(state.data.source.query);});
 $('tree-select').addEventListener('change',populateSpecies);$('cancel').addEventListener('click',()=>{cancel();message('Query cancelled.');});
 function resetQuery(){detachJob();$('identifiers').value='';$('choices-section').hidden=true;$('results').hidden=true;state.worker?.terminate();state.data=null;state.views={};state.activeView=null;$('profile-views').hidden=true;state.candidates=[];state.selection.clear();message('');}
 $('reset').addEventListener('click',resetQuery);

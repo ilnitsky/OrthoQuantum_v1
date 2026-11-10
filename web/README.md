@@ -44,8 +44,9 @@ the tested legacy cached runtimes; see the root README's runtime limitation.
 - A browser worker computes Pearson correlations and average-linkage ordering.
   Constant profiles yield undefined/gray cells, not invented numeric correlations.
 - PANTHER drill-down uses the local database and species mapping. Multiple matching
-  families require a choice. Subfamilies require at least nine records, matching
-  the existing application's threshold. A previous dataset remains in local history.
+  families require a choice. Family profiles retain every named subfamily,
+  including rare assignments, and merge SF IDs sharing the same name. A previous
+  dataset remains in local history.
 - Annotated phyloXML import, full dataset JSON import/export, count-matrix CSV
   import/export, correlation CSV, a PNG of the **visible viewport**, and a complete
   SVG image with readable names/counts and the current species filter/column order.
@@ -239,3 +240,33 @@ New files: `public/jobs.mjs`, `public/about.html`, `public/tutorial/1.png` throu
 `10.png`, and the guide exporter. `/api/jobs/:id?summary=1` returns lightweight
 status/position data; there is no global job-list endpoint. Header history uses
 only capability IDs already known to the current browser.
+
+## Named PANTHER family subfamilies
+
+Choose **Family · named subfamilies** to see every subfamily name in a matched
+PANTHER family, including paralogous groups. Direct LDO/All ortholog views still
+contain only reported direct matches of each query protein; they intentionally
+do not imply that other paralogous subfamilies are direct orthologs. Use the
+**Compare named family subfamilies** button to switch the currently displayed
+gene, or change the PANTHER selector while viewing its profile.
+
+Family columns are grouped by the actual `Subfamily` name. Different SF IDs
+with that same name share a column; IDs remain visible in the table/metadata.
+The old minimum-nine-record cutoff has been removed. Missing names remain in
+an explicit Unassigned column. Counts are distinct UniProt protein accessions
+per genome/name (not a claim that every accession is a distinct genomic locus).
+The binary presence view remains available. The family viewer supports up to
+1,000 named columns. New v19 UniProt queries use the indexed v19 classification
+directly; they do not depend on older OrthoDB name mappings. Reference-genome
+scoping is applied when the selected organism is represented.
+
+Verified NPM1 family PTHR22747 names in the published v19 data:
+
+- GEO09167P1-RELATED: 11 proteins across 9 species.
+- NUCLEOPHOSMIN: 61 proteins across 20 species, combining six SF IDs.
+- NUCLEOPLASMIN CORE DOMAIN-CONTAINING PROTEIN: 7 proteins across 7 species.
+- NUCLEOPLASMIN-2: 21 proteins across 18 species.
+- NUCLEOPLASMIN-3: 22 proteins across 20 species.
+
+Old saved subfamily results retain their original data; a **Refresh named family
+subfamilies** button requests the current complete family view.

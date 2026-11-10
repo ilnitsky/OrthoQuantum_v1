@@ -184,3 +184,18 @@ layout had no page overflow. No browser runtime errors. Artifacts are
 `my-queries.png`, `my-queries-mobile.png`, `about-guide.png` and
 `jobs-about-results.json`. Run with the existing temporary Playwright setup:
 `node web/tests/jobs-about.browser.mjs`.
+
+## Named PANTHER family columns
+
+Six Python adapter fixtures passed, including rare names, same-name/different-SF
+merging, duplicate accession protection, unassigned names, reference-genome
+scoping, indexed v19 accession lookup without older OrthoDB mappings, and source
+read-only protection. A direct read of published v19 PTHR22747 confirmed all five
+named groups and their protein/species counts listed in README.md.
+
+The real NPM1 browser flow passed: direct orthologs remain one query-protein
+column; Compare opens the five-name family profile; the seven-protein CORE
+DOMAIN-CONTAINING group is present; NUCLEOPHOSMIN combines six SF IDs. Changing
+PANTHER mode reloads the same query, and original orthogroup view switching and
+mobile layout remain valid. No browser errors. Artifacts:
+`npm1-named-subfamilies.png` and `panther-subfamilies-results.json`.

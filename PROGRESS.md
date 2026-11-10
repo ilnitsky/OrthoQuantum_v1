@@ -497,3 +497,26 @@ Changed web server/app/header/styles; added jobs module, guide HTML/images,
 exporter and browser tests. Fourteen Node checks and real-query desktop/mobile
 browser checks passed, including successful decoding of all ten pictures. Only
 the main frontend is rebuilt; legacy and reference builders remain untouched.
+
+
+## 19. Separate PANTHER family profiles by subfamily name
+
+NPM1's displayed All orthologs view was correctly limited to direct matches of
+one query protein; it was not the complete PTHR22747 family. Added an explicit
+Compare named family subfamilies action and automatic reload when changing
+PANTHER mode on the current gene. Family profiles now group by supplied name,
+merge same-name SF IDs, retain rare groups (removed the legacy nine-record cutoff),
+and count distinct genome/UniProt records. Unnamed assignments remain explicit.
+Classification IDs and subfamily names have distinct annotation-table headings;
+old saved family profiles have a refresh action. Orthogroup views remain retained.
+
+The published v19 NPM1 family yields five names, including NUCLEOPLASMIN-2/-3
+and the previously filtered seven-protein CORE DOMAIN-CONTAINING group. v19
+UniProt lookup uses its own index, with reference-genome scoping, instead of
+round-tripping through OrthoDB. Six Python adapter tests passed, including rare
+labels, merged SF IDs, duplicate-protein protection and read-only source checks.
+Main frontend rebuilt on 8050; legacy and reference databases not modified.
+
+Real NPM1 browser validation passed for one-click comparison, five named columns,
+rare-group retention, same-name SF merging, mode reload and preserved orthogroup
+view, including mobile overflow checks. No runtime errors recorded.

@@ -49,7 +49,7 @@ class BridgeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'belong'):bridge.resolve({'treeId':'1','taxid':9606,'inputs':'A'})
             with self.assertRaisesRegex(ValueError,'valid orthogroups'):bridge.build_profiles({'treeId':'1','groups':[{'id':'1;DROP TABLE genes'}]})
 
-    def test_panther_retains_supported_subfamilies_and_returns_family_choices(self):
+    def test_panther_retains_rare_named_subfamilies_and_returns_family_choices(self):
         with tempfile.TemporaryDirectory() as root:
             root=Path(root);path=root/'panther.db';(root/'panther-species.json').write_text(json.dumps({'HUMAN':'1'}))
             with sqlite3.connect(path) as connection:
@@ -58,12 +58,40 @@ class BridgeTests(unittest.TestCase):
             tree={**TREE,'id':'panther'}
             with patch.object(bridge,'DATA',root),patch.object(bridge,'PANTHER_PATH',path),patch.object(bridge,'TREES',[tree]):
                 result=bridge.panther({'gene':'A'})
-                self.assertEqual(result['counts'],[[1],[0]])
-                self.assertEqual(len(result['groups']),1)
+                self.assertEqual(result['counts'],[[1,1],[0,0]])
+                self.assertEqual({g['name'] for g in result['groups']},{'Rare','Subfamily A'})
+                self.assertEqual(result['source']['minimumSupport'],1)
                 with sqlite3.connect(path) as connection:connection.execute("INSERT INTO panther VALUES ('HUMAN','A','Other','S2','P00001','F2')")
                 options=bridge.panther({'gene':'A'})
                 self.assertEqual({o['id'] for o in options['familyOptions']},{'F1','F2'})
-                self.assertEqual(bridge.panther({'gene':'A','family':'F1'})['counts'],[[1],[0]])
+                self.assertEqual(bridge.panther({'gene':'A','family':'F1'})['counts'],[[1,1],[0,0]])
+
+    def test_v19_groups_by_name_merges_sf_ids_and_counts_distinct_accessions(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);path=root/'panther.sqlite'
+            with sqlite3.connect(path) as db:
+                db.execute('CREATE TABLE panther(Genome TEXT,Uniprot TEXT,Gene TEXT,PantherID TEXT,PantherID_2nd_half TEXT,Family TEXT,Subfamily TEXT)')
+                rows=[('HUMAN','P06748','NPM1','PTHR22747','SF28','NUCLEOPLASMIN','NUCLEOPHOSMIN'),
+                      ('HUMAN','P06748','NPM1','PTHR22747','SF42','NUCLEOPLASMIN','NUCLEOPHOSMIN'),
+                      ('HUMAN','P06748','NPM1','PTHR22747','SF28','NUCLEOPLASMIN','NUCLEOPHOSMIN'),
+                      ('MOUSE','Q00001','Npm1','PTHR22747','SF28','NUCLEOPLASMIN','NUCLEOPHOSMIN'),
+                      ('MOUSE','Q00002','Npm2','PTHR22747','SF14','NUCLEOPLASMIN','NUCLEOPLASMIN-2'),
+                      ('HUMAN','P11111','NPM3','PTHR22747','SF13','NUCLEOPLASMIN','NUCLEOPLASMIN-3'),
+                      ('HUMAN','P99999','X','PTHR22747',None,'NUCLEOPLASMIN',None),
+                      ('MOUSE','Q99999','NPM1','OTHER','SF1','Other','Other')]
+                db.executemany('INSERT INTO panther VALUES(?,?,?,?,?,?,?)',rows)
+            before=path.read_bytes();tree={'tree':{'children':[{'id':'9606','name':'Human'},{'id':'10090','name':'Mouse'}]}}
+            reference={'database':path,'tree':tree,'mapping':{'HUMAN':'9606','MOUSE':'10090'},'release':'v19'}
+            with patch.object(bridge,'panther_reference',return_value=reference),patch.object(bridge,'DB_PATH',root/'must-not-open-orthodb.db'):
+                data=bridge.panther({'gene':'P06748','taxid':9606})
+                named={g['name']:(i,g) for i,g in enumerate(data['groups'])}
+                i,npm=named['NUCLEOPHOSMIN'];self.assertEqual(npm['subfamilyIds'],['SF28','SF42']);self.assertEqual([row[i] for row in data['counts']],[1,1])
+                self.assertEqual(npm['proteinCount'],2,'Repeated annotations and SF IDs must not inflate protein counts')
+                i,_=named['NUCLEOPLASMIN-2'];self.assertEqual([row[i] for row in data['counts']],[0,1],'Rare named subfamily must remain visible')
+                self.assertTrue(named['Unassigned subfamily'][1]['unassigned'])
+                self.assertEqual(bridge.panther({'gene':'NPM1','taxid':9606})['source']['familyId'],'PTHR22747','Reference organism excludes a different mouse family')
+                self.assertEqual(data['source']['grouping'],'subfamily_name');self.assertEqual(data['source']['release'],'v19')
+            self.assertEqual(path.read_bytes(),before)
 
     def test_v19_bundle_uses_matching_tree_and_excludes_paralogs_from_ortholog_counts(self):
         with tempfile.TemporaryDirectory() as folder:

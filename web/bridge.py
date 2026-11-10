@@ -202,47 +202,66 @@ def panther(request):
         raise ValueError('Choose a valid gene or UniProt identifier')
     reference = panther_reference()
     tree, mapping = reference['tree'], reference['mapping']
+    taxid = str(request.get('taxid', 9606))
+    genome = next((code for code, value in mapping.items() if value == taxid), None)
+    accession = bool(re.fullmatch(r'(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})', query))
     with connect(reference['database']) as conn:
-        # Only Gene and PantherID are indexed in the legacy PANTHER DB.
-        # OR-ing Gene with unindexed Uniprot forces a multi-GB table scan.
-        symbols = [query]
-        if re.fullmatch(r'(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})', query):
-            with connect(DB_PATH) as orthodb:
-                symbols = sorted({part.strip() for (name,) in orthodb.execute(
-                    'SELECT gene_name FROM genes WHERE uniprot_id=? LIMIT 100', (query,)) if name
-                    for part in name.split(';') if part.strip()})[:20]
-            if not symbols:
-                raise ValueError('No local gene-name mapping for this UniProt ID; use a gene symbol for PANTHER.')
-        marks = ','.join('?' for _ in symbols)
-        families = [r[0] for r in conn.execute('SELECT DISTINCT PantherID FROM panther WHERE Gene IN (' + marks + ') AND PantherID IS NOT NULL LIMIT 11', symbols)]
+        scope, parameters = (' AND Genome=?', [genome]) if genome else ('', [])
+        if accession and reference['release'] == 'v19':
+            # v19 has a UniProt index; do not round-trip through older OrthoDB names.
+            families = [r[0] for r in conn.execute('SELECT DISTINCT PantherID FROM panther WHERE Uniprot=?' + scope + ' LIMIT 11', [query, *parameters])]
+        else:
+            symbols = [query]
+            if accession:
+                with connect(DB_PATH) as orthodb:
+                    symbols = sorted({part.strip() for (name,) in orthodb.execute('SELECT gene_name FROM genes WHERE uniprot_id=? LIMIT 100', (query,)) if name for part in name.split(';') if part.strip()})[:20]
+                if not symbols:
+                    raise ValueError('No local gene-name mapping for this UniProt ID; use a gene symbol for PANTHER.')
+            marks = ','.join('?' for _ in symbols)
+            families = [r[0] for r in conn.execute('SELECT DISTINCT PantherID FROM panther WHERE Gene IN (' + marks + ') AND PantherID IS NOT NULL' + scope + ' LIMIT 11', [*symbols, *parameters])]
+        families = [family for family in families if family]
         if not families:
             raise ValueError('No PANTHER family found for this identifier in the local database.')
+        if len(families) > 10:
+            raise ValueError('Identifier matches more than ten PANTHER families; choose a specific UniProt accession or reference organism.')
         chosen = request.get('family') or (families[0] if len(families) == 1 else None)
         if chosen not in families:
             if not request.get('family'):
                 return {'familyOptions': [{'id': family} for family in families], 'gene': query}
             raise ValueError('Selected PANTHER family does not match this identifier.')
-        records = conn.execute('SELECT Genome,Gene,Family,Subfamily FROM panther WHERE PantherID=?', (chosen,)).fetchall()
-    # Match the existing app: retain subfamilies represented by more than 8 records.
-    support = {}
-    for genome, gene, family, subfamily in records:
-        if subfamily:
-            support[subfamily] = support.get(subfamily, 0) + 1
-    subfamilies = sorted(s for s, n in support.items() if n > 8)
-    if not subfamilies:
-        raise ValueError('No subfamilies meet the existing minimum support of 9 records.')
-    if len(subfamilies) > 200:
-        raise ValueError('This family exceeds the prototype limit of 200 subfamilies.')
+        has_ids = 'PantherID_2nd_half' in {row[1] for row in conn.execute('PRAGMA table_info(panther)')}
+        id_field = 'PantherID_2nd_half' if has_ids else 'NULL'
+        records = conn.execute('SELECT Genome,Uniprot,Family,Subfamily,' + id_field + ' FROM panther WHERE PantherID=?', (chosen,)).fetchall()
+    # Group by the supplied NAME, even when multiple SF IDs share that name.
+    # Keep rare and unnamed assignments rather than silently filtering them out.
+    bins = {}
+    for record_genome, uniprot, family, name, sub_id in records:
+        key = str(name).strip() if name and str(name).strip() else None
+        entry = bins.setdefault(key, {'proteins': set(), 'ids': set()})
+        entry['proteins'].add((record_genome, uniprot))
+        if sub_id and str(sub_id).strip():entry['ids'].add(str(sub_id).strip())
+    names = sorted((name for name in bins if name is not None), key=str.casefold)
+    if None in bins:names.append(None)
+    if len(names) > 1000:raise ValueError('This family exceeds the viewer limit of 1,000 named subfamilies.')
     species = leaves(tree['tree']); positions = {s['id']: i for i, s in enumerate(species)}
-    columns = {s: i for i, s in enumerate(subfamilies)}; counts = [[0]*len(columns) for _ in species]
-    for genome, gene, family, subfamily in records:
-        taxid = mapping.get(genome)
-        if taxid in positions and subfamily in columns:
-            counts[positions[taxid]][columns[subfamily]] = 1
-    return {'schemaVersion': 1, 'title': f'PANTHER · {query}', 'tree': tree['tree'], 'species': species,
-        'groups': [{'id': f'{chosen}:{s}', 'name': s, 'description': records[0][2], 'genes': []} for s in subfamilies], 'counts': counts,
-        'source': {'provider': 'PANTHER', 'release': reference['release'], 'query': query,
-        'notes': ['Subfamilies require at least 9 records, matching the existing app. Presence is binary per genome/subfamily. Local PANTHER release provenance is unspecified.']}}
+    counts = [[0]*len(names) for _ in species];groups=[]
+    family_name = next((str(row[2]).strip() for row in records if row[2]), chosen)
+    for column, name in enumerate(names):
+        entry = bins[name]
+        for record_genome, uniprot in entry['proteins']:
+            species_id = mapping.get(record_genome)
+            if species_id in positions:counts[positions[species_id]][column] += 1
+        label = name if name is not None else 'Unassigned subfamily'
+        groups.append({'id': f'{chosen}:name:{label}', 'name': label, 'familyId': chosen,
+                       'subfamilyIds': sorted(entry['ids']), 'proteinCount': len(entry['proteins']),
+                       'unassigned': name is None, 'description': family_name if name is not None else family_name + ' · no subfamily name supplied', 'genes': []})
+    return {'schemaVersion': 1, 'title': f'PANTHER subfamilies · {query}', 'tree': tree['tree'], 'species': species,
+            'groups': groups, 'counts': counts, 'source': {'provider': 'PANTHER', 'release': reference['release'],
+            'query': query, 'familyId': chosen, 'familyName': family_name, 'grouping': 'subfamily_name', 'minimumSupport': 1,
+            'referenceTaxid': taxid, 'notes': ['Each column is a distinct supplied subfamily name across the entire PANTHER family; paralogous subfamilies are included.',
+            'Multiple SF IDs with the same name share one column. Rare subfamilies are retained; no minimum-nine-record filter is applied.',
+            'Counts are distinct UniProt protein accessions per genome and subfamily name; presence view converts any positive count to 1.',
+            'Records without a subfamily name appear in an explicitly unassigned column.']}}
 
 
 def panther_orthologs(request):

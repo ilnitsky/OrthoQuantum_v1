@@ -5,7 +5,6 @@ import os.path
 import time
 import json
 import secrets
-import shutil
 import redis
 import math
 import pandas as pd
@@ -19,6 +18,11 @@ from flask_compress import Compress
 
 from . import layout
 from . import user
+from .demo import populate_demo_task
+from .query_titles import automatic_title, TITLE_FIELDS
+from .table_selection import toggle_selection
+from .species_options import preferred_species
+from .query_history import prune_history, VISIBLE_QUERIES
 from .utils import DashProxy, DashProxyCreator, decode_int, DEBUG, clamp, parse_int, parse_float
 
 
@@ -132,6 +136,9 @@ def router_page(dp: DashProxy):
         new_args = urlparse.urlencode({"task_id": task_id})
         dp['location', 'search'] = f"?{new_args}"
 
+        title_updates = automatic_title(user.db.hgetall(f'/tasks/{task_id}/state'))
+        if title_updates:
+            user.update(task_id, **title_updates)
         dp['page-content', 'children'] = layout.dashboard(task_id)
         return
 
@@ -341,7 +348,8 @@ def new_task():
         pipe.rpush(f"/users/{user_id}/tasks", task_id)
         user.update(task_id, title="New query", redis_pipe=pipe)
         task_num = pipe.execute()[0]
-    user.update(task_id, title=f"Query #{task_num}")
+    user.update(task_id, title=f"Query #{task_num}", query_number=str(task_num), auto_title=f"Query #{task_num}")
+    prune_history(user.db, user_id, user.DATA_PATH)
     return task_id
 
 
@@ -403,7 +411,8 @@ def request_list(dp: DashProxy):
         ]
         return
 
-    task_ids = user.db.lrange(f"/users/{user_id}/tasks", 0, -1)
+    prune_history(user.db, user_id, user.DATA_PATH)
+    task_ids = user.db.lrange(f"/users/{user_id}/tasks", -VISIBLE_QUERIES, -1)
     task_ids.reverse()
 
     stages = {
@@ -415,14 +424,19 @@ def request_list(dp: DashProxy):
     }
     with user.db.pipeline(transaction=False) as pipe:
         for task_id in task_ids:
-            pipe.hget(f"/tasks/{task_id}/state", "title")
+            pipe.hmget(f"/tasks/{task_id}/state", TITLE_FIELDS)
             pipe.hgetall(f"/tasks/{task_id}/enqueued")
             pipe.hgetall(f"/tasks/{task_id}/running")
         data = pipe.execute()
 
     data_it = iter(data)
+    pending_titles = []
     for task_id in task_ids:
-        name = next(data_it)
+        state = dict(zip(TITLE_FIELDS, next(data_it)))
+        title_updates = automatic_title(state)
+        name = title_updates.get('title') or state.get('title') or 'Query'
+        if title_updates:
+            pending_titles.append((task_id, title_updates))
         enqueued:dict = next(data_it)
         running:dict = next(data_it)
 
@@ -458,6 +472,11 @@ def request_list(dp: DashProxy):
             )
         )
 
+    if pending_titles:
+        with user.db.pipeline(transaction=True) as pipe:
+            for task_id, values in pending_titles:
+                user.update(task_id, redis_pipe=pipe, **values)
+            pipe.execute()
     dp['request_list_dropdown', 'children'] = res
 
 
@@ -503,26 +522,19 @@ dash_app.clientside_callback(
 @dash_proxy.callback(
     Output('location-refresh-cont', 'children'),
     Input('demo-btn', 'n_clicks'),
+    Input('demo-kegg', 'n_clicks'),
+    Input('demo-interpro', 'n_clicks'),
 )
 def demo_data(dp: DashProxy):
     dp["location-refresh-cont", "children"] = None
-    if not dp['demo-btn', 'n_clicks']:
+    demos = [('demo-btn', 'uniprot'), ('demo-kegg', 'kegg'), ('demo-interpro', 'interpro')]
+    demo_kind = next((kind for button, kind in demos
+                      if dp.is_triggered_by((button, 'n_clicks')) and dp[button, 'n_clicks']), None)
+    if demo_kind is None:
         return
 
     new_task_id = new_task()
-    src_path = user.DATA_PATH/DEMO_TID
-    if not src_path.exists():
-        print(f"Create demo by visiting task_id {DEMO_TID}")
-        return
-    shutil.copytree(user.DATA_PATH/DEMO_TID, user.DATA_PATH/new_task_id)
-    base = f"/tasks/{DEMO_TID}"
-    tgt = f"/tasks/{new_task_id}"
-    with user.db.pipeline(transaction=False) as pipe:
-        for item in user.db.scan_iter(match=f"{base}/*"):
-            pipe.execute_command(
-                "COPY", item, tgt+item[len(base):], "REPLACE"
-            )
-        pipe.execute()
+    populate_demo_task(user, new_task_id, DEMO_TID, demo_kind=demo_kind)
 
     dp["location-refresh-cont", "children"] = dcc.Location(
         id='location-refresh',
@@ -566,7 +578,7 @@ def request_title(dp: DashProxy):
             user.update(
                 dp['task_id', 'data'],
                 dp['connection_id', 'data'],
-                title=new_name
+                title=new_name, title_custom='1'
             )
 
     else:
@@ -590,10 +602,13 @@ def request_title(dp: DashProxy):
 def taxid_options(dp: DashProxy):
     should_load_text = dp.first_load or dp.is_triggered_by(('tax-level-dropdown', 'value'))
     level_id = dp['tax-level-dropdown', 'value']
+    if level_id and level_id not in TAXID_CACHE:
+        TAXID_CACHE[level_id] = preferred_species(json.loads(
+            user.db.get(f"/availible_levels/{level_id}/search_dropdown") or '[]'))
     if dp.is_triggered_by(('taxid_input', 'search_value')):
         # if numeric - give user an option to input it
         # if clear or non-numeric - load text autocomplete if needed
-        if search_val := dp['taxid_input', 'search_value'].strip():
+        if search_val := (dp['taxid_input', 'search_value'] or '').strip():
             try:
                 search_val = int(search_val)
             except Exception:
@@ -610,9 +625,6 @@ def taxid_options(dp: DashProxy):
 
 
     if should_load_text and level_id:
-        if level_id not in TAXID_CACHE:
-            TAXID_CACHE[level_id] = json.loads(user.db.get(f"/availible_levels/{level_id}/search_dropdown"))
-
         dp["taxid_input", "options"] = TAXID_CACHE[level_id]
 
 def filter_comments(data:str, only_first=False):
@@ -753,19 +765,8 @@ def render_corr_table(dp:DashProxy):
 dash_app.clientside_callback(
     """
     function(button_n_clicks, blast_value, cur_state) {
-        if (dash_clientside.callback_context.triggered.length){
-            trigger = dash_clientside.callback_context.triggered[0].prop_id;
-            if (trigger == "blast-button.n_clicks"){
-                cur_state = !cur_state;
-            } else if (trigger == "blast-button-input-value.data") {
-                cur_state = blast_value
-            }
-        }
-        if (cur_state){
-            return ["Disable BLAST", true, false];
-        } else {
-            return ["Enable BLAST", false, true];
-        }
+        // Keep saved queries from reopening BLAST while it is unavailable.
+        return ["BLAST unavailable", false, true];
     }
     """,
     Output("blast-button", "children"),
@@ -987,6 +988,8 @@ def missing_prot(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple
     table = (
         ('data_table', 'data'),
         ('table_container', 'style'),
+        ('metadata_warning', 'children'),
+        ('metadata_warning', 'is_open'),
     ),
 )
 def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[str,str], ...]):
@@ -996,13 +999,51 @@ def table(dp: DashProxy, upd: dict[str, str], db_key:str, dash_keys:tuple[tuple[
         return
     try:
         tbl = pd.read_pickle(user.DATA_PATH/dp['task_id', 'data']/"Info_table.pkl")
-        dp['data_table', 'data'] = tbl.to_records(index=False)
+        missing = (tbl[2].isna() | tbl[2].eq('')) & (tbl[3].isna() | tbl[3].eq(''))
+        missing_count = int(missing.sum())
+        dp['metadata_warning', 'is_open'] = bool(missing_count)
+        dp['metadata_warning', 'children'] = (
+            f'Annotations are unavailable for {missing_count} group(s). Submit the query again to retry; gene mappings are still shown.'
+            if missing_count else None
+        )
+        for column in range(4, 11):
+            tbl[column] = pd.to_numeric(tbl[column], errors='coerce')
+        for column in (2, 3):
+            tbl[column] = tbl[column].fillna('—').replace('', '—')
+        dp['data_table', 'data'] = tbl.astype(object).where(pd.notnull(tbl), None).to_dict('records')
         dp['table_container', 'style'] = layout.SHOW
 
     except Exception:
         # TODO: report exception
         __import__("traceback").print_exc()
         pass
+
+
+@dash_app.callback(
+    Output('data_table', 'columns'),
+    Output('data_table', 'sort_by'),
+    Output('data_table', 'filter_query'),
+    Input('show_annotation_details', 'checked'),
+)
+def annotation_columns(detailed):
+    columns = [c for c in layout.TABLE_COLUMNS if detailed or c['id'] not in layout.DETAILED_TABLE_COLUMNS]
+    return columns, [], ''
+
+dash_app.clientside_callback(
+    """
+    function(data, selected) {
+        const count = (data || []).length;
+        const chosen = new Set((selected || []).filter(i => i >= 0 && i < count));
+        return [count && chosen.size === count ? "Clear all" : "Select all",
+                chosen.size + " / " + count + " selected", count === 0];
+    }
+    """,
+    Output('extra-select-all', 'children'),
+    Output('extra-selection-count', 'children'),
+    Output('extra-select-all', 'disabled'),
+    Input('extra_data_table', 'data'),
+    Input('extra_data_table', 'selected_rows'),
+)
 
 @add_processor(
     extra_table = (
@@ -1230,6 +1271,7 @@ def create_outputs():
     Input('progress_updater', 'n_intervals'),
     Input('data_submit_error', 'data'),
     Input('trigger_csv_download_refresh', 'data'),
+    Input('extra-select-all', 'n_clicks'),
 
 
     State('task_id', 'data'),
@@ -1238,8 +1280,15 @@ def create_outputs():
 
     State('force_update_until', 'data'),
     State('blast-button-input-value', 'data'),
+    State('extra_data_table', 'data'),
+    State('extra_data_table', 'selected_rows'),
 )
 def update_everything(dp: DashProxy):
+    if dp.is_triggered_by(('extra-select-all', 'n_clicks')):
+        dp['extra_data_table', 'selected_rows'] = toggle_selection(
+            dp['extra_data_table', 'data'], dp['extra_data_table', 'selected_rows']
+        )
+        return
     task_id = dp['task_id', 'data']
     extra_updates = {}
 
@@ -1462,6 +1511,7 @@ def submit(dp:DashProxy):
 
             assert dp['connection_id', 'data'], "Connection id should be set on page load"
 
+            title_updates = automatic_title(user.db.hgetall(f'/tasks/{task_id}/state'), request)
             with user.db.pipeline(transaction=True) as pipe:
                 user.enqueue(task_id, "table", redis_client=pipe)
                 user.cancel(task_id, "vis", redis_client=pipe)
@@ -1471,6 +1521,7 @@ def submit(dp:DashProxy):
 
                 user.update(
                     task_id, connection_id=dp['connection_id', 'data'], redis_pipe=pipe,
+                    **title_updates,
 
                     progress_table_style='',
                     progress_table_max=len(request),

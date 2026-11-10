@@ -3,10 +3,12 @@ from logging import exception
 import SPARQLWrapper
 import pandas as pd
 import sqlite3
-from ..db import ORTHODB
+from ..db import ORTHODB, db as profile_cache
 from lxml import etree as ET
 
 from ..async_executor import async_pool
+from .profile_data import read_cached_profiles
+from pathlib import Path
 
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 NS = {
@@ -66,37 +68,13 @@ _ID_TRANSLATION_TBL = {
 }
 
 @async_pool.in_process(max_pool_share=0.5)
-def get_corr_data(csv_data) -> tuple[str, dict]:
-    corr_info = {}
-    prot_ids = {}
-
-    with sqlite3.connect(ORTHODB) as conn:
-        for _, data in csv_data.iterrows():
-            name = data['Name']
-            label = data['label']
-
-            cluster_id, clade = map(int, label.split('at', maxsplit=1))
-            ortho_counts = {}
-            gene_names = {}
-
-            cur = conn.execute("""
-                    SELECT orthodb_id>>32 AS taxid, count(distinct orthodb_id), GROUP_CONCAT(distinct gene_name)
-                    FROM orthodb_to_og
-                    LEFT JOIN genes USING (orthodb_id)
-                    WHERE
-                        clade=? AND cluster_id=?
-                    GROUP BY taxid
-                """, (clade, cluster_id))
-            req_res = cur.fetchall()
-            for taxid, orthologs_count, row_gene_names in req_res:
-                taxid = _ID_TRANSLATION_TBL.get(taxid, taxid)
-                ortho_counts[taxid] = orthologs_count
-                gene_names[taxid] = row_gene_names.replace(",", ", ") if row_gene_names is not None else "None"
-
-            corr_info[name] = ortho_counts
-            prot_ids[name] = gene_names
-
-    return corr_info, prot_ids
+def get_corr_data(csv_data, organisms) -> tuple[dict, dict]:
+    with sqlite3.connect(Path(ORTHODB).as_uri() + '?mode=ro', uri=True) as conn:
+        conn.execute('PRAGMA cache_size=-32768')
+        stat = Path(ORTHODB).stat()
+        identity = [str(Path(ORTHODB).resolve()), stat.st_ino, stat.st_size, stat.st_mtime_ns]
+        return read_cached_profiles(conn, csv_data.to_dict('records'), organisms,
+                                    _ID_TRANSLATION_TBL, profile_cache, identity)
 
 @async_pool.in_process()
 def csv_generator(phyloxml_file:str, csv_file:str):

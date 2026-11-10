@@ -164,6 +164,29 @@ window.requestAnimFrame = (function(){
         return domainScale;
     }
 
+    phyd3.phylogram.presenceLegend = function(graphs) {
+        var entries = [];
+        (graphs || []).forEach(function(graph) {
+            var gradient = graph.legend && graph.legend.gradient;
+            if (graph.type !== 'heatmap' || !gradient || gradient.name !== 'Custom') return;
+            var classes = Number(gradient.classes);
+            if (classes === 4) {
+                entries = [
+                    {label: 'No findings', color: colorbrewer.Custom[4][1]},
+                    {label: 'Pending BLAST', color: colorbrewer.Custom[4][0]},
+                    {label: 'Found via BLAST', color: colorbrewer.Custom[4][2]},
+                    {label: 'Found in OrthoDB', color: colorbrewer.Custom[4][3]}
+                ];
+            } else if (classes === 2 && entries.length < 4) {
+                entries = [
+                    {label: 'No findings', color: colorbrewer.Custom[2][0]},
+                    {label: 'Found in OrthoDB', color: colorbrewer.Custom[2][1]}
+                ];
+            }
+        });
+        return entries;
+    };
+
     phyd3.phylogram.build = function(selector, onodes, options) {
         var popup = null;
         var popupX = null;
@@ -339,6 +362,10 @@ window.requestAnimFrame = (function(){
         if (treeWidth < 0) {
             treeWidth = selectorWidth - 2 * textPadding - (options.showGraphs ? 2 * legendPadding : 0);
         }
+
+        var statusLegend = options.taskid_for_links ? phyd3.phylogram.presenceLegend(onodes.graphs) : [];
+        var legendColumns = Math.max(1, Math.min(statusLegend.length, Math.floor((selectorWidth - 24) / 190)));
+        options.plotInsetTop = statusLegend.length ? 74 + Math.ceil(statusLegend.length / legendColumns) * 22 : 20;
 
         // zoom action
         var zoom = d3.behavior
@@ -818,9 +845,9 @@ window.requestAnimFrame = (function(){
                 width = svg.getAttributeNode("width"),
                 height = svg.getAttributeNode("height");
 
-            transform.value = "translate("+(20-bbox.x)+", "+(20-bbox.y)+")";
+            transform.value = "translate("+(20-bbox.x)+", "+(options.plotInsetTop-bbox.y)+")";
             width.value = (Math.max(+width.value.replace('px', ''), bbox.width) + options.marginX).toString();
-            height.value = (Math.max(+height.value.replace('px', ''), bbox.height) + options.marginY).toString();
+            height.value = Math.max(+height.value.replace('px', ''), bbox.height + options.plotInsetTop + 20).toString();
 
             if (typeof window.XMLSerializer != "undefined") {
                 var svgData = (new XMLSerializer()).serializeToString(svg);
@@ -984,7 +1011,31 @@ window.requestAnimFrame = (function(){
             zoom.translate([0, 0]);
         }
 
+        function drawPresenceLegend() {
+            if (!statusLegend.length) return;
+            // Root-level overlay: fixed while the tree pans, included in exports.
+            var legend = svg.append('svg:g')
+                .attr('class', 'presence-legend')
+                .attr('role', 'group')
+                .attr('aria-label', 'Protein presence legend')
+                .attr('font-family', 'JetBrainsMono Nerd Font, monospace')
+                .attr('font-size', '11px')
+                .style('pointer-events', 'none');
+            legend.append('svg:rect')
+                .attr('x', 0).attr('y', 0)
+                .attr('width', selectorWidth).attr('height', options.plotInsetTop)
+                .attr('fill', getBackgroundColor());
+            statusLegend.forEach(function(entry, i) {
+                var item = legend.append('svg:g')
+                    .attr('transform', 'translate(' + (12 + (i % legendColumns) * 190) + ',' + (64 + Math.floor(i / legendColumns) * 22) + ')');
+                item.append('svg:rect').attr('y', -10).attr('width', 12).attr('height', 12)
+                    .attr('fill', entry.color).attr('stroke', '#777').attr('stroke-width', 0.5);
+                item.append('svg:text').attr('x', 18).attr('fill', getForegroundColor()).text(entry.label);
+            });
+        }
+
         function repaint() {
+            panBounds = null;
             // svg container
             d3.select(selector)
               .select("svg")
@@ -1064,6 +1115,7 @@ window.requestAnimFrame = (function(){
             // main group
             vis = svg.append("svg:g", ":first-child")
                 .attr("id","main");
+            drawPresenceLegend();
 
             svg.append("svg:text")
                 .attr("dy", "20px")
@@ -1118,16 +1170,23 @@ window.requestAnimFrame = (function(){
             applyLabelGroupTransform();
 
             var bbx = vis[0][0].getBBox();
-            vis.attr("transform", "translate("+(20-bbx.x)+", "+(20-bbx.y)+")");
+            panBounds = bbx;
+            options.translateX = options.marginX - (20 - bbx.x);
+            options.translateY = options.marginY - (options.plotInsetTop - bbx.y);
+            zoom.translate([0, 0]);
+            applyZoomTransform();
         }
 
         function highlightSearch() {
             vis.selectAll("rect.searchResults").remove();
             var query = jQuery("#searchQuery").val();
-            var re = new RegExp(query, "i");
+            var count = 0;
             if (query && query.length) {
-                searchNode(onodes, re);
+                // Treat species names as text, including punctuation.
+                var re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+                count = searchNode(onodes, re);
             }
+            d3.select("#searchMatches").text(query ? count + " matches" : "");
         }
 
         function getForegroundColor() {
@@ -1176,9 +1235,9 @@ window.requestAnimFrame = (function(){
                 oWidth = width.value,
                 oHeight = height.value;
 
-            transform.value = "translate("+(20-bbox.x)+", "+(20-bbox.y)+")";
+            transform.value = "translate("+(20-bbox.x)+", "+(options.plotInsetTop-bbox.y)+")";
             width.value = (Math.max(+width.value.replace('px', ''), bbox.width) + options.marginX).toString();
-            height.value = (Math.max(+height.value.replace('px', ''), bbox.height) + options.marginY).toString();
+            height.value = Math.max(+height.value.replace('px', ''), bbox.height + options.plotInsetTop + 20).toString();
 
             if (typeof window.XMLSerializer != "undefined") {
                 var svgData = (new XMLSerializer()).serializeToString(svg);
@@ -2663,7 +2722,9 @@ window.requestAnimFrame = (function(){
         }
 
         function searchNode(d, query) {
+            var count = 0;
             if (getNodeText(d, true).match(query)) {
+                count++;
                 var dx = (!d.children && options.lineupNodes) ? phyd3.phylogram.dx - d.y: 0;
                 vis.selectAll("g.node.cid_"+d.id)
                     .append("rect")
@@ -2677,10 +2738,10 @@ window.requestAnimFrame = (function(){
             }
             if (d.children) {
                 for (var cid = 0; cid < d.children.length; cid++) {
-                    r = searchNode(d.children[cid], query);
+                    count += searchNode(d.children[cid], query);
                 }
             }
-            return false;
+            return count;
         }
 
         function swapNode(d, id, swap) {
@@ -2712,6 +2773,7 @@ window.requestAnimFrame = (function(){
 
         function redrawTree() {
             drawTree(true);
+            panBounds = null;
             applyZoomTransform();
         }
 
@@ -2807,11 +2869,27 @@ window.requestAnimFrame = (function(){
 
         // action handlers for zoom & drag events
 
+        // Keep plot edges reachable even after long wheel/drag gestures.
+        function clampPlotPan(position, start, size, viewport, leadingInset) {
+            var inset = leadingInset || 20;
+            var first = inset - start;
+            var last = viewport - 20 - start - size;
+            return Math.max(Math.min(first, last), Math.min(Math.max(first, last), position));
+        }
+
+        var panBounds;
         function applyZoomTransform() {
             popupReset();
             var t = zoom.translate(),
                 x = t[0] + options.marginX - options.translateX,
                 y = t[1] + options.marginY - options.translateY;
+            if (!panBounds || options.lastScale != 0) {
+                panBounds = vis.node().getBBox();
+            }
+            x = clampPlotPan(x, panBounds.x, panBounds.width, selectorWidth);
+            y = clampPlotPan(y, panBounds.y, panBounds.height, options.height, options.plotInsetTop);
+            options.translateX = t[0] + options.marginX - x;
+            options.translateY = t[1] + options.marginY - y;
             vis.attr("transform", function(d) { return "translate(" + parseInt(x) + "," + parseInt(y) + ") scale(1)"});
             if (options.lastScale != 0) {
                 zoomLeafTransform();
@@ -2821,7 +2899,11 @@ window.requestAnimFrame = (function(){
             }
             highlightSearch();
             applyLabelGroupTransform();
+            options.lastScale = 0;
         }
+
+        var zoomFramePending = false;
+        var zoomLayoutPending = false;
 
         function zoomed(evt) {
             var scale = 0;
@@ -2864,10 +2946,21 @@ window.requestAnimFrame = (function(){
                 else options.translateX  += (treeWidth*scale) * factorX;
             }
 
-            // redraw the tree only if scale changed
-            options.lastScale = scale;
-            if (options.lastScale != 0) requestAnimFrame(redrawTree);
-            else requestAnimFrame(applyZoomTransform);
+            // Plain scrolling changes position, not the tree layout. Preserve a
+            // pending layout change when several wheel events share a frame.
+            var layoutChanged = scale != 0 && (mouseEvent.altKey || mouseEvent.ctrlKey);
+            zoomLayoutPending = zoomLayoutPending || layoutChanged;
+            if (!zoomFramePending) {
+                zoomFramePending = true;
+                requestAnimFrame(function() {
+                    var redraw = zoomLayoutPending;
+                    zoomFramePending = false;
+                    zoomLayoutPending = false;
+                    options.lastScale = redraw ? 1 : 0;
+                    if (redraw) redrawTree();
+                    else applyZoomTransform();
+                });
+            }
         }
 
     }

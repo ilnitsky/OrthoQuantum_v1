@@ -7,6 +7,7 @@ from dash import (
   dash_table,
 )
 import dash_bootstrap_components as dbc
+from dash.dash_table.Format import Format, Scheme, Group
 
 SHOW = {}
 HIDE = {"display": "none"}
@@ -41,30 +42,61 @@ EXTRA_TABLE_COLUMNS[0]['presentation'] = 'markdown'
 EXTRA_TABLE_COLUMNS[1]['type'] = 'text'
 EXTRA_TABLE_COLUMNS[1]['presentation'] = 'markdown'
 
+# Keep biological identifiers readable and wide tables horizontally scrollable.
+TABLE_STYLE = {
+  "style_table": {"overflowX": "auto"},
+  "style_cell": {
+    "fontFamily": "inherit",
+    "fontSize": "13px",
+    "textAlign": "left",
+    "padding": "5px 8px",
+    "minWidth": "80px",
+    "maxWidth": "240px",
+    "whiteSpace": "normal",
+    "height": "auto",
+    "border": "1px solid #e5e2df",
+  },
+  "style_header": {
+    "backgroundColor": "#f2f0ee",
+    "color": "#333",
+    "fontWeight": "600",
+  },
+  "style_data_conditional": [
+    {"if": {"row_index": "odd"}, "backgroundColor": "#faf9f8"},
+  ],
+}
+
 TABLE_COLUMNS = [
   {
     "name": name,
     "id": i,
   }
   for i, name in enumerate((
-    "OG label",
-    "Gene Names",
+    "OrthoDB group",
+    "Gene names · PANTHER ↗",
     "Description",
     "Level",
-    "EvolRate",
-    "TotalGenesCount",
-    "MultiCopyCount",
-    "SingleCopyCount",
-    "Present in # species",
+    "Evolutionary rate",
+    "Total genes",
+    "Multicopy species",
+    "Single-copy species",
+    "Species present",
     # "medianExonsCount", "stddevExonsCount",
-    "MedianProteinLength",
-    "StddevProteinLength"
+    "Median protein length",
+    "Protein length SD"
   ))
 ]
 TABLE_COLUMNS[0]['type'] = 'text'
 TABLE_COLUMNS[0]['presentation'] = 'markdown'
 TABLE_COLUMNS[1]['type'] = 'text'
 TABLE_COLUMNS[1]['presentation'] = 'markdown'
+for column in TABLE_COLUMNS[4:]:
+  column['type'] = 'numeric'
+  column['format'] = Format(
+    precision=3 if column['id'] == 4 else (1 if column['id'] == 10 else 0),
+    scheme=Scheme.fixed, group=Group.yes, nully='—',
+  )
+DETAILED_TABLE_COLUMNS = {6, 7, 9, 10}
 
 
 nav_children = [
@@ -82,7 +114,7 @@ nav_children = [
       html.Div([
           dbc.DropdownMenuItem(
             "New query",
-            external_link=True, href=f"/",
+            external_link=True, href="/?create=1",
           ),
           dbc.DropdownMenuItem(divider=True),
           dbc.DropdownMenuItem("Loading...", disabled=True),
@@ -113,141 +145,44 @@ if DEBUG:
 
 navbar = dbc.NavbarSimple(
   children=nav_children,
-  brand="Home",
+  brand="OrthoQuantum",
+  className="oq-navbar",
   brand_external_link=True,
   brand_href="/",
   sticky="top",
 )
 
-body = html.Div(
-    [
-        dbc.Row([
-            dbc.Col([
-                html.H2("OrthoQuantum v1.0", style={"white-space": "nowrap"}),
-            ], md=5, lg=4),
-            dbc.Col([
-                html.Hr(style={
-                    "margin-top": "2rem",
-                    "margin-bottom": "0",
-                }),
-                ], md=5, lg=4, className="d-none d-md-block"),
-            ],
-            justify='center',
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.P("""OrthoQuantum is a web-based tool for visualizing and studying phylogenetic presence/absence patterns of proteins and corresponding orthologous groups."""),
-                        html.P("""OrthoQuantum allows the user to submit protein queries, inspect the output in graphic format and download the output in .csv format. The tool visualizes phylogenetic profiles utilizing a set of databases with orthology predictions."""),
-                        html.P("""A BLAST search can be performed to complement the orthology data."""),
+body = html.Div([
+  html.Div([
+    html.Span("COMPARATIVE GENOMICS", className="oq-eyebrow"),
+    html.H2("Explore phylogenetic profiles", className="mb-2"),
+    html.P("Compare protein presence across species, explore orthologous groups, and investigate missing homologs with BLAST.", className="oq-hero-copy"),
+  ]),
+  html.Div([
+    html.Div([
+      dbc.Checkbox(id="tutorial_checkbox"),
+      dbc.Label("Hover help", html_for="tutorial_checkbox", className="mb-0 ml-2"),
+    ], id="tutorial-checkbox-div", className="oq-hover-help"),
+    dbc.DropdownMenu([
+      dbc.DropdownMenuItem("1. UniProt IDs", id="demo-btn"),
+      dbc.DropdownMenuItem("2. KEGG · ko04210", id="demo-kegg"),
+      dbc.DropdownMenuItem("3. InterPro · IPR003165", id="demo-interpro"),
+    ], label="Load demo data", color="secondary", bs_size="sm", toggle_style={'backgroundColor': 'transparent', 'color': '#b64e5e', 'borderColor': '#d98090'}),
+    dbc.Tooltip("Show guidance when hovering over query controls.", target="tutorial-checkbox-div"),
+  ], className="oq-hero-actions"),
+], className="oq-hero")
 
-                        dbc.InputGroup([
-                            html.Div([
-                                dbc.Checkbox(id="tutorial_checkbox"),
-                                dbc.Label(
-                                    "Show description on hover",
-                                    html_for="tutorial_checkbox",
-                                    className="form-check-label",
-                                    style={"margin-left": "0.5em"},
-                                ),
-                            ],
-                            # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
-                            className="input-group-text important-btn-secondary mr-2 mt-2", id="tutorial-checkbox-div"),
-                            dbc.Button("Load demo data", id="demo-btn", color="secondary", className="mt-2"),
-                            dbc.Tooltip(
-                                "Information would be displayed while hovering over an element",
-                                # id="tooltip-edit-title",
-                                target="tutorial-checkbox-div",
-                                placement="bottom"
-                            ),
-                        ]),
-                    ],
-                    md=5,
-                    lg=4,
-                ),
-                html.Br(),
-                html.Br(),
-                dbc.Col([
-                        html.P("To perform a query:"),
-                        html.P(html.Ol([
-                            html.Li("Select clades for which to display the correlation matrix and the phylogenetic profile. Choose organism scientific name or NCBI taxid."),
-                            html.Li("Input a list of query genes. Please use line breaks as a delimiter. OrthoQuantum accepts identifiers of proteins and genes, such as NCBI RefSeq, Genbank, UniProt ACs.  InterPro, KEGG, OrthoDB orthogroup IDs also can be used."),
-                            html.Li("To perform BLAST search click on the ‘Enable BLAST’ button. The default parameters for BlastP search (E-value threshold, sequence identity, and query coverage) can be modified."),
-                        ])),
-                        html.P("""Click "Submit" to see your results."""),
-                    ],
-                    md=5,
-                    lg=4,
-                ),
-            ],
-            justify='center',
-        )
-    ],
-    className="mt-4",
-)
+query_help = html.Aside([
+  html.H4("How it works", className="oq-panel-title"),
+  html.Ol([
+    html.Li([html.Strong("Choose your species"), html.P("Select a level of orthology and a reference organism or NCBI taxid.")]),
+    html.Li([html.Strong("Add genes or proteins"), html.P("Enter one identifier per line. UniProt, RefSeq, gene names and OrthoDB groups are supported.")]),
+    html.Li([html.Strong("Explore the results"), html.P("Submit to view orthogroups, correlations and the species profile. Use BLAST to investigate missing matches.")]),
+  ]),
+], className="oq-card oq-help")
 
-og_from_input = html.Div(children=[
-    dbc.Row([
-      dbc.Col([
-        html.H2("OrthoQuantum v1.0", style={"white-space": "nowrap"}),
-      ], md=5, lg=4),
-      dbc.Col([
-        html.Hr(style={
-          "margin-top": "2rem",
-          "margin-bottom": "0",
-        }),
-        ], md=5, lg=4, className="d-none d-md-block"),
-      ],
-      justify='center',
-    ),
-    dbc.Row(
-      [
-        dbc.Col(
-          [
-            html.P("""Download presence and study orthology group presence.
-                Use UniProt Accesion Codes of your proteins to create a list with corresponding
-                Orthology groups"""),
-            dbc.InputGroup([
-              html.Div([
-                dbc.Checkbox(id="tutorial_checkbox"),
-                dbc.Label(
-                  "Show description on hover",
-                  html_for="tutorial_checkbox",
-                  className="form-check-label",
-                  style={"margin-left": "0.5em"},
-                ),
-              ],
-              # unfortunately bootstrap isn't cooperating here, forcing btn-secondary look with custom class
-              className="input-group-text important-btn-secondary mr-2 mt-2", id="tutorial-checkbox-div"),
-              dbc.Button("Load demo data", id="demo-btn", color="secondary", className="mt-2"),
-              dbc.Tooltip(
-                "Information would be displayed while hovering over an element",
-                # id="tooltip-edit-title",
-                target="tutorial-checkbox-div",
-                placement="bottom"
-              ),
-            ]),
-          ],
-          md=5,
-          lg=4,
-        ),
-        html.Br(),
-        html.Br(),
-        dbc.Col([
-            html.P("""Input protein IDs in the textarea and select current taxonomy (level of orthology)"""),
-          ],
-          md=5,
-          lg=4,
-        ),
-      ],
-      justify='center',
-    )
-  ],
-  className="mt-4",
-)
 
-def progress_bar(name, md=10, lg=8, height="30px"):
+def progress_bar(name, md=10, lg=10, height="30px"):
   return dbc.Row(
     dbc.Col([
       html.Span(
@@ -272,12 +207,14 @@ og_from_input = html.Div(children=[
   dbc.Row([
       dbc.Col([
           html.Div(
+            [dbc.Label("Level of orthology", html_for="tax-level-dropdown"),
             dcc.Dropdown(
               placeholder="Select a taxon (level of orthology)",
               value='4', # vertebrata
               id='tax-level-dropdown',
               options=DROPDOWN_OPTIONS,
             ),
+            ],
             id='tax-dropdown-container',
           ),
           dbc.Tooltip(
@@ -289,14 +226,15 @@ og_from_input = html.Div(children=[
           ),
           dcc.Store(id='taxid_input_numeric', data=False),
           dcc.Store(id='taxid_input_from_srv', data=None),
+          dbc.Label("Reference organism / NCBI taxid", html_for="taxid_input", className="mt-3"),
           dcc.Dropdown(
             id='taxid_input',
             placeholder="Select species/enter taxid",
-            className="mt-2"
+            className="mb-0"
           ),
         ],
         md=10,
-        lg=8,
+        lg=10,
       ),
     ],
     justify='center',
@@ -321,12 +259,18 @@ og_from_input = html.Div(children=[
     ),
     dbc.Col([
         html.Div([
+          dbc.Label("Genes, proteins or orthogroups", html_for="uniprotAC"),
           dcc.Store(id='uniprotAC_update', data=None),
-          dcc.Textarea(id='uniprotAC', placeholder='Input a list of query gene/protein/orthogroup IDs or keywords ...', value='', rows=10, style={'width': '100%'}),
+          dcc.Textarea(id='uniprotAC', placeholder='Input a list of query gene/protein/orthogroup IDs or keywords ...', value='', rows=6, style={'width': '100%'}),
+          html.Small([
+            "One identifier per line. Examples: ",
+            html.Span("AGO1, BRCA2 (gene names) · Q9UL18, P06748 (UniProt)", className="d-block"),
+            html.Span("ko04210 (KEGG pathway) · IPR003165 (InterPro)", className="d-block"),
+          ], className="text-muted"),
         ]),
       ],
       md=10,
-      lg=8,
+      lg=10,
     ),
   ], justify='center'),
 
@@ -340,24 +284,38 @@ og_from_input = html.Div(children=[
           html.Div([
             dbc.Button(
               id="blast-button",
-              className="my-3",
-              color="success",
-              children="Enable BLAST",
+              className="my-1",
+              color="secondary",
+              children="BLAST unavailable",
+              size="sm",
+              disabled=True,
               outline=True,
             ),
-            dbc.InputGroup(
-              [
-                dbc.InputGroupAddon("Max proteins on the tree", addon_type="prepend"),
-                dbc.Input(value="600", id="max-proteins", min="5", type="number"),
-              ],
-              className="float-right ml-auto",
-              id="max-prot-group"
-            ),
+            html.Div([
+              dbc.InputGroup(
+                [
+                  dbc.InputGroupAddon("Max proteins", addon_type="prepend"),
+                  dbc.Input(value="600", id="max-proteins", min="5", type="number", style={'width': '85px', 'flex': '0 0 85px'}),
+                ],
+                size="sm",
+                style={'width': 'auto'},
+                className="oq-secondary-option",
+                id="max-prot-group"
+              ),
+              html.Div([
+                dbc.Checkbox(id="extra_auto_select"),
+                dbc.Label("Automatically select the most relevant orthogroup", html_for="extra_auto_select", className="mb-0 ml-2"),
+              ], className="oq-option-check"),
+              html.Div([
+                dbc.Checkbox(id='show_annotation_details', checked=False),
+                dbc.Label("Detailed statistics", html_for='show_annotation_details', className="mb-0 ml-2"),
+              ], className="oq-option-check"),
+            ], className="oq-query-options"),
           ],
-          className="form-inline"),
+          className="oq-options-row"),
 
           dbc.Tooltip(
-            "For orthogroups that have missing elements, an additional search for potential homologs will be conducted against the NCBI nr database  using the blastp algorithm. Percent identity and query coverage parameters can be changed.",
+            "BLAST searches are temporarily unavailable.",
             id="tooltip-blast-button",
             target="blast-button",
             placement="right",
@@ -412,7 +370,7 @@ og_from_input = html.Div(children=[
           ),
         ]),
         md=10,
-        lg=8,
+        lg=10,
       ),
     ],
     justify='center',
@@ -426,7 +384,7 @@ og_from_input = html.Div(children=[
         is_open=False,
         className="alert-warning",
       ),
-      md=10, lg=8,
+      md=10, lg=10,
     ),
     justify='center',
   ),
@@ -441,12 +399,24 @@ og_from_input = html.Div(children=[
             className="alert-info",
           ),
           html.Div(
+            [html.Div([
+              dbc.Button("Select all", id='extra-select-all', size='sm', color='secondary', outline=True, disabled=True),
+              html.Span("0 selected", id='extra-selection-count', className='small text-muted ml-3'),
+            ], className='d-flex align-items-center mb-2'),
             dash_table.DataTable(
-              page_size=40,
+              **{**TABLE_STYLE, 'style_table': {'height': '420px', 'overflowY': 'auto', 'overflowX': 'auto'},
+                 'style_cell_conditional': [
+                   {'if': {'column_id': 1}, 'minWidth': '150px'},
+                   {'if': {'column_id': 2}, 'minWidth': '200px'},
+                   {'if': {'column_id': 3}, 'minWidth': '260px', 'maxWidth': '360px'},
+                 ]},
+              page_action='none',
+              fixed_rows={'headers': True},
               row_selectable="multi",
               columns=EXTRA_TABLE_COLUMNS,
               id="extra_data_table",
             ),
+            ],
             style={
               "overflow-x": "scroll",
             }
@@ -461,7 +431,7 @@ og_from_input = html.Div(children=[
         ])),
         id="extra_table_container",
       ),
-      md=10, lg=8,
+      md=10, lg=10,
     ),
     justify='center',
     className="mb-3",
@@ -476,15 +446,6 @@ og_from_input = html.Div(children=[
           children="Submit",
           className=""
         ),
-        dbc.Checkbox(
-          id="extra_auto_select",
-          className="ml-3"
-        ),
-        dbc.Label(
-          "Automatically select the most relevant orthogroup",
-          html_for="extra_auto_select",
-          className="ml-1"
-        ),
         dbc.Button(
           id="cancel-button",
           color="danger",
@@ -494,43 +455,82 @@ og_from_input = html.Div(children=[
         ),
       ],
       md=10,
-      lg=8,
+      lg=10,
     ),
     justify='center',
-    className="mb-4",
+    className="mb-3",
   ),
   progress_bar("table"),
 
   dbc.Row(
     dbc.Col(
       [
+        html.Div([
+          html.Div([
+            html.H4("Orthogroup annotations", className="oq-panel-title mb-1"),
+            html.Small("OrthoDB v11 · — = not available", className="text-muted"),
+          ]),
+        ], className="oq-table-header"),
+        html.P([
+          html.Strong("Explore paralogs: "),
+          "click an underlined gene name to open its PANTHER subfamily profile in a new tab. Compare presence across subfamilies within the larger orthogroup.",
+        ], className="oq-panther-hint"),
+        dbc.Alert(id='metadata_warning', color='warning', is_open=False, className="small py-2"),
         html.Div(
           dash_table.DataTable(
+            **{**TABLE_STYLE, 'style_table': {'overflowX': 'auto', 'maxHeight': '520px', 'overflowY': 'auto'},
+               'style_header': {**TABLE_STYLE['style_header'], 'backgroundColor': '#fff0f2'},
+               'style_cell_conditional': [
+                 {'if': {'column_id': 0}, 'minWidth': '160px', 'width': '160px'},
+                 {'if': {'column_id': 1}, 'minWidth': '170px', 'width': '190px'},
+                 {'if': {'column_id': 2}, 'minWidth': '260px', 'width': '320px', 'maxWidth': '420px'},
+                 {'if': {'column_id': 3}, 'minWidth': '115px'},
+                 *[{'if': {'column_id': i}, 'minWidth': '110px', 'textAlign': 'right'} for i in range(4,11)],
+               ]},
             filter_action="native",
             sort_action='native',
-            page_size=40,
+            page_size=15,
+            export_format='csv', export_headers='display',
+            fixed_rows={'headers': True},
             id="data_table",
-            columns=TABLE_COLUMNS,
+            columns=[c for c in TABLE_COLUMNS if c['id'] not in DETAILED_TABLE_COLUMNS],
           ),
           style={
-            "overflow-x": "scroll",
+            "overflow-x": "auto",
           }
         ),
         dbc.Tooltip(
-          "Orthogroups information. To see the PANTHER subfamily annotation click on the name of protein/orthogroup.",
+          "Underlined gene names open PANTHER subfamily profiles in a new tab to explore paralogs separately.",
           id="tooltip-table",
           target="table_container",
           placement="right",
           className="d-none"
         ),
       ],
-      md=10, lg=8,
+      md=10, lg=10,
     ),
     justify='center',
     className="mb-3",
     style=HIDE,
     id="table_container",
   ),
+])
+
+
+_query_parts = og_from_input.children
+og_from_input = html.Div([
+  dbc.Row([
+    dbc.Col(html.Div([
+      html.Div([
+        html.H4("Query setup", className="oq-panel-title mb-0"),
+        dbc.Button("Reset", id='reset-query', href='/?create=1', external_link=True,
+                   size='sm', color='secondary', outline=True),
+      ], className='oq-query-heading'),
+      *_query_parts[:-1],
+    ], className="oq-card oq-query-card"), lg=8, className="mb-3"),
+    dbc.Col(query_help, lg=4, className="mb-3"),
+  ], className="oq-query-grid"),
+  _query_parts[-1],
 ])
 
 
@@ -553,8 +553,6 @@ def dashboard(task_id):
       disabled=True,
     ),
     body,
-    html.Br(),
-    html.Br(),
 
     dcc.Store(id='request_title_update', data=""),
     dbc.Row(
@@ -564,7 +562,7 @@ def dashboard(task_id):
             [
               html.H1(
                 "Loading...",
-                className="text-center",
+                className="mb-0",
                 id="request-title",
               ),
               dbc.Tooltip(
@@ -586,7 +584,7 @@ def dashboard(task_id):
             style={"text-align": "center"}
           ),
         ],
-        md=10, lg=8, className="mb-3",
+        md=12, className="mb-3 oq-query-title",
       ),
       justify='center'
     ),
@@ -619,7 +617,7 @@ def dashboard(task_id):
             ),
           ],
           justify='center',
-          className='mt-5 mb-3'
+          className='mt-3 mb-2'
         ),
         progress_bar("heatmap"),
       ],
@@ -629,34 +627,34 @@ def dashboard(task_id):
     dbc.Row(
       [
         dbc.Col(
-          html.A(
+          html.Div([
+            html.H5("Correlation heatmap", className="results-panel-title"),
+            html.A(
             html.Img(
               id="heatmap_img",
-              style={
-                'width': '100%',
-                'max-width': '1100px',
-              },
-              className="mx-auto",
+              alt="Clustered protein correlation heatmap",
             ),
             target="_blank",
-            className="mx-auto",
+            rel="noopener noreferrer",
             id="heatmap_link",
-          ),
-          className="text-center",
-          lg=4,
+            ),
+            html.Small("Click the heatmap to open the full-size image.", className="text-muted d-block text-center"),
+          ], className="results-panel heatmap-panel"),
+          className="mb-3",
+          xs=12, lg=5,
         ),
         dbc.Col(
-          [
+          html.Div([
+            html.H5("Pairwise correlations", className="results-panel-title"),
             html.Div(
               [
-                dbc.Button("Options", style={"visibility": "hidden"}, className="d-none d-xl-block"), # for InputGroup to be centered
                 dbc.InputGroup([
                   dbc.InputGroupAddon(dbc.Button("<", id="curr_page_decr"), addon_type='prepend'),
                   dbc.Input(inputMode='numeric', value="1", id="curr_page", debounce=True),
                   dbc.InputGroupAddon("/Loading...", addon_type='append', id="total_pages"),
                   dbc.InputGroupAddon(dbc.Button(">", id="curr_page_incr"), addon_type='append'),
-                ], style={"width": "14em"}),
-                dbc.Button("Options", id="corr_table_options_show"),
+                ], style={"width": "12em"}, size="sm"),
+                dbc.Button("Options", id="corr_table_options_show", size="sm", outline=True),
               ],
               className="d-flex flex-row justify-content-between mb-2",
             ),
@@ -702,21 +700,26 @@ def dashboard(task_id):
               dbc.Col(
                 html.Div(
                   dash_table.DataTable(
+                    **{**TABLE_STYLE, "style_table": {
+                      "overflowX": "auto", "overflowY": "auto", "maxHeight": "340px",
+                    }},
+                    fixed_rows={"headers": True},
                     id="corr_table",
                   ),
                   className="pb-3",
                   style={
-                    "overflow-x": "scroll",
+                    "overflow-x": "auto",
                   },
                 ),
               ),
-              className="pt-3",
+              className="pt-1",
             ),
-          ],
-          lg=4,
+          ], className="results-panel"),
+          className="mb-3",
+          xs=12, lg=7,
         ),
       ],
-      className="mx-4",
+      className="heatmap-results mx-auto",
       id='heatmap_container',
       justify='center',
       style=HIDE,
@@ -744,25 +747,6 @@ def dashboard(task_id):
             html.Div([
                 html.P("The columns show the orthogroups, with the same name as the query proteins. Rows of the heatmap show the eukaryotic genomes, major taxa on the species tree are labeled with different colors."),
                 html.P("To scale the graph use a mouse wheel while holding Alt to scale x axis and/or Ctrl to scale y axis."),
-                html.P("Legend:"),
-                html.Ul([
-                  html.Li([
-                    html.Span(className="tree-legend", style={"background-color": "#170a1c"}),
-                    html.Span("No findings")
-                  ]),
-                  html.Li([
-                    html.Span(className="tree-legend", style={"background-color": "#666666"}),
-                    html.Span("Scheduled to be BLAST'ed")
-                  ]),
-                  html.Li([
-                    html.Span(className="tree-legend", style={"background-color": "#f72585"}),
-                    html.Span("Found via BLAST")
-                  ]),
-                  html.Li([
-                    html.Span(className="tree-legend", style={"background-color": "#228cdb"}),
-                    html.Span("Found in OrthoDB")
-                  ]),
-                ]),
               ],
               className="my-2",
               id="tree_help",
@@ -774,7 +758,7 @@ def dashboard(task_id):
           PhydthreeComponent(
               id="tree_component",
               url=f"/files/{task_id}/tree.xml",
-              height=2000,
+              height=1333,
               taskid_for_links=task_id,
           ),
         ],
@@ -861,6 +845,7 @@ def sized_img(img_src, href=None):
 
 
 index = html.Div([
+  html.Div([html.Span("ORTHOQUANTUM"), html.Span("Protein presence · Orthology · Phylogenetic profiles")], className="oq-topbar"),
   navbar,
   dcc.Location(id='location', refresh=False),
   html.Div(
@@ -905,6 +890,10 @@ index = html.Div([
 
 def prottree(prot_id):
   return html.Div([
+    html.Div([
+      html.H4(f"PANTHER subfamily profile · {prot_id}", className="oq-panel-title mb-2"),
+      html.P("Compare presence across the subfamilies in this gene family to inspect paralogs separately.", className="text-muted mb-0"),
+    ], className="mx-5 mt-4"),
     dcc.Store(id='prot_id', data=prot_id),
     dcc.Interval(
       id='prottree_progress_updater',
@@ -922,7 +911,7 @@ def prottree(prot_id):
         PhydthreeComponent(
             id="prottree_tree",
             url=f"/prottree/{prot_id}.xml",
-            height=2000,
+            height=1333,
             leafCount=142,
             show_download_csv=False,
         ),

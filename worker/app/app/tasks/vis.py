@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 
-@queue_manager.add_handler("/queues/vis")
+@queue_manager.add_handler("/queues/vis", max_running=1)
 async def vis():
     db = get_db()
     db.msg = "Getting correlation data"
@@ -42,7 +42,17 @@ async def vis():
         await db.report_error("Not enough proteins to build correlation", cancel_rest=False)
         return
 
-    corr_info, prot_ids = await vis_sync.get_corr_data(csv_data)
+    corr_info, prot_ids = {}, {}
+    db.total = len(csv_data)
+    db.current = 0
+    # Small batches expose real progress and limit uncancellable process-pool work.
+    for start in range(0, len(csv_data), 5):
+        db.msg = f'Loading species profiles ({start}/{len(csv_data)} groups)'
+        batch = csv_data.iloc[start:start + 5]
+        counts, proteins = await vis_sync.get_corr_data(batch, organisms)
+        corr_info.update(counts)
+        prot_ids.update(proteins)
+        db.current = min(start + len(batch), len(csv_data))
 
     db.msg="Processing correlation data"
 

@@ -290,3 +290,9 @@ deploy.sh
 stuff
 .vscode
 ui
+# Deployment secrets and local reference/review artifacts
+.env*
+!.env.example
+/result.pdf
+/index.html
+/support_scripts/orthodb/*.tab

@@ -45,6 +45,8 @@ except ValueError:
 REQUEST_COLUMNS.append("og")
 
 
+from .orthodb_metadata import CACHE_PREFIX as METADATA_CACHE_PREFIX
+
 PROTTREE_PROT_NAME = re.compile(r"[a-zA-Z0-9]+")
 
 
@@ -98,9 +100,9 @@ async def fetch_orthogroups(orthogroups_to_fetch: list[str], dash_columns: list[
     cur_time = int(time())
     async with redis.pipeline(transaction=False) as pipe:
         for og, og_data in og_info.items():
-            pipe.hset(f"/cache/ortho/{og}/data", mapping=og_data)
-            pipe.set(f"/cache/ortho/{og}/accessed", cur_time)
-            pipe.setnx(f"/cache/ortho/{og}/created", cur_time)
+            pipe.hset(f"{METADATA_CACHE_PREFIX}/{og}/data", mapping=og_data)
+            pipe.set(f"{METADATA_CACHE_PREFIX}/{og}/accessed", cur_time)
+            pipe.setnx(f"{METADATA_CACHE_PREFIX}/{og}/created", cur_time)
         await pipe.execute()
 
     return og_info
@@ -338,7 +340,11 @@ async def table():
                             is_single, res = await search_prot(sess, prot_id, level_orthodb_id, taxid_input)
                         except Exception as e:
                             __import__("traceback").print_exc()
-                            res = None
+                            raise ReportErrorException(
+                                'Unable to query OrthoDB. Check the worker network/proxy '
+                                'connection and try again. Protein identifiers have not '
+                                'been validated.'
+                            ) from e
 
                         if res is None:
                             db.total -= 1
@@ -415,7 +421,7 @@ async def table():
         else:
             tbl = pd.DataFrame.from_records(old_selections)
         if not tbl.empty:
-            tbl[1] = tbl[1].map('[{0}](https://v101.orthodb.org/fasta?id={0})'.format)
+            tbl[1] = tbl[1].map('[{0}](https://data.orthodb.org/v11/fasta?id={0})'.format)
 
         async with db.atomic_file(db.task_dir / "Extra_table.pkl") as tmp_file:
             await table_sync.pickle_df(tmp_file, tbl)
@@ -477,8 +483,8 @@ async def table():
     cur_time = int(time())
     async with redis.pipeline(transaction=False) as pipe:
         for og in og_list:
-            pipe.hmget(f"/cache/ortho/{og}/data", REQUEST_COLUMNS)
-            pipe.set(f"/cache/ortho/{og}/accessed", cur_time, xx=True)
+            pipe.hmget(f"{METADATA_CACHE_PREFIX}/{og}/data", REQUEST_COLUMNS)
+            pipe.set(f"{METADATA_CACHE_PREFIX}/{og}/accessed", cur_time, xx=True)
 
         cache_data = (await pipe.execute())[::2]
 
@@ -500,15 +506,15 @@ async def table():
             )
     except urllib.error.HTTPError as e:
         if e.code == 502:
-            await db.report_error("Some data is missing: orthodb.org sparql server is down", cancel_rest=False)
+            await db.report_error("Some OrthoDB v11 annotations are temporarily unavailable", cancel_rest=False)
     except Exception:
-        await db.report_error("Unknown sparql request error", cancel_rest=False)
+        await db.report_error("Unable to retrieve OrthoDB v11 annotations", cancel_rest=False)
         __import__("traceback").print_exc()
 
 
     og_info_df = pd.DataFrame(
         (
-            vals.values()
+            [vals.get(field, "") for field in REQUEST_COLUMNS]
             for vals in og_info.values()
         ),
         columns=REQUEST_COLUMNS,
@@ -516,12 +522,14 @@ async def table():
 
     og_info_df = pd.merge(og_info_df, uniprot_df, on='label', how='right')[TABLE_COLUMNS]
 
+    for column in TABLE_COLUMNS[4:]:
+        og_info_df[column] = pd.to_numeric(og_info_df[column], errors='coerce')
     #prepare datatable update
     def add_link(s:re.Match):
         return f"[{s.group(0)}](/prottree?task_id={db.task_id}&prot_id={s.group(0)})"
 
     og_info_df['Name'] = og_info_df['Name'].str.replace(PROTTREE_PROT_NAME, add_link)
-    og_info_df['label'] = og_info_df['label'].map('[{0}](https://v101.orthodb.org/fasta?id={0})'.format)
+    og_info_df['label'] = og_info_df['label'].map('[{0}](https://data.orthodb.org/v11/fasta?id={0})'.format)
 
     og_info_df.columns = list(range(len(og_info_df.columns)))
     async with db.atomic_file(db.task_dir / "Info_table.pkl") as tmp_file:

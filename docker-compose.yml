@@ -17,12 +17,20 @@ services:
     volumes:
       - "redis_data_v2:/data"
 
-  shadowsocks:
-    image: shadowsocks/shadowsocks-libev:latest
-    entrypoint: ss-local -s "${SHADOWSOCKS_SERVER:?missing_shadowsocks_server}" -p "${SHADOWSOCKS_REMOTE_PORT:?missing_shadowsocks_remote_port}" -l "${SHADOWSOCKS_LOCAL_PORT:?missing_shadowsocks_local_port}" -k "${SHADOWSOCKS_PASSWD:?missing_shadowsocks_passwd}" -m "${SHADOWSOCKS_CIPHER:?missing_shadowsocks_cipher}" -b "0.0.0.0"
+  xray-relay:
+    # Reuse the existing worker image for its Python runtime; no new image needed.
+    image: best_repository_ever_worker
+    network_mode: host
+    entrypoint: ["python3", "/xray_relay.py"]
     restart: unless-stopped
+    volumes:
+      - "./support_scripts/xray_relay.py:/xray_relay.py:ro"
+    environment:
+      XRAY_RELAY_BIND: "${XRAY_RELAY_BIND:-172.17.0.1}"
 
   worker:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     build: ./worker
     restart: unless-stopped
     # security_opt:
@@ -38,8 +46,8 @@ services:
     environment:
       REDIS_HOST: "redis"
       LD_LIBRARY_PATH: "/blast/lib/:/blast/lib2/:/blast/lib3"
-      SOCKS_SERVER: "shadowsocks"
-      SOCKS_PORT: "${SHADOWSOCKS_LOCAL_PORT:?missing_shadowsocks_local_port}"
+      SOCKS_SERVER: "host.docker.internal"
+      SOCKS_PORT: "10809"
 
 
 volumes:

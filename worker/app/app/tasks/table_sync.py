@@ -1,7 +1,6 @@
 from collections import defaultdict
 import re
 
-import SPARQLWrapper
 import requests
 import pandas as pd
 import numpy as np
@@ -11,6 +10,7 @@ import sqlite3
 from ..async_executor import async_pool
 from ..utils import open_existing, decode_int
 from ..db import ORTHODB
+from .orthodb_metadata import fetch_group_metadata
 
 @async_pool.in_thread(max_running=3)
 def orthodb_get(level_id:int, prot_ids:list[str]) -> defaultdict[str, list]:
@@ -133,47 +133,9 @@ def uniprot_get(prot_id:str):
         return prot_id, None
 
 
-@async_pool.in_thread(max_running=50)
+@async_pool.in_thread(max_running=3)
 def ortho_data_get(requested_ids:list, fields:list) -> dict[str, dict[str, str]]:
-    og_string = ', '.join(f'odbgroup:{og}' for og in requested_ids)
-
-    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
-
-    #SPARQL query
-    endpoint.setQuery(f"""
-    prefix : <http://purl.orthodb.org/>
-    select *
-    where {{
-        ?og a :OrthoGroup;
-        rdfs:label ?label;
-        :name ?description;
-        :ogBuiltAt [up:scientificName ?clade];
-        :ogEvolRate ?evolRate;
-        :ogTotalGenesCount ?totalGenesCount;
-        :ogMultiCopyGenesCount ?multiCopyGenesCount;
-        :ogSingleCopyGenesCount ?singleCopyGenesCount;
-        :ogInSpeciesCount ?inSpeciesCount.
-
-        optional {{ ?og :ogMedianProteinLength ?medianProteinLength}}
-        optional {{ ?og :ogStddevProteinLength ?stddevProteinLength}}
-
-        filter (?og in ({og_string}))
-    }}
-    """)
-    endpoint.setReturnFormat(SPARQLWrapper.JSON)
-    result = endpoint.query().convert()
-    og_info = {}
-
-    for og, data in zip(requested_ids, result["results"]["bindings"]):
-        try:
-            og_info[og] = {
-                field: data[field]["value"]
-                for field in fields
-            }
-        except Exception:
-            og_info[og] = None
-
-    return og_info
+    return fetch_group_metadata(requested_ids, fields)
 
 @async_pool.in_thread(max_running=3)
 def process_prot_data(data:list[tuple[str, str, str]], output_file:str)-> pd.DataFrame:

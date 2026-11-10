@@ -20,6 +20,7 @@ export default class PhydthreeComponent extends Component {
     this.ref = React.createRef();
     this.svg_ref = React.createRef();
     this.callback = null;
+    this.handleResize = this.handleResize.bind(this);
     this.state = {
       activeTab: "tree",
       nextTab: "",
@@ -80,7 +81,7 @@ export default class PhydthreeComponent extends Component {
   }
   componentDidMount() {
     // listen for resize events
-    window.addEventListener('resize', this.handleResize.bind(this))
+    window.addEventListener('resize', this.handleResize)
     this.redraw()
   }
   handleResize() {
@@ -99,7 +100,7 @@ export default class PhydthreeComponent extends Component {
     this.callback = null;
   }
   componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    window.removeEventListener('resize', this.handleResize);
     if (this.callback != null) {
       clearTimeout(this.callback)
     }
@@ -270,6 +271,18 @@ export default class PhydthreeComponent extends Component {
                   onMouseUp={e => this.setState({...this.state, zoomLevel: this.transformZoom(this.state.zoomValue)})}/>
           <span>{this.transformZoom(this.state.zoomValue)}x</span>
         </div>
+      </div>
+      <div className="tree-navigation mb-2" style={{display: this.state.activeTab === "tree" ? "flex" : "none"}}>
+        <Input id="searchQuery" bsSize="sm" placeholder="Highlight species / group name"
+          aria-label="Highlight species or group name" style={{width: "240px"}}/>
+        <span id="searchMatches" className="small text-muted" aria-live="polite"></span>
+        <span className="small">Row spacing</span>
+        <Button id="zoomoutY" size="sm" aria-label="Decrease row spacing">−</Button>
+        <Button id="zoominY" size="sm" aria-label="Increase row spacing">+</Button>
+        <span className="small">Tree width</span>
+        <Button id="zoomoutX" size="sm" aria-label="Decrease tree width">−</Button>
+        <Button id="zoominX" size="sm" aria-label="Increase tree width">+</Button>
+        <span className="small text-muted">Scroll: move · Ctrl + wheel: rows · Alt + wheel: width</span>
       </div>
       <div
         ref={this.ref}

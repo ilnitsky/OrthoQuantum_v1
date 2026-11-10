@@ -8,7 +8,7 @@ import {randomUUID, createHash} from 'node:crypto';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, 'public');
-const MIME = {'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.ttf':'font/ttf','.ico':'image/x-icon'};
+const MIME = {'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.ttf':'font/ttf','.ico':'image/x-icon','.png':'image/png'};
 const jobs = new Map();
 const queue = [];
 let active = false;
@@ -36,7 +36,7 @@ async function runNext() {
   if (job.status === 'cancelled') return runNext();
   active = true;
   job.status = 'running'; job.updated = Date.now();
-  const child = spawn(process.env.PYTHON || 'python3', [path.join(ROOT, 'bridge.py')], {
+  const child = spawn(process.env.PYTHON || 'python3', [job.adapterPath||path.join(ROOT, 'bridge.py')], {
     cwd: ROOT, env: process.env, stdio: ['pipe','pipe','pipe'],
   });
   job.child = child;
@@ -69,7 +69,7 @@ async function runNext() {
   child.stdin.on('error', () => {});
   child.stdin.end(JSON.stringify(job.request));
 }
-export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||''}={}) {
+export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||'',adapterPath=path.join(ROOT,'bridge.py')}={}) {
   const origins=new Set(publicOrigins.split(',').map(v=>v.trim()).filter(Boolean).map(value=>{
     const url=new URL(value);if(!['http:','https:'].includes(url.protocol))throw new Error('PUBLIC_ORIGINS must contain HTTP(S) origins');return url.origin;
   }));
@@ -96,7 +96,7 @@ export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||''}={}) {
         if (!body || typeof body !== 'object' || Array.isArray(body)) return send(res,400,{error:'Expected a query object'});
         if (!['resolve','profiles','config','panther','panther_orthologs'].includes(body.action)) return send(res,400,{error:'Unknown query action'});
         cleanup();
-        if (jobs.size >= MAX_JOBS) return send(res,429,{error:'Prototype queue is full. Wait for a job to finish.'});
+        if (jobs.size >= MAX_JOBS) return send(res,429,{error:'Job queue is full. Wait for a job to finish.'});
         // In-memory cache is bounded and invalidates when reference files change.
         const versions = await Promise.all([
           process.env.ORTHODB_PATH || '/home/ilnitsky/PANTHERDB/orthodb.db',
@@ -104,10 +104,10 @@ export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||''}={}) {
           ...(process.env.PANTHER_BUNDLE_DIR ? ['manifest.json','panther.sqlite','relationships.sqlite'].map(name=>path.join(process.env.PANTHER_BUNDLE_DIR,name)) : []),
         ].map(async p => {try {const s=await stat(p);return [s.ino,s.size,s.mtimeMs];} catch {return null;}}));
         const key = createHash('sha256').update(JSON.stringify([body,versions,process.env.ORTHODB_RELEASE || 'v11'])).digest('hex');
-        const existing=[...jobs.values()].find(j=>j.key===key && ['done','queued','running'].includes(j.status));
+        const existing=[...jobs.values()].find(j=>j.key===key && j.status==='done');
         if(existing) return send(res,202,{id:existing.id,cached:existing.status==='done'});
         const id=randomUUID();
-        const job={id,key,request:body,status:'queued',updated:Date.now(),progress:{message:'Waiting for the reference database'}};
+        const job={id,key,adapterPath,request:body,status:'queued',updated:Date.now(),progress:{message:'Waiting for the reference database'}};
         jobs.set(id,job);queue.push(job);runNext();return send(res,202,{id});
       }
       const match=/^\/api\/jobs\/([0-9a-f-]+)$/.exec(url.pathname);
@@ -119,11 +119,12 @@ export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||''}={}) {
           return send(res,200,{status:job.status});
         }
         if(req.method!=='GET') return send(res,405,{error:'Method not allowed'});
-        return send(res,200,{id:job.id,status:job.status,progress:job.progress,error:job.error,data:job.status==='done'?job.result:undefined});
+        const queuePosition=job.status==='queued'?queue.filter(j=>j.status==='queued').indexOf(job)+1:job.status==='running'?0:undefined;
+        return send(res,200,{id:job.id,status:job.status,queuePosition,progress:job.progress,error:job.error,data:job.status==='done'&&!url.searchParams.has('summary')?job.result:undefined});
       }
       if(url.pathname.startsWith('/api/')) return send(res,404,{error:'Unknown endpoint'});
       if(!['GET','HEAD'].includes(req.method)) return send(res,405,{error:'Method not allowed'});
-      const name = url.pathname==='/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
+      const name = url.pathname==='/' ? 'index.html' : ['/about','/about/'].includes(url.pathname)?'about.html': decodeURIComponent(url.pathname).replace(/^\/+/, '');
       const filename = path.resolve(PUBLIC,name);
       if(!filename.startsWith(PUBLIC+path.sep) || !MIME[path.extname(filename)]) return send(res,404,{error:'Not found'});
       const info=await stat(filename);

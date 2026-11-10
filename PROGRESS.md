@@ -477,3 +477,23 @@ legacy and database jobs untouched.
 Browser validation also passed: toggling profile copy-count/presence display leaves
 the correlation matrix unchanged. New palette/contrast, clustered ordering,
 zoom/pan, coefficient labels, Fit and mobile layout all passed without errors.
+
+## 18. Restore job navigation and the complete legacy About page
+
+Restored header My queries with browser-owned job IDs, queued/running/ready/error
+states, positions, progress, Open/Cancel and New query. New query/Reset detach the
+view without killing background work; opening completed local datasets avoids a
+rerun. Internal configuration requests run independently. Backend summary polling
+omits heavy result payloads; active requests no longer share mutable cached jobs.
+The server retains its lightweight in-memory queue and existing one-hour result
+TTL; opened datasets remain locally saved, and legacy Redis history stays separate.
+
+Added a dedicated `/about` page preserving every original guide paragraph and all
+ten pictures. `web/export_legacy_about.py` safely renders a whitelisted AST without
+running Dash; static PNGs match the originals exactly. The guide identifies legacy
+features while preserving their text. Help opens separately to retain the plot.
+
+Changed web server/app/header/styles; added jobs module, guide HTML/images,
+exporter and browser tests. Fourteen Node checks and real-query desktop/mobile
+browser checks passed, including successful decoding of all ten pictures. Only
+the main frontend is rebuilt; legacy and reference builders remain untouched.

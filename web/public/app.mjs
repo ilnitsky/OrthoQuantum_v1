@@ -2,6 +2,7 @@ import {validateDataset,csvText,datasetFromCSV,shortLabel,clamp} from './model.m
 import {datasetFromXML} from './import-xml.mjs';
 import {ProfileViewer} from './viewer.mjs';
 import {CorrelationViewer} from './correlation-viewer.mjs';
+import {trackJob,updateJob,knownJob} from './jobs.mjs';
 const $=id=>document.getElementById(id);
 const state={data:null,config:null,candidates:[],selection:new Set(),run:0,job:null,worker:null,correlation:null,history:[],busy:false,views:{},activeView:null};
 const tooltip=$('tooltip');
@@ -12,22 +13,33 @@ function text(tag,content,className=''){const node=document.createElement(tag);n
 function message(value,error=false){$('message').textContent=value;$('message').classList.toggle('error',error);$('message').hidden=!value;}
 function busy(value){state.busy=value;for(const id of ['resolve','build'])$(id).disabled=value;$('cancel').hidden=!value;$('job-progress').hidden=!value;}
 async function cancel(){state.run++;const id=state.job;state.job=null;busy(false);if(id)try{await fetch('/api/jobs/'+id,{method:'DELETE'});}catch{};}
+function detachJob(){state.run++;state.job=null;busy(false);}
+async function waitForJob(id,run){
+ while(run===state.run){
+  const result=await fetch('/api/jobs/'+id).then(async r=>{const data=await r.json();if(!r.ok)throw new Error(data.error);return data;});
+  updateJob(id,result);if(run!==state.run)throw new DOMException('Cancelled','AbortError');
+  if(result.status==='done')return result.data;
+  if(result.status==='error'||result.status==='cancelled')throw new Error(result.error||'Query cancelled');
+  const p=result.progress||{};$('progress-text').textContent=result.status==='queued'?`Queued${result.queuePosition?' · position '+result.queuePosition:''}`:p.message||'Waiting…';
+  if(p.total){$('progress').value=p.current||0;$('progress').max=p.total;}else $('progress').removeAttribute('value');
+  await new Promise(resolve=>setTimeout(resolve,350));
+ }
+ throw new DOMException('Cancelled','AbortError');
+}
+async function referenceConfiguration(){
+ const response=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'config'})});
+ const started=await response.json();if(!response.ok)throw new Error(started.error||'Cannot read reference configuration');
+ for(;;){const result=await fetch('/api/jobs/'+started.id).then(r=>r.json());if(result.status==='done')return result.data;if(result.status==='error'||result.status==='cancelled'||result.error)throw new Error(result.error||'Reference configuration unavailable');await new Promise(resolve=>setTimeout(resolve,350));}
+}
 async function job(request){
-  await cancel();const run=++state.run;busy(true);$('progress').removeAttribute('value');$('progress-text').textContent='Starting query…';
+  if(request.action==='config')return referenceConfiguration();
+  detachJob();const run=++state.run;busy(true);$('progress').removeAttribute('value');$('progress-text').textContent='Starting query…';
   try{
     const response=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
     const started=await response.json();if(!response.ok)throw new Error(started.error||'Cannot start query');
-    state.job=started.id;
-    while(run===state.run){
-      const result=await fetch('/api/jobs/'+started.id).then(async r=>{const data=await r.json();if(!r.ok)throw new Error(data.error);return data;});
-      if(run!==state.run)throw new DOMException('Cancelled','AbortError');
-      if(result.status==='done')return result.data;
-      if(result.status==='error'||result.status==='cancelled')throw new Error(result.error||'Query cancelled');
-      const p=result.progress||{};$('progress-text').textContent=p.message||'Waiting…';
-      if(p.total){$('progress').value=p.current||0;$('progress').max=p.total;}else $('progress').removeAttribute('value');
-      await new Promise(resolve=>setTimeout(resolve,350));
-    }
-    throw new DOMException('Cancelled','AbortError');
+    trackJob(request,started);
+    if(run!==state.run)throw new DOMException('Cancelled','AbortError');
+    state.job=started.id;return await waitForJob(started.id,run);
   }finally{if(run===state.run){state.job=null;busy(false);}}
 }
 function report(error){if(error.name!=='AbortError')message(error.message||String(error),true);}
@@ -137,11 +149,32 @@ function renderChoices(){
   const fragment=document.createDocumentFragment();state.candidates.forEach((group,index)=>{const row=document.createElement('tr'),cell=document.createElement('td'),check=document.createElement('input');check.type='checkbox';check.checked=state.selection.has(index);check.setAttribute('aria-label','Select '+group.id);check.addEventListener('change',()=>{check.checked?state.selection.add(index):state.selection.delete(index);updateSelectionLabel();});cell.append(check);row.append(cell,text('td',(group.queries||[]).join(', ')),text('td',group.id),text('td',group.name),text('td',group.description||'—'));fragment.append(row);});$('choices').replaceChildren(fragment);updateSelectionLabel();
 }
 function updateSelectionLabel(){$('select-all').textContent=state.selection.size===state.candidates.length?'Clear all':'Select all';$('build').textContent=`Build ${state.selection.size} profiles`;$('build').disabled=state.selection.size===0||state.busy;}
-$('query-form').addEventListener('submit',async event=>{event.preventDefault();message('');try{const result=await job({action:'resolve',inputs:$('identifiers').value,treeId:$('tree-select').value,taxid:$('species-select').value});state.candidates=result.groups;state.selection=new Set();const covered=new Set();result.groups.forEach((g,i)=>{if(!$('auto-select').checked)return;if((g.queries||[]).some(q=>!covered.has(q))){state.selection.add(i);(g.queries||[]).forEach(q=>covered.add(q));}});$('choices-section').hidden=false;$('resolution-summary').textContent=`${result.groups.length} matches${result.unknown.length?' · unresolved: '+result.unknown.join(', '):''}`;renderChoices();message(result.warnings.join(' '));if(!result.groups.length)message('No groups found. Try another identifier or a bundled demo.',true);else $('choices-section').scrollIntoView({behavior:'smooth',block:'nearest'});}catch(error){report(error);}});
-$('build').addEventListener('click',async()=>{try{const groups=state.candidates.filter((_,i)=>state.selection.has(i));const input=$('identifiers').value;const data=await job({action:'profiles',groups,treeId:$('tree-select').value,inputs:input,title:`'${shortLabel(input.split('\n')[0],30)}' · ${groups.length} groups`});await showDataset(data);message('Profiles ready.');$('results').scrollIntoView({behavior:'smooth',block:'start'});}catch(error){report(error);}});
+function showMatches(result){
+ state.candidates=result.groups;state.selection=new Set();const covered=new Set();result.groups.forEach((g,i)=>{if(!$('auto-select').checked)return;if((g.queries||[]).some(q=>!covered.has(q))){state.selection.add(i);(g.queries||[]).forEach(q=>covered.add(q));}});$('choices-section').hidden=false;$('resolution-summary').textContent=`${result.groups.length} matches${result.unknown.length?' · unresolved: '+result.unknown.join(', '):''}`;renderChoices();message((result.warnings||[]).join(' '));if(!result.groups.length)message('No groups found. Try another identifier or a bundled demo.',true);else $('choices-section').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+$('query-form').addEventListener('submit',async event=>{event.preventDefault();message('');try{const result=await job({action:'resolve',inputs:$('identifiers').value,treeId:$('tree-select').value,taxid:$('species-select').value});showMatches(result);}catch(error){report(error);}});
+$('build').addEventListener('click',async()=>{try{const groups=state.candidates.filter((_,i)=>state.selection.has(i));const input=$('identifiers').value;const data=await job({action:'profiles',groups,treeId:$('tree-select').value,taxid:$('species-select').value,inputs:input,title:`'${shortLabel(input.split('\n')[0],30)}' · ${groups.length} groups`});await showDataset(data);message('Profiles ready.');$('results').scrollIntoView({behavior:'smooth',block:'start'});}catch(error){report(error);}});
 $('select-all').addEventListener('click',()=>{state.selection=state.selection.size===state.candidates.length?new Set():new Set(state.candidates.map((_,i)=>i));renderChoices();});
 $('tree-select').addEventListener('change',populateSpecies);$('cancel').addEventListener('click',()=>{cancel();message('Query cancelled.');});
-$('reset').addEventListener('click',async()=>{await cancel();$('identifiers').value='';$('choices-section').hidden=true;$('results').hidden=true;state.worker?.terminate();state.data=null;state.views={};state.activeView=null;$('profile-views').hidden=true;state.candidates=[];state.selection.clear();message('');});
+function resetQuery(){detachJob();$('identifiers').value='';$('choices-section').hidden=true;$('results').hidden=true;state.worker?.terminate();state.data=null;state.views={};state.activeView=null;$('profile-views').hidden=true;state.candidates=[];state.selection.clear();message('');}
+$('reset').addEventListener('click',resetQuery);
+window.addEventListener('oq:new-query',event=>{event.preventDefault();resetQuery();$('identifiers').focus();});
+window.addEventListener('oq:cancel-job',event=>{if(state.job===event.detail.id){detachJob();message('Query cancelled.');}});
+async function openQueuedJob(record){
+ if(!record)return message('This job is not available in this browser.',true);
+ detachJob();const run=++state.run;state.job=record.id;busy(true);$('progress').removeAttribute('value');$('progress-text').textContent='Opening '+record.title+'…';
+ const menu=$('my-queries');if(menu)menu.open=false;
+ if(record.inputs)$('identifiers').value=record.inputs;
+ if(record.treeId){$('tree-select').value=record.treeId;populateSpecies();}if(record.taxid)$('species-select').value=record.taxid;
+ try{
+  if(record.datasetId){const saved=(await historyList()).find(item=>item.id===record.datasetId);if(saved){await showDataset(saved.data,false);message('Opened saved result: '+record.title);$('results').scrollIntoView({behavior:'smooth',block:'start'});return;}}
+  const data=await waitForJob(record.id,run);
+  if(data.schemaVersion===1){await showDataset(data);message('Opened '+record.title);$('results').scrollIntoView({behavior:'smooth',block:'start'});}
+  else if(record.action==='resolve')showMatches(data);
+  else if(data.familyOptions){const panel=$('cell-detail');panel.replaceChildren(text('strong','Choose a PANTHER family: '));panel.hidden=false;for(const option of data.familyOptions){const button=text('button',String(option.id),'gene-button');button.addEventListener('click',()=>loadPanther(record.gene,option.id));panel.append(button);}panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
+ }catch(error){report(error);}finally{if(run===state.run){state.job=null;busy(false);}}
+}
+window.addEventListener('oq:open-job',event=>{event.preventDefault();openQueuedJob(event.detail).catch(report);});
 $('load-demo').addEventListener('click',async()=>{await cancel();try{message('Loading bundled reference example…');const kind=$('demo-select').value;const response=await fetch(`/data/demo-${kind}.json`);if(!response.ok)throw new Error('Bundled demo is unavailable.');const data=await response.json();$('identifiers').value=data.source?.query||'';if(data.source?.treeId){$('tree-select').value=data.source.treeId;populateSpecies();}$('choices-section').hidden=true;await showDataset(data);message('Demo loaded from a bundled, real-data snapshot. Submit a query to resolve fresh data.');$('results').scrollIntoView({behavior:'smooth',block:'start'});}catch(error){report(error);}});
 $('species-filter').addEventListener('input',event=>viewer.setFilter(event.target.value));$('group-filter').addEventListener('input',renderAnnotations);
 $('count-mode').addEventListener('change',()=>{viewer.setMode($('count-mode').value);});
@@ -157,5 +190,5 @@ async function openFile(file){await cancel();if(file.size>20_000_000)return mess
 $('file-input').addEventListener('change',event=>{if(event.target.files[0])openFile(event.target.files[0]);});
 let dragDepth=0;document.addEventListener('dragenter',e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();dragDepth++;document.body.classList.add('drop-active');}});document.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files'))e.preventDefault();});document.addEventListener('dragleave',()=>{if(--dragDepth<=0){dragDepth=0;document.body.classList.remove('drop-active');}});document.addEventListener('drop',e=>{if(!e.dataTransfer.files.length)return;e.preventDefault();dragDepth=0;document.body.classList.remove('drop-active');openFile(e.dataTransfer.files[0]);});
 refreshHistory();
-(async()=>{try{state.config=await job({action:'config'});$('tree-select').replaceChildren(...state.config.trees.map(t=>new Option(t.name,t.id)));populateSpecies();for(const mode of ['ldo','all']){const option=$('panther-mode').querySelector(`[value=${mode}]`);option.disabled=!state.config.pantherOrthologsAvailable;option.textContent=(mode==='ldo'?'Least-diverged orthologs':'All orthologs')+(state.config.pantherOrthologsAvailable?' · v19':' · v19 preparing');}$('connection-status').textContent=state.config.databaseAvailable?`Read-only OrthoDB ${state.config.release} connected`:'Reference database unavailable · bundled demos / imports work';}catch(error){$('connection-status').textContent='API unavailable · bundled demos / imports work';}})();
+(async()=>{try{state.config=await job({action:'config'});$('tree-select').replaceChildren(...state.config.trees.map(t=>new Option(t.name,t.id)));populateSpecies();for(const mode of ['ldo','all']){const option=$('panther-mode').querySelector(`[value=${mode}]`);option.disabled=!state.config.pantherOrthologsAvailable;option.textContent=(mode==='ldo'?'Least-diverged orthologs':'All orthologs')+(state.config.pantherOrthologsAvailable?' · v19':' · v19 preparing');}$('connection-status').textContent=state.config.databaseAvailable?`Read-only OrthoDB ${state.config.release} connected`:'Reference database unavailable · bundled demos / imports work';const selectedJob=new URLSearchParams(location.search).get('job');if(selectedJob)await openQueuedJob(knownJob(selectedJob));}catch(error){if(error.name!=='AbortError')$('connection-status').textContent='API unavailable · bundled demos / imports work';}})();
 document.fonts.ready.then(()=>{viewer.size();viewer.requestDraw();correlationViewer.requestDraw();});

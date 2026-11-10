@@ -207,3 +207,35 @@ Correlation cells display coefficients to two decimal places once zoom makes the
 cells large enough. Text switches between black and white for contrast; undefined
 values show an em dash. Hover retains five-decimal precision. Fit hides the
 numbers again when the matrix is dense.
+
+## My queries and the complete Help/About guide
+
+The header's **My queries** menu lists this browser's queued, running, ready,
+failed and cancelled jobs, including queue positions and current progress. Open
+an entry to resume watching it or recover its result; Cancel affects that job.
+**New query** and Reset detach the current view and leave earlier work running.
+The newest ten records are shown, with fifteen retained locally. Configuration
+lookups are internal and do not clutter this list. Only completed results are
+shared by the server cache; running jobs remain independent, so cancelling one
+query cannot cancel another user's identical active request.
+
+Completed datasets opened by this browser also remain in IndexedDB. The job menu
+can open those local saved results without rerunning work, including after the
+server result expires. Live jobs themselves use the current main server's
+in-memory queue; a server restart expires unsaved jobs/results, and finished
+server results normally expire after one hour. Legacy Redis queries remain with
+the separate legacy service; they are not silently merged into the new queue.
+
+**Help / About** opens `/about` in a separate tab so the active plot remains in
+place. It preserves the original guide's complete text and all ten tutorial PNGs,
+with a contents list and a brief note identifying legacy-only behavior. Rebuild
+that static page from the legacy source without importing/executing Dash:
+
+```bash
+python3 web/export_legacy_about.py
+```
+
+New files: `public/jobs.mjs`, `public/about.html`, `public/tutorial/1.png` through
+`10.png`, and the guide exporter. `/api/jobs/:id?summary=1` returns lightweight
+status/position data; there is no global job-list endpoint. Header history uses
+only capability IDs already known to the current browser.

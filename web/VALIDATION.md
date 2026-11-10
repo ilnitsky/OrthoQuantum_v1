@@ -168,3 +168,19 @@ The live browser fixture confirmed that switching the profile display between
 presence and copy counts leaves its correlation matrix unchanged. Existing
 clustering, zoom/pan, coefficient, contrast and mobile checks passed with no
 runtime errors. Screenshots show the new zero-centered blue/white/red palette.
+
+## Restored My queries and full legacy guide
+
+Fourteen Node checks passed, including queue positions, cancelled-job removal
+from positions, independent active requests, summary responses without result
+payloads, `/about` and all ten PNG image routes. All copied tutorial images match
+the legacy originals byte-for-byte.
+
+A Chromium test used a real Q9UL18 lookup to verify job tracking, New query without
+cancelling earlier work, reopening matches, building a profile, and reopening its
+local saved result without another query. Help/About opened separately without
+losing the main plot; all ten images decoded successfully. Mobile header/menu
+layout had no page overflow. No browser runtime errors. Artifacts are
+`my-queries.png`, `my-queries-mobile.png`, `about-guide.png` and
+`jobs-about-results.json`. Run with the existing temporary Playwright setup:
+`node web/tests/jobs-about.browser.mjs`.

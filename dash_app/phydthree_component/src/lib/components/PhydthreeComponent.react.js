@@ -3,6 +3,10 @@ import PropTypes from 'prop-types';
 import { Nav, NavItem, NavLink, Input, Button, Label } from 'reactstrap';
 
 
+function delSVG(svg_item) {
+  d3.select(svg_item).html(null);
+}
+
 /**
  * ExampleComponent is an example component.
  * It takes a property, `label`, and
@@ -13,16 +17,16 @@ import { Nav, NavItem, NavLink, Input, Button, Label } from 'reactstrap';
 export default class PhydthreeComponent extends Component {
   constructor(props) {
     super(props);
-    this.url = this.props.url;
     this.ref = React.createRef();
     this.svg_ref = React.createRef();
     this.callback = null;
+    this.handleResize = this.handleResize.bind(this);
     this.state = {
       activeTab: "tree",
       nextTab: "",
       firstRender: true,
       shouldRedraw: false, // on mount redraws anyway
-      nextTab: props.leafCount < 1000 ? null : "svg",
+      nextTab: null,
       zoomValue: 100,
       zoomLevel: 1.0,
       displayNames: true,
@@ -33,46 +37,51 @@ export default class PhydthreeComponent extends Component {
     };
   }
   componentDidUpdate() {
+    var changed = false;
     var activeTab = this.state.activeTab;
     var nextTab = this.state.nextTab;
     var shouldRedraw = this.state.shouldRedraw;
     if (this.state.version != this.props.version){
       shouldRedraw = true;
-      nextTab = "tree";
+      nextTab = "tree";// this.props.leafCount < 1000 ? "tree" : "svg";
+      changed = true;
     }
     switch (nextTab) {
       case "tree":
-        phyd3.phylogram.delSVG(this.svg_ref.current);
+        delSVG(this.svg_ref.current);
         if (shouldRedraw){
           this.redraw();
         }
         activeTab = "tree";
+        changed = true;
         break;
       case "svg":
         if (this.state.activeTab !== "svg"){
           phyd3.phylogram.renderSVG(this.svg_ref.current);
         }
         activeTab = "svg";
+        changed = true;
         break;
-      case "png":
-        phyd3.phylogram.renderPNG();
       default:
         if (shouldRedraw && activeTab == "tree"){
           this.redraw();
-          this.setState((state) => {
-            return { ...state, shouldRedraw: false }
-          });
-        }
-        return;
+          changed = true;
+          // this.setState((state) => {
+          //   return { ...state, shouldRedraw: false }
+          // });
+        };
     }
-    this.setState((state) => {
-      return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null, version: this.props.version }
-    });
+    if (changed) {
+      this.setState((state) => {
+        return { ...state, shouldRedraw: false, firstRender:false, activeTab: activeTab, nextTab: null, version: this.props.version }
+      })
+    }
+
 
   }
   componentDidMount() {
     // listen for resize events
-    window.addEventListener('resize', this.handleResize.bind(this))
+    window.addEventListener('resize', this.handleResize)
     this.redraw()
   }
   handleResize() {
@@ -91,15 +100,23 @@ export default class PhydthreeComponent extends Component {
     this.callback = null;
   }
   componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    window.removeEventListener('resize', this.handleResize);
     if (this.callback != null) {
       clearTimeout(this.callback)
     }
     d3.select(this.ref.current).html("Loading");
-    phyd3.phylogram.delSVG(this.svg_ref.current);
-    phyd3.phylogram.delSVG(this.ref.current);
+    delSVG(this.svg_ref.current);
+    delSVG(this.ref.current);
   }
+
+
+
   redraw() {
+    if (this.props.version == ""){
+      delSVG(this.svg_ref.current);
+      delSVG(this.ref.current);
+      return;
+    }
 
     const scaleX = 0.4;
     const scaleY = 0.01183*this.props.leafCount;
@@ -132,6 +149,8 @@ export default class PhydthreeComponent extends Component {
       backgroundColor: "#f5f5f5",
       foregroundColor: "#000000",
       nanColor: "#f5f5f5",
+      taskid_for_links: this.props.taskid_for_links,
+
     };
     if (this.state.showGroups && this.state.showSpecies){
       opts.showNodesType = "all";
@@ -140,7 +159,7 @@ export default class PhydthreeComponent extends Component {
     }
 
     // vv url from props
-    d3.xml(this.props.url, (err, xml) => {
+    d3.xml(`${this.props.url}?version=${this.props.version}`, (err, xml) => {
       if (err != null) {
         d3.select(this.ref.current).text("Error");
       } else {
@@ -150,6 +169,7 @@ export default class PhydthreeComponent extends Component {
       }
     });
   }
+
   toggle(newActiveTab) {
     if (this.state.activeTab === newActiveTab) {
       return
@@ -172,14 +192,8 @@ export default class PhydthreeComponent extends Component {
 
   render() {
     const myScale = `scale(${this.state.zoomLevel})`;
-    var csvurl;
-    if (this.props.taskid === ""){
-      csvurl = "";
-    } else {
-      csvurl = `/csvdownload?task_id=${this.props.taskid}`;
-    }
 
-    return <>
+    return this.props.version == "" ? null : <>
       <Nav tabs>
         <NavItem>
           <NavLink
@@ -200,19 +214,22 @@ export default class PhydthreeComponent extends Component {
         <NavItem className="ml-auto">
           <NavLink
             disabled={this.state.activeTab !== 'tree'}
-            onClick={() => { this.toggle('png'); }}
+            onClick={() => { phyd3.phylogram.renderPNG(); }}
           >
             Download image
           </NavLink>
         </NavItem>
         {
-          csvurl !== "" &&
+          this.props.show_download_csv &&
           <NavItem>
-            <NavLink href={csvurl} target="_blank">
+            <NavLink onClick={() => {
+              this.props.setProps({csv_render_n: this.props.csv_render_n+1});
+            }}>
               Download csv
             </NavLink>
           </NavItem>
         }
+
       </Nav>
 
 
@@ -255,6 +272,18 @@ export default class PhydthreeComponent extends Component {
           <span>{this.transformZoom(this.state.zoomValue)}x</span>
         </div>
       </div>
+      <div className="tree-navigation mb-2" style={{display: this.state.activeTab === "tree" ? "flex" : "none"}}>
+        <Input id="searchQuery" bsSize="sm" placeholder="Highlight species / group name"
+          aria-label="Highlight species or group name" style={{width: "240px"}}/>
+        <span id="searchMatches" className="small text-muted" aria-live="polite"></span>
+        <span className="small">Row spacing</span>
+        <Button id="zoomoutY" size="sm" aria-label="Decrease row spacing">−</Button>
+        <Button id="zoominY" size="sm" aria-label="Increase row spacing">+</Button>
+        <span className="small">Tree width</span>
+        <Button id="zoomoutX" size="sm" aria-label="Decrease tree width">−</Button>
+        <Button id="zoominX" size="sm" aria-label="Increase tree width">+</Button>
+        <span className="small text-muted">Scroll: move · Ctrl + wheel: rows · Alt + wheel: width</span>
+      </div>
       <div
         ref={this.ref}
         id="phyd3"
@@ -280,22 +309,33 @@ export default class PhydthreeComponent extends Component {
         ></div>
       </div>
     </div>
-    </>;
+  </>;
   }
 
 }
 
 PhydthreeComponent.defaultProps = {
-  taskid: "",
+  csv_render_n: 0,
+  leafCount: 0,
+  version: "",
+  show_download_csv: true,
 };
 
 PhydthreeComponent.propTypes = {
   /**
    * A label that will be printed when this component is rendered.
    */
+  id: PropTypes.string,
   url: PropTypes.string.isRequired,
-  taskid: PropTypes.string,
+  taskid_for_links: PropTypes.string,
+
   height: PropTypes.number.isRequired,
-  leafCount: PropTypes.number.isRequired,
-  version: PropTypes.number.isRequired,
+
+  leafCount: PropTypes.number,
+  version: PropTypes.string,
+  show_download_csv: PropTypes.bool,
+
+  csv_render_n: PropTypes.number,
+
+  setProps: PropTypes.func,
 };

@@ -2,10 +2,13 @@ import csv
 from logging import exception
 import SPARQLWrapper
 import pandas as pd
-import traceback
+import sqlite3
+from ..db import ORTHODB, db as profile_cache
 from lxml import etree as ET
 
 from ..async_executor import async_pool
+from .profile_data import read_cached_profiles
+from pathlib import Path
 
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
 NS = {
@@ -38,77 +41,40 @@ def read_org_info(phyloxml_file:str, og_csv_path:str):
     csv_data = pd.read_csv(og_csv_path, sep=';')
     return orgs, csv_data
 
-@async_pool.in_thread(max_pool_share=0.5)
-def get_corr_data(label:str, name:str, level:str) -> tuple[str, dict]:
-    endpoint = SPARQLWrapper.SPARQLWrapper("http://sparql.orthodb.org/sparql")
+# Extracted from odb10v1_species.tab:
+# some use
+_ID_TRANSLATION_TBL = {
+    441894: 8801,
+    381198: 8845,
+    216574: 8962,
+    74533: 9694,
+    62698: 9708,
+    310752: 9767,
+    127582: 9778,
+    73337: 9807,
+    1230840: 9818,
+    43346: 9901,
+    299123: 40157,
+    556262: 100884,
+    319938: 288004,
+    1841481: 302047,
+    1505932: 408180,
+    595593: 656366,
+    667632: 863227,
+    1336249: 1367849,
+    1220582: 1368415,
+    1834200: 1796646,
+    1166016: 1905730,
+}
 
-    try:
-        endpoint.setQuery(
-            f"""prefix : <http://purl.orthodb.org/>
-            select
-            ?taxon
-            (count(DISTINCT ?Gene_name) as ?count_orthologs)
-            (group_concat(DISTINCT ?Gene_name; separator=";") as ?Gene_names)
-            where {{
-            ?gene a :Gene.
-            ?gene :name ?Gene_name.
-            ?gene up:organism/a ?taxon.
-            ?gene :memberOf odbgroup:{label}.
-            ?gene :memberOf ?og.
-            ?taxon up:scientificName ?org_name.
-            ?og :ogBuiltAt [up:scientificName "{level}"].
-            }}
-            GROUP BY ?taxon
-            ORDER BY ?taxon
-        """)
-        endpoint.setReturnFormat(SPARQLWrapper.CSV)
-
-        data = csv.reader(endpoint.query().convert().decode().strip().split("\n")[1:])
-
-
-        ortho_counts = {}
-        gene_names = {}
-        for taxid, orthologs_count, row_gene_names in data:
-            taxid = taxid.rsplit('/', maxsplit=1)[-1].strip()
-            ortho_counts[taxid] = int(orthologs_count)
-            gene_names[taxid] = row_gene_names
-
-        return name, ortho_counts, gene_names
-    except Exception:
-        try:
-            endpoint.setQuery(
-                f"""prefix : <http://purl.orthodb.org/>
-                select
-                ?taxon
-                (count(DISTINCT ?Gene_name) as ?count_orthologs)
-                where {{
-                ?gene a :Gene.
-                ?gene :name ?Gene_name.
-                ?gene up:organism/a ?taxon.
-                ?gene :memberOf odbgroup:{label}.
-                ?gene :memberOf ?og.
-                ?taxon up:scientificName ?org_name.
-                ?og :ogBuiltAt [up:scientificName "{level}"].
-                }}
-                GROUP BY ?taxon
-                ORDER BY ?taxon
-            """)
-            endpoint.setReturnFormat(SPARQLWrapper.CSV)
-
-            data = csv.reader(endpoint.query().convert().decode().strip().split("\n")[1:])
-
-            ortho_counts = {}
-            gene_names = {}
-            for taxid, orthologs_count in data:
-                taxid = taxid.rsplit('/', maxsplit=1)[-1].strip()
-                ortho_counts[taxid] = int(orthologs_count)
-                gene_names[taxid] = "<sparql error>"
-
-            return name, ortho_counts, gene_names
-        except Exception:
-            traceback.print_exc()
-            return name, None, None
-
+@async_pool.in_process(max_pool_share=0.5)
+def get_corr_data(csv_data, organisms) -> tuple[dict, dict]:
+    with sqlite3.connect(Path(ORTHODB).as_uri() + '?mode=ro', uri=True) as conn:
+        conn.execute('PRAGMA cache_size=-32768')
+        stat = Path(ORTHODB).stat()
+        identity = [str(Path(ORTHODB).resolve()), stat.st_ino, stat.st_size, stat.st_mtime_ns]
+        return read_cached_profiles(conn, csv_data.to_dict('records'), organisms,
+                                    _ID_TRANSLATION_TBL, profile_cache, identity)
 
 @async_pool.in_process()
 def csv_generator(phyloxml_file:str, csv_file:str):

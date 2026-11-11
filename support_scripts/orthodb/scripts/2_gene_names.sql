@@ -1,3 +1,11 @@
+-- file: odb11v0_genenames_all.tab
+-- docker run -it --rm --user "$(id -u):$(id -g)" --entrypoint bash -v $PWD:/wd --workdir /wd nouchka/sqlite3
+-- ./tabprocessor gene_names odb11v0_genenames_all.tab
+
+-- docker exec -it c58cdca36a1b bash
+-- sqlite3 orthodb.db <./scripts/2_gene_names.sql
+
+
 -- 1000373_0:000000        374504755       NCBIproteinGI
 -- 1000373_0:000001        374504763       NCBIproteinGI
 -- 1000373_0:000002        374504767       NCBIproteinGI
@@ -51,10 +59,9 @@ WHERE orthodb_to_uniprot.uniprot_id IS NULL
 DROP TABLE orthodb_to_uniprot;
 DROP TABLE orthodb_to_name;
 
-VACUUM;
-
 CREATE INDEX genes_uniprot_id_idx ON genes(uniprot_id);
 CREATE INDEX genes_gene_name_idx ON genes(gene_name);
+CREATE INDEX genes_orthodb_id_idx ON genes(orthodb_id);
 
 
 -- Test Request

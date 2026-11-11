@@ -1,0 +1,65 @@
+version: "3"
+services:
+  web:
+    build:
+      context: ./dash_app
+      args:
+        DEBUG: "1"
+    restart: unless-stopped
+    ports:
+      - "8050:8050"
+    environment:
+      # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
+      SECRET_KEY: "SECRET_KEY_CHANGE_ME"
+      DEMO_TID: "${DEMO_TID:?missing_demo_task_id}"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - "./user_data:/app/user_data"
+
+  redis:
+    build: ./redis
+    restart: unless-stopped
+    volumes:
+      - "redis_data:/data"
+
+  xray-relay:
+    # Reuse the existing worker image for its Python runtime; no new image needed.
+    image: best_repository_ever_worker
+    network_mode: host
+    entrypoint: ["python3", "/xray_relay.py"]
+    restart: unless-stopped
+    volumes:
+      - "./support_scripts/xray_relay.py:/xray_relay.py:ro"
+    environment:
+      XRAY_RELAY_BIND: "${XRAY_RELAY_BIND:-172.17.0.1}"
+
+  worker:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build:
+      context: ./worker
+      args:
+        DEBUG: "1"
+    ports:
+      - "5678:5678"
+    # security_opt:
+    #   - seccomp="default_for_chrome.json"
+    restart: unless-stopped
+    volumes:
+      - "./user_data:/app/user_data"
+      - "./blast_data:/blast/blastdb"
+      - "./pantherdb:/PANTHERDB"
+
+    environment:
+      REDIS_HOST: "redis"
+      PYTHONUNBUFFERED: "TRUE"
+      SOCKS_SERVER: "host.docker.internal"
+      SOCKS_PORT: "10809"
+
+
+volumes:
+  redis_data:
+
+
+
+# export SYSTEM_VERSION_COMPAT=1

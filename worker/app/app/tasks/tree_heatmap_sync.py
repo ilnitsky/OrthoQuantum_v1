@@ -1,6 +1,5 @@
 import shutil
 import json
-from sys import version
 
 import pandas as pd
 import numpy as np
@@ -20,18 +19,21 @@ NS = {
 }
 
 @async_pool.in_process()
-def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: list[str], output_file:str, do_blast:bool, prot_ids):
-    df = df[OG_names]
+def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, output_file:str, do_blast:bool, prot_ids):
+    df = df[OG_names['Name']]
 
     df.clip(upper=1, inplace=True)
     df.astype(float, copy=False)
 
     # Slower, but without fastcluster lib
     # linkage = hierarchy.linkage(data_1, method='average', metric='euclidean')
-    link = fastcluster.linkage(df.T.values, method='average', metric='euclidean')
-    dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
+    if df.shape[1] >= 2:
+        link = fastcluster.linkage(df.T.values, method='average', metric='euclidean')
+        dendro = hierarchy.dendrogram(link, no_plot=True, color_threshold=-np.inf)
 
-    reordered_ind = dendro['leaves']
+        reordered_ind = dendro['leaves']
+    else:
+        reordered_ind = list(range(len(df.columns)))
 
     parser = ET.XMLParser(remove_blank_text=True)
     tree = ET.parse(phyloxml_file, parser)
@@ -44,6 +46,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
     for col_idx in reordered_ind:
         field = ET.SubElement(legend, "field")
         ET.SubElement(field, "name").text = df.columns[col_idx]
+        ET.SubElement(field, "orthoid").text = str(OG_names['label'][col_idx])
 
     gradient = ET.SubElement(legend, "gradient")
     ET.SubElement(gradient, "name").text = "Custom"
@@ -54,9 +57,9 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
         values = ET.SubElement(data, "values", {"for":str(index)})
         for col_idx in reordered_ind:
             el = ET.SubElement(values, "value")
-            if row[df.columns[col_idx]]:
+            if row.iat[col_idx]:
                 el.text = "100"
-                el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(str(index), "Not Found")
+                el.attrib["label"] = "OrthoDB: " + prot_ids.get(df.columns[col_idx], {}).get(index, "Not Found")
             else:
                 el.text = "0"
                 if do_blast:
@@ -71,7 +74,7 @@ def tree(phyloxml_file:str, OG_names: pd.Series, df: pd.DataFrame, organisms: li
 
 
 @async_pool.in_process()
-def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str, table_file:str, version:int):
+def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:str, table_file:str, max_prots:int):
     df.reset_index(drop=True, inplace=True)
     pres_df = df.apply(pd.value_counts).fillna(0)
     pres_df_zero_values = pres_df.iloc[0, :]
@@ -85,10 +88,20 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
         "#f72585","#b5179e","#7209b7","#560bad","#480ca8",
         "#3a0ca3","#3f37c9","#4361ee","#4895ef","#4cc9f0",
     ],as_cmap=True)
-    # print(df.describe(), df.shape)
+
     items_count = df.shape[1]
+    # tweaking values a bit to avoid devision by zero in .corr()
+    df.loc[0, df.std(axis=0)==0] += 0.00001
     corr = df.corr()
-    tbl_corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool)).stack()
+    prots_to_exclude = None
+
+    if max_prots:
+        # find least interesting proteins and exclude them from tree data
+        least_correlated_prots = corr.abs().sum(0).sort_values().index
+        prots_to_exclude_count = max(len(least_correlated_prots)-max_prots, 0)
+        prots_to_exclude = set(least_correlated_prots[:prots_to_exclude_count])
+
+    tbl_corr = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool)).stack()
     tbl_corr.sort_values(ascending=False, inplace=True)
     tbl_corr = tbl_corr.to_frame("Corr")
     tbl_corr.reset_index(drop=False, inplace=True)
@@ -102,21 +115,7 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
         width = 1
     tbl_corr["Quantile"] = (((min_el-tbl_corr["Corr"]) / width) + 1).round(5)
     tbl_corr["Corr"] = tbl_corr["Corr"].round(5)
-    table_data = {
-        "version": version,
-        "data": {
-            "data": tbl_corr.to_dict('records'),
-            "columns": [
-                {
-                    "name": i,
-                    "id": i,
-                }
-                for i in tbl_corr.columns
-            ]
-        },
-    }
-    with open_existing(table_file, 'w') as f:
-        json.dump(table_data, f, ensure_ascii=False, separators=(',', ':'))
+    tbl_corr.to_pickle(table_file)
 
     # 566 - 85/85
     DEFAULT_FIG_SIZE = 10
@@ -166,4 +165,4 @@ def heatmap(organism_count:int, df: pd.DataFrame, output_file:str, preview_file:
         with open_existing(preview_file, 'wb') as fdst, open(output_file, "rb") as fsrc:
             shutil.copyfileobj(fsrc, fdst)
 
-
+    return prots_to_exclude

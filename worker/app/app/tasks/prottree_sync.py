@@ -28,7 +28,6 @@ def prottree_generator(prot_id:str, prottree_file:str):
             );
         """, (prot_id,))
         data = res.fetchall()
-        print(prot_id, data)
         panther_df = pd.DataFrame(
             data,
             columns=['Genome', 'Gene', 'Family', 'Subfamily', 'Uniprot']
@@ -84,14 +83,3 @@ def prottree_generator(prot_id:str, prottree_file:str):
         tree.write(f, xml_declaration=True)
 
     return ""
-
-    #Plotly figure
-    # fig = go.Figure(data = go.Heatmap(
-    # z = panther_df.to_numpy(),
-    # x = threshold_families,
-    # y = panther_df.index.tolist(),
-    # colorscale = 'Blues'
-    # ))
-    # fig.show()
-
-

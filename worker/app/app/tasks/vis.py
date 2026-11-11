@@ -1,44 +1,29 @@
-import asyncio
-
-from aioredis.client import Pipeline
 from . import vis_sync
-
-from ..task_manager import get_db, queue_manager, cancellation_manager, ReportErrorException
-from ..redis import redis, LEVELS, enqueue
-from ..utils import atomic_file
+import anyio
+from ..task_manager import get_db, queue_manager, ReportErrorException
+from ..redis import LEVELS
+from ..utils import decode_int
 from .tree_heatmap import tree, heatmap
 
-import time
 import pandas as pd
 import numpy as np
 
 
-@queue_manager.add_handler("/queues/vis")
-@cancellation_manager.wrap_handler
+@queue_manager.add_handler("/queues/vis", max_running=1)
 async def vis():
     db = get_db()
-    @db.transaction
-    async def res(pipe: Pipeline):
-        pipe.multi()
-        db.report_progress(
-            current=0,
-            total=-1,
-            message="Getting correlation data",
-            status="Executing",
-            pipe=pipe,
-        )
-        pipe.hset(f"/tasks/{db.task_id}/progress/tree", "status", "Waiting")
-        pipe.hset(f"/tasks/{db.task_id}/progress/heatmap", "status", "Waiting")
+    db.msg = "Getting correlation data"
+    db.total = None
 
-        pipe.mget(
-            f"/tasks/{db.task_id}/request/blast_enable",
-            f"/tasks/{db.task_id}/request/tax-level"
-        )
+    blast_enable, level_id, max_prots = await db[
+        "input_blast_enabled",
+        "input_tax_level",
+        "input_max_proteins",
+    ]
 
-    blast_enable, level_id = (await res)[-1]
     blast_enable = bool(blast_enable)
-    level_id = int(level_id)
-    level, phyloxml_file = LEVELS[level_id]
+    level_id, max_prots = decode_int(level_id, max_prots)
+    level, _, phyloxml_file = LEVELS[level_id]
 
     organisms, csv_data = await vis_sync.read_org_info(
         phyloxml_file=phyloxml_file,
@@ -46,103 +31,30 @@ async def vis():
     )
     organisms:list[int]
     csv_data: pd.DataFrame
+    no_uniprot_idx = csv_data[csv_data['UniProt_AC']==''].index
+    if not no_uniprot_idx.empty:
+        db['missing_uniprot'] = csv_data.loc[no_uniprot_idx, "label"].str.cat(sep=", ")
+        csv_data.drop(no_uniprot_idx, inplace=True)
+    else:
+        db['missing_uniprot'] = ''
 
-    db.report_progress(
-        current=0,
-        total=len(csv_data),
-    )
+    if len(csv_data) == 0:
+        await db.report_error("Not enough proteins to build correlation", cancel_rest=False)
+        return
 
-    corr_info_to_fetch = {}
-    corr_info = {}
-    prot_ids = {}
+    corr_info, prot_ids = {}, {}
+    db.total = len(csv_data)
+    db.current = 0
+    # Small batches expose real progress and limit uncancellable process-pool work.
+    for start in range(0, len(csv_data), 5):
+        db.msg = f'Loading species profiles ({start}/{len(csv_data)} groups)'
+        batch = csv_data.iloc[start:start + 5]
+        counts, proteins = await vis_sync.get_corr_data(batch, organisms)
+        corr_info.update(counts)
+        prot_ids.update(proteins)
+        db.current = min(start + len(batch), len(csv_data))
 
-    cur_time = int(time.time())
-    async with redis.pipeline(transaction=False) as pipe:
-        for _, data in csv_data.iterrows():
-            label=data['label']
-            pipe.hgetall(f"/cache/corr/{level}/{label}/data")
-            pipe.hgetall(f"/cache/corr/{level}/{label}/gene_names")
-
-            pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time, xx=True)
-        res = iter(await pipe.execute())
-        for _, data in csv_data.iterrows():
-            og_name=data['Name']
-            ortho_counts = next(res)
-            gene_names = next(res)
-            _ = next(res)
-            if ortho_counts:
-                corr_info[og_name] = ortho_counts
-                prot_ids[og_name] = gene_names
-                db.report_progress(current_delta=1)
-            else:
-                corr_info_to_fetch[og_name] = data['label']
-
-    if corr_info_to_fetch:
-        db.report_progress(total=-1)
-        async def progress(items_in_front):
-            if items_in_front > 0:
-                db.report_progress(
-                    message=f"In queue to request correlation data ({items_in_front} tasks in front)",
-                )
-            elif items_in_front == 0:
-                await db.flush_progress(
-                    message="Requesting correlation data",
-                    total=len(corr_info_to_fetch)
-                )
-        corr_info_to_retry = {}
-        tasks = [
-            vis_sync.get_corr_data(
-                name=name,
-                label=label,
-                level=level,
-            )
-            for name, label in corr_info_to_fetch.items()
-        ]
-        tasks[0].set_progress_callback(progress)
-
-        try:
-            async with redis.pipeline(transaction=False) as pipe:
-                for _ in range(3):
-                    for f in asyncio.as_completed(tasks):
-                        og_name, ortho_counts, gene_names = await f
-                        if ortho_counts is None:
-                            corr_info_to_retry[og_name] = corr_info_to_fetch[og_name]
-                            continue
-                        og_name: str
-                        ortho_counts: dict
-
-                        cur_time = int(time.time())
-                        label = corr_info_to_fetch[og_name]
-                        pipe.hset(f"/cache/corr/{level}/{label}/data", mapping=ortho_counts)
-                        pipe.hset(f"/cache/corr/{level}/{label}/gene_names", mapping=gene_names)
-                        pipe.set(f"/cache/corr/{level}/{label}/accessed", cur_time)
-                        pipe.setnx(f"/cache/corr/{level}/{label}/created", cur_time)
-
-                        corr_info[og_name] = ortho_counts
-                        prot_ids[og_name] = gene_names
-                        db.report_progress(current_delta=1)
-                    if corr_info_to_retry:
-                        corr_info_to_fetch, corr_info_to_retry = corr_info_to_retry, corr_info_to_fetch
-                        corr_info_to_retry.clear()
-                        await asyncio.sleep(5)
-                        tasks = [
-                            vis_sync.get_corr_data(
-                                name=name,
-                                label=label,
-                                level=level,
-                            )
-                            for name, label in corr_info_to_fetch.items()
-                        ]
-                    else:
-                        break
-                else:
-                    await pipe.execute()
-                    raise ReportErrorException(f"Can't fetch correlation info for {';'.join(corr_info_to_fetch.keys())}")
-                await pipe.execute()
-        except:
-            for t in tasks:
-                t.cancel()
-            raise
+    db.msg="Processing correlation data"
 
     df = pd.DataFrame(
         data={
@@ -155,116 +67,62 @@ async def vis():
         },
         index=organisms,
     )
-    df.fillna(0, inplace=True)
-    df = df.astype(np.int16, copy=False)
-    db.report_progress(message="Processing correlation data")
-
-
-    # interpret the results:
-
-
-    df_for_heatmap = df.copy()
-
-    await db.flush_progress(status="Waiting")
-    tasks = []
-    tasks.append(
-        asyncio.create_task(
-            heatmap(
-                organism_count=len(organisms),
-                df=df_for_heatmap,
-            )
-        )
-    )
-    del df_for_heatmap
-
-    tasks.append(
-        asyncio.create_task(
-            tree(
-                phyloxml_file=phyloxml_file,
-                OG_names=csv_data['Name'],
-                df=df,
-                organisms=organisms,
-                prot_ids=prot_ids,
-
-                do_blast=blast_enable,
-            )
-        )
-    )
-
-    del csv_data
-    del df
     del organisms
 
-    try:
-        _, (shape, tree_kind) = await asyncio.gather(*tasks)
-    except:
-        for task in tasks:
-            task.cancel()
-        raise
+    df.fillna(0, inplace=True)
+    df = df.astype(np.int16, copy=False)
 
+    # interpret the results:
+    del db.msg
+    db.pb_hide()
 
-    if blast_enable:
-        @db.transaction
-        async def res(pipe: Pipeline):
-            pipe.multi()
-            await enqueue(
-                version_key=f"/tasks/{db.task_id}/stage/blast/version",
-                queue_key="/queues/blast",
-                queue_id_dest=f"/tasks/{db.task_id}/progress/blast",
-                queue_hash_key="q_id",
-                redis_client=pipe,
+    if df.shape[1] <= max_prots:
+        # can run in parallel
 
-                task_id=db.task_id,
-                stage="blast",
-                blast_autoreload="1" if shape[0]*shape[1]<80_000 else "",
-                enqueue_tree_gen="1" if tree_kind!="interactive" else "",
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(
+                heatmap,
+                df.shape[0],
+                df.copy(),
             )
-            pipe.hset(f"/tasks/{db.task_id}/progress/blast",
-                mapping={
-                    "status": 'Enqueued',
-                    'total': -1,
-                    "message": "BLASTing",
-                }
+            tg.start_soon(
+                tree,
+                blast_enable,
+                phyloxml_file,
+                csv_data[['label', 'Name']], # OG_names
+                df,
+                prot_ids,
             )
+            del csv_data
+            del df
+    else:
+        prots_to_exclude = await heatmap(df.shape[0], df.copy(), max_prots=max_prots)
 
-        await res
-
-    await db.flush_progress(status="Done", version=db.version)
+        await tree(
+            blast_enable,
+            phyloxml_file,
+            csv_data['Name'][~csv_data['Name'].isin(prots_to_exclude)], # OG_names
+            df,
+            prot_ids
+        )
 
 
 @queue_manager.add_handler("/queues/tree_csv")
-@cancellation_manager.wrap_handler
-async def build_tree_csv():
-    with get_db().substage("tree_csv") as db:
-        @db.transaction
-        async def res(pipe: Pipeline):
-            pipe.multi()
-            db.report_progress(
-                message="Generating CSV",
-                status="Executing",
-                pipe=pipe,
-            )
-        await res
+async def build_tree_csv(tgt_connection_id, csv_render_n):
+    db = get_db()
+    db.msg = "Generating CSV"
+    db.total = None
 
-        try:
-            with atomic_file(db.task_dir/'tree.csv') as tmp_path:
-                await vis_sync.csv_generator(
-                    str((db.task_dir/'tree.xml').absolute()),
-                    tmp_path,
-                )
-            error_msg = ""
-        except:
-            error_msg = "Error while building the csv"
-            raise
-        finally:
-            @db.transaction
-            async def res(pipe: Pipeline):
-                pipe.multi()
-                db.report_progress(
-                    status='Error' if error_msg else 'Done',
-                    version=db.version,
-                    message=error_msg,
-                    pipe=pipe,
-                )
-            await res
+    tree_ver, tree_blast_ver = await db["tree_version", "tree_blast_ver"]
+
+    async with db.atomic_file(db.task_dir/'tree.csv') as tmp_path:
+        await vis_sync.csv_generator(
+            str((db.task_dir/'tree.xml').absolute()),
+            tmp_path,
+        )
+    tree_blast_ver = tree_blast_ver or 0
+
+    db['tree_csv_ver'] = f'{tree_ver}_{tree_blast_ver}'
+    db['tree_csv_download_on_connection_id'] = tgt_connection_id
+    db['csv_render_n'] = csv_render_n
 

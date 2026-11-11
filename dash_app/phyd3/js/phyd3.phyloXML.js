@@ -366,6 +366,8 @@
             color = color ? color.textContent : '';
             var background = f.getElementsByTagName('background')[0];
             background = background ? background.textContent : '';
+            var orthoid = f.getElementsByTagName('orthoid')[0];
+            orthoid = orthoid ? orthoid.textContent : ''
             var shape = f.getElementsByTagName('shape')[0];
             shape = shape ? shape.textContent : '';
             var url = f.getElementsByTagName('url')[0];
@@ -374,6 +376,7 @@
                 name: name,
                 color: color,
                 background: background,
+                orthoid: orthoid,
                 shape: shape,
                 url: url
             });

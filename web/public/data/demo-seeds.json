@@ -1,0 +1,519 @@
+[
+  {
+    "kind": "uniprot",
+    "treeId": "1",
+    "query": "Q9UL18\nP06748\nQ92484\nP05026",
+    "title": "UniProt demo \u00b7 four human proteins",
+    "groups": [
+      {
+        "id": "3060088at2759",
+        "name": "AGO1, AGO2, AGO3, AGO4, PIWIL1",
+        "genes": [
+          "AGO1",
+          "AGO2",
+          "AGO3",
+          "AGO4",
+          "PIWIL1",
+          "PIWIL2",
+          "PIWIL3",
+          "PIWIL4"
+        ],
+        "description": "",
+        "queries": [
+          "Q9UL18"
+        ],
+        "totalGenes": null,
+        "speciesPresent": null
+      },
+      {
+        "id": "5360624at2759",
+        "name": "NPM1",
+        "genes": [
+          "NPM1"
+        ],
+        "description": "",
+        "queries": [
+          "P06748"
+        ],
+        "totalGenes": null,
+        "speciesPresent": null
+      },
+      {
+        "id": "205363at2759",
+        "name": "SMPD1, SMPDL3A, SMPDL3B",
+        "genes": [
+          "SMPD1",
+          "SMPDL3A",
+          "SMPDL3B"
+        ],
+        "description": "",
+        "queries": [
+          "Q92484"
+        ],
+        "totalGenes": null,
+        "speciesPresent": null
+      },
+      {
+        "id": "2880589at2759",
+        "name": "ATP1B1, ATP1B2, ATP1B3, ATP1B4, ATP4B",
+        "genes": [
+          "ATP1B1",
+          "ATP1B2",
+          "ATP1B3",
+          "ATP1B4",
+          "ATP4B"
+        ],
+        "description": "",
+        "queries": [
+          "P05026"
+        ],
+        "totalGenes": null,
+        "speciesPresent": null
+      }
+    ],
+    "note": "Four UniProt identifiers resolved locally against the v11-compatible database."
+  },
+  {
+    "kind": "kegg",
+    "treeId": "111",
+    "query": "ko04010",
+    "title": "KEGG demo \u00b7 ko04010",
+    "groups": [
+      {
+        "id": "2529999at33208",
+        "name": "OR9K2, OR3A2, OR7G2, OR1C1, OR5H2, ...",
+        "description": "",
+        "genes": [
+          "OR9K2",
+          "OR3A2",
+          "OR7G2",
+          "OR1C1",
+          "OR5H2"
+        ]
+      },
+      {
+        "id": "1706552at33208",
+        "name": "OR56A4, OR56A3, OR51L1, OR52K2, OR51E2, ...",
+        "description": "",
+        "genes": [
+          "OR56A4",
+          "OR56A3",
+          "OR51L1",
+          "OR52K2",
+          "OR51E2"
+        ]
+      },
+      {
+        "id": "1768943at33208",
+        "name": "KRT85, KRT23, DES;TMP_LOCUS_29, NEF3;NEFM, HEL113;VIM, ...",
+        "description": "",
+        "genes": [
+          "KRT85",
+          "KRT23",
+          "DES",
+          "TMP_LOCUS_29",
+          "NEF3",
+          "NEFM",
+          "HEL113",
+          "VIM"
+        ]
+      },
+      {
+        "id": "262882at33208",
+        "name": "FCN3, FGB;HEL-S-78P, FGG, FGL2, ANGPT1, ...",
+        "description": "",
+        "genes": [
+          "FCN3",
+          "FGB",
+          "HEL-S-78P",
+          "FGG",
+          "FGL2",
+          "ANGPT1"
+        ]
+      },
+      {
+        "id": "27980at33208",
+        "name": "PRKCD, PRKCA, PRKCG, PRKCE, PRKCZ, ...",
+        "description": "",
+        "genes": [
+          "PRKCD",
+          "PRKCA",
+          "PRKCG",
+          "PRKCE",
+          "PRKCZ"
+        ]
+      },
+      {
+        "id": "537at33208",
+        "name": "MAPK10, MAPK14, MAPK9, MAPK3, MAPK1, ...",
+        "description": "",
+        "genes": [
+          "MAPK10",
+          "MAPK14",
+          "MAPK9",
+          "MAPK3",
+          "MAPK1"
+        ]
+      },
+      {
+        "id": "85467at33208",
+        "name": "CACNG4, CACNG3, CACNG5, CACNG8, CACNG2",
+        "description": "",
+        "genes": [
+          "CACNG4",
+          "CACNG3",
+          "CACNG5",
+          "CACNG8",
+          "CACNG2"
+        ]
+      },
+      {
+        "id": "12255at33208",
+        "name": "FGF1, FGF;FGF5, FGF2, FGF20, FGF3, ...",
+        "description": "",
+        "genes": [
+          "FGF1",
+          "FGF",
+          "FGF5",
+          "FGF2",
+          "FGF20",
+          "FGF3"
+        ]
+      },
+      {
+        "id": "1255199at33208",
+        "name": "C11ORF45;KCNJ5, KCNJ3, KCNJ1, KCNJ4, KCNJ11, ...",
+        "description": "",
+        "genes": [
+          "C11ORF45",
+          "KCNJ5",
+          "KCNJ3",
+          "KCNJ1",
+          "KCNJ4",
+          "KCNJ11"
+        ]
+      },
+      {
+        "id": "1758699at33208",
+        "name": "HEL-S-103;HSPA1A;HSPA1B, HSPA6, HEL-S-72P;HSPA8, HSPA1L, HEL-S-89N;HSPA5",
+        "description": "",
+        "genes": [
+          "HEL-S-103",
+          "HSPA1A",
+          "HSPA1B",
+          "HSPA6",
+          "HEL-S-72P",
+          "HSPA8",
+          "HSPA1L",
+          "HEL-S-89N",
+          "HSPA5"
+        ]
+      },
+      {
+        "id": "2471125at33208",
+        "name": "SEMA3B, SEMA3F, SEMA4F, SEMA4C, SEMA3G, ...",
+        "description": "",
+        "genes": [
+          "SEMA3B",
+          "SEMA3F",
+          "SEMA4F",
+          "SEMA4C",
+          "SEMA3G"
+        ]
+      },
+      {
+        "id": "37658at33208",
+        "name": "CACNA1C, CACNA1A, CACNA1D, CACNA1E, CACNA1S",
+        "description": "",
+        "genes": [
+          "CACNA1C",
+          "CACNA1A",
+          "CACNA1D",
+          "CACNA1E",
+          "CACNA1S"
+        ]
+      },
+      {
+        "id": "3912at33208",
+        "name": "RPS6KA3, RPS6KA2, RPS6KA4",
+        "description": "",
+        "genes": [
+          "RPS6KA3",
+          "RPS6KA2",
+          "RPS6KA4"
+        ]
+      },
+      {
+        "id": "42832at33208",
+        "name": "SLC6A6, SLC6A9, SLC6A5, SLC6A8, SLC6A1, ...",
+        "description": "",
+        "genes": [
+          "SLC6A6",
+          "SLC6A9",
+          "SLC6A5",
+          "SLC6A8",
+          "SLC6A1"
+        ]
+      },
+      {
+        "id": "7170at33208",
+        "name": "CYP1A1, CYP2D6, CYP1B1, CYP2C9, CYP17A1, ...",
+        "description": "",
+        "genes": [
+          "CYP1A1",
+          "CYP2D6",
+          "CYP1B1",
+          "CYP2C9",
+          "CYP17A1"
+        ]
+      },
+      {
+        "id": "1169326at33208",
+        "name": "CLDN7, CLDN20, CLDN4, CLDN3, CLDN10, ...",
+        "description": "",
+        "genes": [
+          "CLDN7",
+          "CLDN20",
+          "CLDN4",
+          "CLDN3",
+          "CLDN10"
+        ]
+      },
+      {
+        "id": "1180682at33208",
+        "name": "OR4C3, OR4B1, OR4A16, OR4X2, OR4S2, ...",
+        "description": "",
+        "genes": [
+          "OR4C3",
+          "OR4B1",
+          "OR4A16",
+          "OR4X2",
+          "OR4S2"
+        ]
+      },
+      {
+        "id": "1242146at33208",
+        "name": "VN1R5, VN1R1, VN1R4, VN1R2",
+        "description": "",
+        "genes": [
+          "VN1R5",
+          "VN1R1",
+          "VN1R4",
+          "VN1R2"
+        ]
+      },
+      {
+        "id": "127817at33208",
+        "name": "DRD3, 5HT1A;HTR1A, HTR1B, DRD2, HTR5A, ...",
+        "description": "",
+        "genes": [
+          "DRD3",
+          "5HT1A",
+          "HTR1A",
+          "HTR1B",
+          "DRD2",
+          "HTR5A"
+        ]
+      },
+      {
+        "id": "2531202at33208",
+        "name": "PCDHB6, PCDHB2, PCDHB9, PCDHB5, PCDHB15, ...",
+        "description": "",
+        "genes": [
+          "PCDHB6",
+          "PCDHB2",
+          "PCDHB9",
+          "PCDHB5",
+          "PCDHB15"
+        ]
+      },
+      {
+        "id": "2531951at33208",
+        "name": "HNRNPD;HNRPD, HNRNPA3;HNRPA3, HNRNPDL;HNRPDL, HNRNPA1;HNRPA1, HNRNPA1L2;RP11-78J21.1, ...",
+        "description": "",
+        "genes": [
+          "HNRNPD",
+          "HNRPD",
+          "HNRNPA3",
+          "HNRPA3",
+          "HNRNPDL",
+          "HNRPDL",
+          "HNRNPA1",
+          "HNRPA1",
+          "HNRNPA1L2",
+          "RP11-78J21.1"
+        ]
+      },
+      {
+        "id": "2533980at33208",
+        "name": "RASGRP2, RASGRP1, RASGRP3, RASGRP4",
+        "description": "",
+        "genes": [
+          "RASGRP2",
+          "RASGRP1",
+          "RASGRP3",
+          "RASGRP4"
+        ]
+      },
+      {
+        "id": "5308at33208",
+        "name": "OLFM1, OLFML3, OLFML2B, OLFM3, MYOC, ...",
+        "description": "",
+        "genes": [
+          "OLFM1",
+          "OLFML3",
+          "OLFML2B",
+          "OLFM3",
+          "MYOC"
+        ]
+      },
+      {
+        "id": "76502at33208",
+        "name": "HOXA3, HOXD1, GSX2, HOXA13, HOXA1, ...",
+        "description": "",
+        "genes": [
+          "HOXA3",
+          "HOXD1",
+          "GSX2",
+          "HOXA13",
+          "HOXA1"
+        ]
+      },
+      {
+        "id": "81928at33208",
+        "name": "CACNB4, CACNB2",
+        "description": "",
+        "genes": [
+          "CACNB4",
+          "CACNB2"
+        ]
+      },
+      {
+        "id": "913018at33208",
+        "name": "OR2T1, OR2M3, OR2M4, OR2T4, OR2T10, ...",
+        "description": "",
+        "genes": [
+          "OR2T1",
+          "OR2M3",
+          "OR2M4",
+          "OR2T4",
+          "OR2T10"
+        ]
+      },
+      {
+        "id": "1127159at33208",
+        "name": "CRYGN, CRYBA2, CRYGC, CRYGD, CRYGA, ...",
+        "description": "",
+        "genes": [
+          "CRYGN",
+          "CRYBA2",
+          "CRYGC",
+          "CRYGD",
+          "CRYGA"
+        ]
+      },
+      {
+        "id": "1231630at33208",
+        "name": "GADD45A, GADD45B, GADD45G",
+        "description": "",
+        "genes": [
+          "GADD45A",
+          "GADD45B",
+          "GADD45G"
+        ]
+      },
+      {
+        "id": "123267at33208",
+        "name": "CAPN9, CAPN2, CAPN1, CAPN8, CAPN14, ...",
+        "description": "",
+        "genes": [
+          "CAPN9",
+          "CAPN2",
+          "CAPN1",
+          "CAPN8",
+          "CAPN14"
+        ]
+      },
+      {
+        "id": "1310136at33208",
+        "name": "SERPINB6, SERPINB11, ATIII-R2;SERPINC1, SERPINE2, SERPINI2, ...",
+        "description": "",
+        "genes": [
+          "SERPINB6",
+          "SERPINB11",
+          "ATIII-R2",
+          "SERPINC1",
+          "SERPINE2",
+          "SERPINI2"
+        ]
+      },
+      {
+        "id": "1378457at33208",
+        "name": "PLA2G4A, PLA2G4F, PLA2G4D, JMJD7, PLA2G4B, ...",
+        "description": "",
+        "genes": [
+          "PLA2G4A",
+          "PLA2G4F",
+          "PLA2G4D",
+          "JMJD7",
+          "PLA2G4B"
+        ]
+      }
+    ],
+    "note": "31 group IDs from the ko04010 query resolved in the existing application during the November 2026 session."
+  },
+  {
+    "kind": "interpro",
+    "treeId": "1",
+    "query": "IPR003165",
+    "title": "InterPro demo \u00b7 IPR003165 (5 of 11 groups)",
+    "groups": [
+      {
+        "id": "3060088at2759",
+        "name": "3060088at2759",
+        "genes": [],
+        "description": "piwi like RNA-mediated gene silencing 1 ",
+        "queries": [
+          "IPR003165"
+        ]
+      },
+      {
+        "id": "227085at2759",
+        "name": "227085at2759",
+        "genes": [],
+        "description": "Ubiquitin carboxyl-terminal hydrolase",
+        "queries": [
+          "IPR003165"
+        ]
+      },
+      {
+        "id": "149428at2759",
+        "name": "149428at2759",
+        "genes": [],
+        "description": "RNA helicase",
+        "queries": [
+          "IPR003165"
+        ]
+      },
+      {
+        "id": "847at2759",
+        "name": "847at2759",
+        "genes": [],
+        "description": "ATPase plasma membrane Ca2+ transporting 2 ",
+        "queries": [
+          "IPR003165"
+        ]
+      },
+      {
+        "id": "1356823at2759",
+        "name": "1356823at2759",
+        "genes": [],
+        "description": "SMG5 nonsense mediated mRNA decay factor ",
+        "queries": [
+          "IPR003165"
+        ]
+      }
+    ],
+    "note": "First 5 of 11 groups returned by the v11 search endpoint for IPR003165, level 2759, reference 9606; this is a deliberately limited demo, not the full search result."
+  }
+]

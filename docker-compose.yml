@@ -1,40 +1,46 @@
-version: "3"
+# Default application: JavaScript + Canvas on loopback 8050.
+# Use ./compose.sh to retain the existing orthoquantum_lite deployment identity.
+version: '2.4'
 services:
-  web:
-    build: ./dash_app
+  lite:
+    build: ./web
+    image: orthoquantum-lite:test
     ports:
-      - "127.0.0.1:8050:8050"
-    restart: unless-stopped
-    volumes:
-      - "user_data:/app/user_data"
+      - '127.0.0.1:${ORTHOQUANTUM_PORT:-8050}:8051'
     environment:
-      SECRET_KEY: "${SECRET_KEY:?missing_secret_key}"
-      DEMO_TID: "${DEMO_TID:?missing_demo_task_id}"
-
-  redis:
-    build: ./redis
-    restart: unless-stopped
+      ORTHODB_PATH: /reference/${ORTHOQUANTUM_ORTHODB_FILE:-orthodb_v13.db}
+      ORTHODB_LEVELS_PATH: /reference/orthodb_v13_levels.sqlite
+      PANTHER_PATH: /reference/panther.sqlite
+      PANTHER_BUNDLE_DIR: /reference/panther_v19
+      ORTHODB_RELEASE: '${ORTHOQUANTUM_ORTHODB_RELEASE:-v13}'
+      PUBLIC_ORIGINS: '${ORTHOQUANTUM_PUBLIC_ORIGINS:-http://orthoq.bioinf.fbb.msu.ru,https://orthoq.bioinf.fbb.msu.ru}'
+      ORTHODB_PROXY: '${LITE_ORTHODB_PROXY-socks5h://host.docker.internal:10810}'
+    extra_hosts:
+      - host.docker.internal:host-gateway
     volumes:
-      - "redis_data:/data"
-
-  worker:
-    build: ./worker
+      - '${ORTHOQUANTUM_REFERENCE_DIR:-/home/ilnitsky/PANTHERDB}:/reference:ro'
+    depends_on:
+      - xray-relay
+    mem_limit: 1g
+    cpus: 1.5
     restart: unless-stopped
-    security_opt:
-      - seccomp="default_for_chrome.json"
-    volumes:
-      - "user_data:/app/user_data"
-      - "/home/ilnitsky/nr:/blast/blastdb"
-      - "/home/ilnitsky/PANTHERDB:/PANTHERDB"
-      - "/usr/lib/ncbi-blast+/:/blast/lib/:ro"
-      - "/lib/x86_64-linux-gnu/:/blast/lib2/:ro"
-      - "/lib64/:/blast/lib3/:ro"
-      - "/usr/bin/blastp:/blast/bin/blastp:ro"
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+  xray-relay:
+    image: orthoquantum-lite:test
+    network_mode: host
+    entrypoint: ['python3', '/xray_relay.py']
     environment:
-      REDIS_HOST: "redis"
-      LD_LIBRARY_PATH: "/blast/lib/:/blast/lib2/:/blast/lib3"
-
-
-volumes:
-  user_data:
-  redis_data:
+      XRAY_RELAY_BIND: '${XRAY_RELAY_BIND:-172.17.0.1}'
+      XRAY_RELAY_PORT: '10810'
+    volumes:
+      - ./support_scripts/xray_relay.py:/xray_relay.py:ro
+    mem_limit: 64m
+    cpus: 0.25
+    restart: unless-stopped
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    read_only: true

@@ -1,1 +1,10 @@
-from .layout import dashboard, reports, about, index, navbar, prottree, csvdownload, sized_img
+from .layout import (
+    dashboard,
+    about,
+    index,
+    navbar,
+    prottree,
+    sized_img,
+    SHOW,
+    HIDE,
+)

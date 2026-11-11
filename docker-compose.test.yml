@@ -1,47 +1,7 @@
-version: "3"
+# Optional main-app source bind: ./compose.sh -f docker-compose.test.yml up -d
+# Extends the default Compose file included by compose.sh; uses the same main service.
+version: '2.4'
 services:
-  web:
-    build:
-      context: ./dash_app
-      args:
-        DEBUG: "1"
-    restart: unless-stopped
-    ports:
-      - "8050:8050"
-    environment:
-      # Generate by running python3 -c "print(__import__('secrets').token_hex(24))"
-      SECRET_KEY: "SECRET_KEY_CHANGE_ME"
-      DEMO_TID: "${DEMO_TID:?missing_demo_task_id}"
-      PYTHONUNBUFFERED: "1"
+  lite:
     volumes:
-      - "./user_data:/app/user_data"
-
-  redis:
-    build: ./redis
-    restart: unless-stopped
-    volumes:
-      - "redis_data:/data"
-
-  worker:
-    build:
-      context: ./worker
-      args:
-        DEBUG: "1"
-    security_opt:
-      - seccomp="default_for_chrome.json"
-    restart: unless-stopped
-    volumes:
-      - "./user_data:/app/user_data"
-      - "./blast_data:/blast/blastdb"
-      - "./pantherdb:/PANTHERDB"
-
-    environment:
-      REDIS_HOST: "redis"
-      PYTHONUNBUFFERED: "TRUE"
-
-volumes:
-  redis_data:
-
-
-
-# export SYSTEM_VERSION_COMPAT=1
+      - './web:/prototype:ro'

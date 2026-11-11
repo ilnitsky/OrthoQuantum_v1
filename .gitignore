@@ -284,3 +284,25 @@ blast_data
 pantherdb
 worker/converter/panther/panther
 tabprocessor
+.env
+secrets/
+deploy.sh
+stuff
+.vscode
+ui
+# Deployment secrets and local reference/review artifacts
+.env*
+!.env.example
+/result.pdf
+/index.html
+/support_scripts/orthodb/*.tab
+
+# Local bulk reference downloads
+/local_data/
+
+# Local agent notes and user-provided tree inputs
+/AGENTS.md
+/PROGRESS.md
+/orthodb-v13-eukaryota-all.nwk
+/unresolved_species_timetree.txt
+/unresolved_species_timetree.txct

@@ -2,7 +2,21 @@ from dash import callback_context, no_update
 from dash.dependencies import Input, Output, State, DashDependency
 import os
 
-GROUP = "worker_group"
+def clamp(min_val, cur_val, max_val):
+    return min(max(min_val, cur_val), max_val)
+
+
+def parse_int(val, default:int):
+    try:
+        return int(val)
+    except Exception:
+        return default
+
+def parse_float(val, default:float):
+    try:
+        return float(val)
+    except Exception:
+        return default
 
 def decode_int(*items:bytes, default=0) -> int:
     if len(items)==1:
@@ -35,6 +49,9 @@ class DashProxy():
             else:
                 raise RuntimeError("Unknown DashDependency")
 
+    def is_triggered_by(self, *args):
+        return any(arg in self.triggered for arg in args)
+
     @property
     def first_load(self):
         return not self.triggered
@@ -42,7 +59,11 @@ class DashProxy():
     def __getitem__(self, key):
         if key in self._outputs:
             return self._outputs[key]
-        return self._data[key]
+        try:
+            return self._data[key]
+        except KeyError as e:
+            raise RuntimeError("Key not found, missing dash input/state?") from e
+
 
     def __setitem__(self, key, value):
         self._outputs[key] = value
@@ -88,9 +109,5 @@ class DashProxyCreator():
                 return dp._exit()
             return self.dash_app.callback(*args, **kwargs)(wrapper)
         return deco
-
-class PBState():
-    UNKNOWN_LEN = -1
-    STATIC_MESSAGE = -2
 
 DEBUG = bool(os.environ.get('DEBUG', '').strip())

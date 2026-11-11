@@ -4,7 +4,6 @@ from . import (
     blast,
     vis,
     blast,
-    prot_search,
     ssr,
     prottree,
 )

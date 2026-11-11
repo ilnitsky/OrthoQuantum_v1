@@ -311,6 +311,8 @@ def main():
         "Vertebrata",
         taxa_colors={
             "Mammalia": 0x40FF00,
+            "Aves": 0xb98b73,
+            "Actinopterygii": 0x118ab2,
         }
     )
     convert(
@@ -365,8 +367,13 @@ def main():
         str(data/"8_Protista.xml"),
         "Protista",
         taxa_colors={
-
-            }
+            "Apicomplexa": 0xcb997e,
+            "Ciliophora": 0xddbea9,
+            "Stramenopiles": 0x6b705c,
+            "Metamonada": 0xb7b7a4,
+            "Amoebozoa": 0x9c6644,
+            "Discoba": 0x8d99ae,
+        }
 
     )
     convert(
@@ -374,9 +381,35 @@ def main():
         str(data/"11_Viridiplantae.xml"),
         "Viridiplantae",
         taxa_colors={
-
-            }
-
+            "Chlorophyta": 0x4dedd5,
+            "Streptophyta": 0x32e875,
+            "Rhodophyta": 0x006d77,
+        }
+    )    
+    convert(
+        str(newick/"phyloT_Fungi_newick.txt"),
+        str(data/"9_Fungi.xml"),
+        "Fungi",
+        taxa_colors={
+            "Basidiomycota": 0x8342a0,
+            "Ascomycota": 0x6c3dbe,
+            "Fungi incertae sedis": 0xb5838d,
+        }
     )
+    convert(
+        str(newick/"phyloT_Metazoa_newick.txt"),
+        str(data/"3_Metazoa.xml"),
+        "Metazoa",
+        taxa_colors={
+            "Mammalia": 0x06d6a0,
+            "Aves": 0xb98b73,
+            "Nematoda": 0xaed9e0,
+            "Arthropoda": 0xee6c4d,
+            "Actinopterygii": 0x118ab2,
+            "Cnidaria": 0xb8f2e6,
+            "Lophotrochozoa": 0xaed9e0,
+        }
+    )    
+
 if __name__ == "__main__":
     main()

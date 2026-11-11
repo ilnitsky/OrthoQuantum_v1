@@ -7,10 +7,11 @@ name = "pypi"
 flask = "*"
 dash = "*"
 redis = "*"
-dash-bootstrap-components = "*"
+dash-bootstrap-components = "<1"
 meinheld = "*"
 gunicorn = "*"
 flask-compress = "*"
+pandas = "*"
 
 [dev-packages]
 pylint = "*"

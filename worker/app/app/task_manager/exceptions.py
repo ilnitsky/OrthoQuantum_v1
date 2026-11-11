@@ -1,7 +1,8 @@
-import asyncio
-
-class VersionChangedException(asyncio.CancelledError):
+class VersionChangedException(Exception):
     pass
 
 class ReportErrorException(Exception):
+    pass
+
+class HandledReportErrorException(Exception):
     pass

@@ -1,0 +1,55 @@
+version: "3"
+services:
+  web:
+    build: ./dash_app
+    ports:
+      - "127.0.0.1:${LEGACY_ORTHOQUANTUM_PORT:-8051}:8050"
+    restart: unless-stopped
+    volumes:
+      - "user_data_v2:/app/user_data"
+    environment:
+      SECRET_KEY: "${SECRET_KEY:?missing_secret_key}"
+      DEMO_TID: "${DEMO_TID:?missing_demo_task_id}"
+
+  redis:
+    build: ./redis
+    restart: unless-stopped
+    volumes:
+      - "redis_data_v2:/data"
+
+  xray-relay:
+    # Reuse the existing worker image for its Python runtime; no new image needed.
+    image: best_repository_ever_worker
+    network_mode: host
+    entrypoint: ["python3", "/xray_relay.py"]
+    restart: unless-stopped
+    volumes:
+      - "./support_scripts/xray_relay.py:/xray_relay.py:ro"
+    environment:
+      XRAY_RELAY_BIND: "${XRAY_RELAY_BIND:-172.17.0.1}"
+
+  worker:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    build: ./worker
+    restart: unless-stopped
+    # security_opt:
+    #   - seccomp="default_for_chrome.json"
+    volumes:
+      - "user_data_v2:/app/user_data"
+      - "/home/ilnitsky/nr:/blast/blastdb"
+      - "/home/ilnitsky/PANTHERDB:/PANTHERDB"
+      # - "/usr/lib/ncbi-blast+/:/blast/lib/:ro"
+      # - "/lib/x86_64-linux-gnu/:/blast/lib2/:ro"
+      # - "/lib64/:/blast/lib3/:ro"
+      # - "/usr/bin/blastp:/blast/bin/blastp:ro"
+    environment:
+      REDIS_HOST: "redis"
+      LD_LIBRARY_PATH: "/blast/lib/:/blast/lib2/:/blast/lib3"
+      SOCKS_SERVER: "host.docker.internal"
+      SOCKS_PORT: "10809"
+
+
+volumes:
+  user_data_v2:
+  redis_data_v2:

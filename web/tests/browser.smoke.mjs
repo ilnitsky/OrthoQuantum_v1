@@ -1,0 +1,96 @@
+// Run with PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs.
+// The prototype must already be listening on LITE_URL (default loopback 8050).
+import assert from 'node:assert/strict';
+import {mkdir,writeFile,readFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const ROOT=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const artifacts=path.join(ROOT,'artifacts');await mkdir(artifacts,{recursive:true});
+const browser=await chromium.launch({headless:true,args:['--no-sandbox'],env:process.env});
+const context=await browser.newContext({viewport:{width:1440,height:1050},deviceScaleFactor:1,baseURL:process.env.LITE_URL||'http://127.0.0.1:8050'});
+const page=await context.newPage();const errors=[];const failures=[];
+page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400&&!r.url().endsWith('favicon.ico'))failures.push([r.status(),r.url()]);});
+const timings={};
+try{
+  await page.goto(process.env.LITE_URL||'http://127.0.0.1:8050',{waitUntil:'networkidle'});
+  await page.waitForFunction(()=>window.__orthoLite?.state.config);
+  assert.match(await page.locator('#connection-status').textContent(),/connected/);
+  assert.equal(await page.locator('#species-select option').first().textContent(),'Homo sapiens');
+  await page.selectOption('#demo-select','uniprot');await page.click('#load-demo');
+  await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===4&&window.__orthoLite.state.correlation);
+  assert.equal(await page.inputValue('#group-order'),'cluster');
+  assert.equal(await page.inputValue('#count-mode'),'copies');
+  assert.equal(await page.evaluate(()=>window.__orthoLite.state.correlation.mode),'presence');
+  const beforeColumn=await page.evaluate(()=>window.__orthoLite.viewer.cellWidth);
+  await page.click('#column-plus');assert.equal(await page.evaluate(()=>window.__orthoLite.viewer.cellWidth),beforeColumn+4);
+  await page.click('#column-minus');
+  await page.click('#fit-whole');await page.waitForTimeout(150);
+  const whole=await page.evaluate(()=>{const v=window.__orthoLite.viewer;return {rows:v.lastMetrics.visibleRows,total:v.layout.leaves.length,width:v.spacer.offsetWidth,height:v.spacer.offsetHeight,vw:v.viewport.clientWidth,vh:v.viewport.clientHeight,rowHeight:v.rowHeight};});
+  assert.equal(whole.rows,whole.total);assert.ok(whole.width<=whole.vw+1);assert.ok(whole.height<=whole.vh+1);assert.ok(whole.rowHeight<12);
+  const wholeDownloadWait=page.waitForEvent('download');await page.click('#export-whole');const wholeDownload=await wholeDownloadWait;
+  assert.match(wholeDownload.suggestedFilename(),/whole-profile.svg$/);
+  const svg=await readFile(await wholeDownload.path(),'utf8');
+  assert.match(svg,/Homo sapiens/);assert.match(svg,/complete phylogenetic profile/);
+  const svgInfo=await page.evaluate(text=>{const doc=new DOMParser().parseFromString(text,'image/svg+xml');return {error:!!doc.querySelector('parsererror'),height:Number(doc.documentElement.getAttribute('height'))};},svg);
+  assert.equal(svgInfo.error,false);assert.ok(svgInfo.height>whole.vh,'Whole image must include offscreen rows at readable spacing');
+  await page.click('#reset-view');
+  await page.screenshot({path:path.join(artifacts,'desktop.png'),fullPage:true});
+  const initial=await page.evaluate(()=>({metrics:window.__orthoLite.viewer.lastMetrics,svg:document.querySelectorAll('svg').length,canvas:document.querySelectorAll('canvas').length}));
+  assert.equal(initial.svg,0);assert.equal(initial.canvas,2);assert.ok(initial.metrics.visibleRows<165);
+  await page.locator('#viewport').evaluate(el=>{el.scrollTop=1e9;el.scrollLeft=1e9;});await page.waitForTimeout(100);
+  let atBottom=await page.evaluate(()=>window.__orthoLite.viewer.lastMetrics);assert.ok(atBottom.visibleRows>0);assert.ok(atBottom.visibleRows<80);
+  await page.locator('#viewport').evaluate(el=>{for(let i=0;i<50;i++){el.scrollTop=1e9;el.scrollLeft=1e9;}el.scrollTop-=44;});await page.waitForTimeout(100);assert.ok((await page.evaluate(()=>window.__orthoLite.viewer.lastMetrics)).visibleRows>0);
+  await page.fill('#species-filter','Homo sapiens');await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.__orthoLite.viewer.layout.leaves.length),1);await page.fill('#species-filter','');
+  await page.selectOption('#count-mode','copies');await page.waitForFunction(()=>window.__orthoLite.state.correlation?.mode==='presence');
+  await page.selectOption('#group-order','cluster');
+  const downloadWait=page.waitForEvent('download');await page.click('#export-json');const download=await downloadWait;const exportPath=await download.path();const exported=JSON.parse(await readFile(exportPath,'utf8'));assert.equal(exported.groups.length,4);
+  await page.setInputFiles('#file-input',{name:'roundtrip.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});await page.waitForFunction(()=>document.getElementById('message').textContent.includes('Opened roundtrip'));
+  await page.setInputFiles('#file-input',path.join(ROOT,'tests/fixtures/presence.xml'));
+  await page.waitForFunction(()=>window.__orthoLite.state.data?.title==='Import fixture');
+  assert.deepEqual(await page.evaluate(()=>window.__orthoLite.state.data.statuses),[[3,0],[2,1]]);
+  assert.deepEqual(await page.evaluate(()=>window.__orthoLite.state.data.counts),[[1,0],[1,0]]);
+  await page.setInputFiles('#file-input',{name:'unsafe.xml',mimeType:'application/xml',buffer:Buffer.from('<!DOCTYPE x [<!ENTITY x SYSTEM "file:///etc/passwd">]><x>&x;</x>')});
+  await page.waitForFunction(()=>document.getElementById('message').classList.contains('error'));
+  assert.equal(await page.evaluate(()=>window.__orthoLite.state.data.title),'Import fixture');
+  // Real database round trip, not a bundled-result shortcut.
+  await page.fill('#identifiers','Q9UL18\nP06748');await page.selectOption('#tree-select','1');await page.selectOption('#species-select','9606');await page.click('#resolve');
+  await page.waitForFunction(()=>window.__orthoLite.state.candidates.length===2,null,{timeout:120000});
+  assert.equal(await page.locator('#choices input:checked').count(),2);await page.click('#select-all');assert.equal(await page.locator('#choices input:checked').count(),0);await page.click('#select-all');
+  await page.click('#build');await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===2&&!window.__orthoLite.state.busy,null,{timeout:120000});
+  timings.localQuerySeconds=await page.evaluate(()=>window.__orthoLite.state.data.source.seconds);
+  await page.fill('#species-filter','a');await page.fill('#group-filter','NPM1');
+  await page.click('#row-plus');await page.click('#column-plus');
+  await page.selectOption('#group-order','input');
+  await page.locator('#viewport').evaluate(el=>{el.scrollTop=120;});await page.waitForTimeout(100);
+  const orthogroupView=await page.evaluate(()=>{const v=window.__orthoLite.viewer;return {title:window.__orthoLite.state.data.title,filter:v.filter,row:v.rowHeight,column:v.cellWidth,top:v.viewport.scrollTop,order:[...v.order]};});
+  await page.getByRole('button',{name:'NPM1',exact:true}).click();
+  await page.waitForFunction(()=>!window.__orthoLite.state.busy);
+  if(await page.locator('#cell-detail button').count())await page.locator('#cell-detail button').first().click();
+  await page.waitForFunction(()=>window.__orthoLite.state.data?.source.provider==='PANTHER',null,{timeout:120000});
+  await page.waitForFunction(()=>window.__orthoLite.state.correlation);
+  assert.equal(await page.getAttribute('#view-panther','aria-pressed'),'true');
+  await page.fill('#species-filter','Mus');await page.click('#column-plus');
+  const pantherView=await page.evaluate(()=>({title:window.__orthoLite.state.data.title,cell:window.__orthoLite.viewer.cellWidth}));
+  await page.click('#view-orthogroups');await page.waitForFunction(()=>window.__orthoLite.state.activeView==='orthogroups');
+  const restored=await page.evaluate(()=>{const v=window.__orthoLite.viewer;return {title:window.__orthoLite.state.data.title,filter:v.filter,row:v.rowHeight,column:v.cellWidth,top:v.viewport.scrollTop,order:[...v.order]};});
+  assert.deepEqual(restored,orthogroupView);assert.equal(await page.inputValue('#group-filter'),'NPM1');assert.equal(await page.inputValue('#group-order'),'input');
+  await page.click('#view-panther');await page.waitForFunction(()=>window.__orthoLite.state.activeView==='panther');
+  assert.equal(await page.inputValue('#species-filter'),'Mus');assert.equal(await page.evaluate(()=>window.__orthoLite.viewer.cellWidth),pantherView.cell);assert.equal(await page.evaluate(()=>window.__orthoLite.state.data.title),pantherView.title);
+  // PANTHER family from the user's earlier example, validated against local DB.
+  const panther=await page.request.post('/api/jobs',{data:{action:'panther',gene:'SESN2'}});const pantherJob=await panther.json();let pantherResult;
+  for(let i=0;i<240;i++){pantherResult=await page.request.get('/api/jobs/'+pantherJob.id).then(r=>r.json());if(['done','error'].includes(pantherResult.status))break;await page.waitForTimeout(250);}
+  assert.equal(pantherResult.status,'done',pantherResult.error);assert.ok(pantherResult.data.groups.length>1);
+  await page.setInputFiles('#file-input',{name:'panther.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(pantherResult.data))});await page.waitForFunction(()=>window.__orthoLite.state.data?.source.provider==='PANTHER');
+  await page.screenshot({path:path.join(artifacts,'panther.png'),fullPage:true});
+  await page.selectOption('#demo-select','kegg');await page.click('#load-demo');await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===31);
+  const benchmark=async()=>page.evaluate(async()=>{const v=window.__orthoLite.viewer,p=v.viewport,times=[];for(let i=0;i<60;i++){p.scrollTop=(i*779)%(p.scrollHeight-p.clientHeight);p.scrollLeft=(i*101)%(Math.max(1,p.scrollWidth-p.clientWidth));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));times.push(v.lastMetrics.renderMs);}const sorted=times.sort((a,b)=>a-b);return{frames:times.length,p50:sorted[30],p95:sorted[57],max:sorted.at(-1),visibleRows:v.lastMetrics.visibleRows,totalRows:v.lastMetrics.totalRows,canvasCount:document.querySelectorAll('canvas').length};});
+  timings.realKegg=await benchmark();
+  await page.selectOption('#demo-select','interpro');await page.click('#load-demo');await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===5);
+  // Mobile: no body-wide overflow, viewer has its own scrolling surface.
+  await page.setViewportSize({width:390,height:844});await page.selectOption('#demo-select','uniprot');await page.click('#load-demo');await page.waitForFunction(()=>window.__orthoLite.state.data?.groups.length===4);await page.waitForTimeout(300);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Unexpected mobile page overflow');
+  await page.screenshot({path:path.join(artifacts,'mobile.png'),fullPage:true});
+  assert.deepEqual(errors,[],'Browser runtime errors');assert.deepEqual(failures,[],'Failed HTTP requests');
+  const report={checkedAt:new Date().toISOString(),browser:browser.version(),timings,errors,failures};await writeFile(path.join(artifacts,'browser-results.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+}finally{await browser.close();}

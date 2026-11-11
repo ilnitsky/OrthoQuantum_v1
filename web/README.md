@@ -69,13 +69,13 @@ This implementation does not yet have complete scientific parity with legacy Das
   pointer; use normal spacing or SVG for exact inspection. Whole SVG uses readable
   spacing and avoids raster canvas dimension limits; exceptionally large vector
   files can still be demanding for external image viewers.
-- Correlations/clustering are limited to the first **160 groups**, with an explicit
-  status note for larger matrices. The tree/grid still displays all loaded groups.
+- Correlations/clustering include all loaded groups, up to **2,500**. Packed binary
+  profiles and quadratic nearest-neighbor-chain average linkage run in a Web Worker.
   The correlation clustermap orders both axes by the same average-linkage tree
   and draws matching dendrograms. Wheel/buttons zoom; drag pans; Fit restores the
   complete matrix without scrollbars. Query order is available separately.
-- Fresh lookups build up to 200 profiles; candidate selection is capped at 100
-  matches. Broad searches report truncation instead of claiming complete results.
+- Fresh lookups build up to 2,500 profiles; Max findings defaults to 100
+  and accepts 1–2,500 total matches. Broad searches report truncation instead of claiming complete results.
   KEGG strings are delegated to OrthoDB's search endpoint, not resolved through
   an independently verified KEGG pathway-membership service. In the live check,
   `ko04210` produced thousands of candidate hits; reviewing matches or using
@@ -191,7 +191,7 @@ matching dendrograms show that hierarchy. Gene-copy magnitudes never affect the
 correlations: 0 means absent, and any positive count becomes 1. The profile
 display mode changes only the phylogenetic profile. Constant profiles have
 undefined correlations, remain gray and are appended after clustered profiles.
-The zero-centered palette is blue (−1), white (0), red (+1). The first-160-group limit is unchanged and explicitly reported.
+The zero-centered palette is blue (−1), white (0), red (+1). Clustering now includes all loaded groups (up to 2,500); see the full-dataset update below.
 
 Use the mouse wheel or +/− buttons to zoom, drag to pan, and Fit/double-click/zero
 to reset. Labels appear as cells become large enough; hover always gives full
@@ -270,3 +270,230 @@ Verified NPM1 family PTHR22747 names in the published v19 data:
 
 Old saved subfamily results retain their original data; a **Refresh named family
 subfamilies** button requests the current complete family view.
+
+### Current main reference and larger queries
+
+Root Compose selects validated `orthodb_v13.db` and the v13 search API. Its
+publication sidecar must report complete, matching schema and quick_check ok.
+Only available reference levels are offered; the curated species-tree topology
+and cohorts remain fixed templates. Bundled demos remain labeled v11 snapshots,
+separate from fresh v13 lookups. Profiles reject an explicit mismatched release.
+See the root README for the paired v11 rollback overrides.
+
+Max findings defaults to 100 and accepts 1–2,500, with a 20-million-cell profile
+limit. Above 1,000 groups, correlation storage uses a packed Float32 upper
+triangle (undefined constants stored as NaN), transferred from the worker without
+copying. Average-linkage distances use a separate packed Float64 workspace.
+All groups are clustered; only the top 30 pair records are retained for the pair
+table, while CSV export reads all defined pairs from the correlation matrix.
+Dense overviews rasterize at up to 2048 pixels; zoomed cells and hover use exact
+matrix positions. Zoom extends to 1024×. The main container has a 1 GiB memory
+ceiling / 512 MiB Node heap, 10 MB requests, 50 MB results and a 15-minute job
+budget for paginated broad searches. Correlations are computed in the browser.
+
+### Release-matched v13 species sets and levels
+
+`build_v13_trees.py` reads the MD5-verified species, levels and level2species
+archives. `public/data/trees-v13.json` contains 160 official eukaryotic levels
+with nonempty OG definitions. Extended sets contain 5,486 current NCBI species
+(5,768 source clustered genomes), 2,320 metazoans, 2,416 fungi, 410 green plants
+and 93 lophotrochozoans. Alternate assemblies are collapsed to one representative
+per NCBI species (lowest organism suffix, then source taxid); organism/assembly
+IDs stay on rows and control count filtering. The 17 renamed taxonomy IDs are
+resolved through the official species-to-organism mapping rather than fuzzy
+name matching. Taxonomy paths yield polytomies, not inferred evolutionary branch
+lengths. Compact old topologies are projected onto matching v13 organisms; the
+resulting compact sets have 147 eukaryotes / 393 metazoans.
+
+Common levels are promoted; remaining levels are alphabetical. The current
+reference organism is retained when available, otherwise common organisms lead
+the new species dropdown. A helper note identifies taxonomy vs curated trees,
+the representative policy and available genome count. Expanded trees include
+SAR, Discoba, Metamonada, Haptista, Amoebozoa, Alveolata, Stramenopiles, Euglenozoa,
+Apicomplexa, Ciliophora, Rhodophyta and Cryptophyceae. OrthoDB v13 does not define
+a separate Spiralia OG level; Lophotrochozoa uses its published level 1206795.
+
+The initial main DB imported historical levels. Nine missing official levels
+are provided by the separate `orthodb_v13_levels.sqlite` supplement, built with
+`support_scripts/orthodb/build_v13_levels.py`. Its manifest must be complete,
+quickCheck ok, release v13 and match the base file's size/mtime. It is attached
+read-only; it never changes the main v13 DB. Node cache fingerprints include
+both supplement and manifest. Until publication, unavailable levels are omitted.
+
+```sh
+# Rebuild taxonomy assets offline from the verified release metadata.
+python3 web/build_v13_trees.py --archives /home/ilnitsky/OrthoDB_loads_v13 --output web/public/data/trees-v13.json
+# Follow the independent missing-level import; do not COUNT active build files.
+docker logs -f --tail 30 orthodb-v13-extra-levels
+```
+
+### SQL budgets and broad GO resolution
+
+Each SQL statement has a 120-second budget, reset on execute. Network waits and
+previous statements cannot consume the next statement's budget; the separate
+15-minute overall job limit still applies. GO identifiers go directly to the
+release-specific upstream search, which accepts pages of up to 1,000 results.
+Reference-organism gene names are loaded once through the gene-ID index.
+Memberships are then read and cached by contiguous orthogroup using the existing
+clade/cluster index. Do not pre-scan all reference memberships via the gene index:
+it needs scattered row reads across all ancestor levels and can exceed 120
+seconds on the production dataset, even though it looks attractive on fixtures.
+No live DB indexes are added and both reference databases remain read-only.
+
+### Full NCBI taxonomy ordering
+
+`build_ncbi_taxonomy.py` verifies the official taxdump MD5 and records SHA256,
+then extracts only required taxa and ancestors from nodes.dmp, names.dmp and
+merged.dmp. The pinned subset is `public/data/ncbi-taxonomy-v13.json` (13,200
+nodes / 5,651 requested IDs). All 5,486 OrthoDB species rows resolve: 5,472 current
+IDs and 14 merged IDs, no unresolved IDs. Original OrthoDB row/genome IDs stay
+unchanged for membership queries; current NCBI IDs are separate metadata.
+
+`ncbi_order.py` builds the full parent hierarchy, including genera, families,
+orders and clades absent from OrthoDB's orthology-level paths. Sibling clades are
+sorted by scientific name and traversed depth-first. Single-child scaffolding is
+collapsed; relationships remain multifurcating and branch lengths have no
+inferred evolutionary meaning. All species/count cohorts are unchanged. Compact
+cohorts are now pruned from the same NCBI hierarchy rather than retaining the old
+topology. Tests verify that every NCBI clade is one contiguous block.
+
+Saved/imported v13 results without an NCBI snapshot are automatically reordered
+by `public/taxonomy-order.mjs`, with complete count/status rows permuted by ID.
+No biological query is repeated; old v11 snapshots retain their own tree.
+Species outside the current catalog remain explicitly marked at the end, never
+dropped. New results record the pinned NCBI archive source/hash in provenance.
+
+```sh
+# Download the official archive and its published MD5 into a scratch directory.
+curl --fail --proxy socks5h://127.0.0.1:10808 https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz.md5 -o /tmp/ortho-ncbi-taxonomy/taxdump.tar.gz.md5
+curl --fail --proxy socks5h://127.0.0.1:10808 https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz -o /tmp/ortho-ncbi-taxonomy/taxdump.tar.gz.part
+# Extract a verified, compact taxonomy snapshot; do not commit the raw dump.
+python3 web/build_ncbi_taxonomy.py --archive /tmp/ortho-ncbi-taxonomy/taxdump.tar.gz.part --checksum /tmp/ortho-ncbi-taxonomy/taxdump.tar.gz.md5 --catalog web/public/data/trees-v13.json --output web/public/data/ncbi-taxonomy-v13.json
+python3 web/build_v13_trees.py --archives /home/ilnitsky/OrthoDB_loads_v13 --taxonomy web/public/data/ncbi-taxonomy-v13.json --output web/public/data/trees-v13.json
+```
+
+NCBI source documentation: https://www.ncbi.nlm.nih.gov/datasets/docs/v2/data-processing/taxonomy-processing/taxonomy/
+
+### Batched inputs, selection zoom and species exports
+
+Gene symbols and UniProt accessions resolve in at most two local indexed batch
+queries, preserving each identifier's matches. Unresolved inputs use at most
+four concurrent upstream requests; SQLite connections stay on the main adapter
+thread. Result admission is round-robin across inputs so a broad alias such as
+BRE cannot consume the global cap before later exact symbols. Annotations are
+then loaded per unique selected group, with shared query provenance retained.
+
+On the profile, Shift-drag over the heatmap selects a zoom rectangle. The
+Select area to zoom toggle enables the same gesture without Shift. Ordinary
+drag still pans; Alt-drag pans even with selection mode enabled. Reverse drags
+are normalized; Escape/pointer cancellation leaves the view unchanged. The box
+zooms rows/columns independently using the current scroll offsets and spacing,
+with bounded readable cell sizes. Fit whole plot restores the overview.
+
+Species list (.txt) exports every species in the loaded dataset, not only the
+visible viewport. `export_species.py` also creates exact v13 row lists and
+TimeTree lists in `public/data/species/`. TimeTree lists use unique current NCBI
+species-rank names (subspecies/strains ascend to their species ancestor): 2,293
+metazoan and 5,382 eukaryotic names. Exact lists retain 2,320 / 5,486 source rows.
+TSV maps connect original row taxids/names to exported species names; no species
+lack a species-rank ancestor. All text files have one name per line, no header.
+
+```sh
+python3 web/export_species.py
+# Browser check: exact 40-gene user fixture, zoom, counts and exported text.
+PLAYWRIGHT_MODULE=/tmp/ortho-lite-browser/node_modules/playwright/index.mjs LD_LIBRARY_PATH=/tmp/ortho-lite-browser/libs/root/usr/lib/x86_64-linux-gnu node web/tests/batch-area.browser.mjs
+```
+
+TimeTree input-format reference: https://timetree.temple.edu/faqs
+
+### User-supplied TimeTree branch lengths
+
+`build_timetree.py` reads the user Newick and unresolved-name report and derives
+all level trees from one master. `timetree.py` handles the export's unquoted
+colon/parenthesis labels, sums edges when pruning unary paths, and preserves
+pairwise distances. Two tiny negative export edges (-0.00007/-0.00041 Myr) are
+clamped to zero and logged. Larger negative/nonfinite lengths are rejected.
+
+The input has 3,684 tips. 3,274 match current OrthoDB row names; 410 unrequested
+extra tips are removed. Another 1,426 rows are placed near represented relatives
+using current NCBI species/genus or a monophyletic represented family. These are
+explicit polytomies at existing nodes, with `length: null`, not guessed divergence
+ages. Unsupported placement excludes 786 rows from dated cohorts. The master
+therefore displays 4,700 rows; Metazoa 2,046, Fungi 2,048, plants 384 and
+Lophotrochozoa 76. Original gene/organism IDs remain unchanged.
+
+155 of 160 official levels have dated coverage. Cryptosporidium, Eimeria,
+Microsporidia, Sporidiobolales and Trebouxiophyceae retain clearly labeled NCBI
+topology-only views; their dates are not invented. Compact views are induced
+from the same master, preserving edge sums and reporting excluded counts.
+`v13_catalog.py` uses the timed catalog only when its NCBI snapshot matches the
+baseline. Cache fingerprints include both tree assets.
+
+Canvas and whole SVG now use cumulative branch lengths (Myr), a time ruler, and
+dashed/† marks for undated placements. Unknown edges remain null in datasets;
+only their display endpoint is projected to the tip column. Tip detail reports
+unknown time or the exported terminal branch. Source provenance records input
+hashes, rounding corrections and placement policy. TimeTree may already have
+made parent-taxon substitutions; the original UI asterisks are not encoded in the
+provided Newick, so exported tips are not claimed to be independent measurements.
+
+Old v13 results are safely reordered/pruned by complete rows when reopened,
+without requerying retained counts. Correlations are recomputed when cohort
+migration changes the data. Reports list every row's status and all exclusions.
+
+```sh
+python3 web/build_timetree.py --catalog web/public/data/trees-v13.json --taxonomy web/public/data/ncbi-taxonomy-v13.json --newick orthodb-v13-eukaryota-all.nwk --unresolved unresolved_species_timetree.txt --output web/public/data/trees-timetree-v13.json
+# Audits:
+cat web/public/data/trees-timetree-v13.report.json
+# Plain exclusion list / full placement table:
+# web/public/data/trees-timetree-v13.excluded.txt
+# web/public/data/trees-timetree-v13.placements.tsv
+```
+
+### OrthoDB group statistics
+
+The annotation table lazily loads release-matched evolutionary rate, median
+protein length and length SD. More shows exon statistics and full source-group
+coverage/copy counts. These source-wide values differ from selected-cohort
+presence. Evolutionary rate is relative sequence divergence, not divergence per
+Myr. Missing values show an em dash; zero values remain visible. PANTHER views do
+not use OrthoDB statistics.
+
+Metadata uses an independent job lane (`metadata_adapter.py` / `orthodb_stats.py`),
+visible-row batches of at most 20 and a bounded seven-day release-specific cache.
+It does not block the analysis queue or create My queries entries. Retry handles
+partial source failures without rebuilding the profile.
+
+## Query types and functional presets
+
+Query type supports automatic mixed identifiers, exact gene symbols, UniProt,
+GO, KEGG KO/pathway, InterPro, OrthoDB groups, other gene/protein IDs and free
+text. Typed annotation lists validate their namespace. Up to 1,000 input lines
+are accepted; Max findings remains independently capped at 2,500 (default 100).
+Exact symbols use the selected reference organism's indexed local gene-name
+mapping, never a description-search fallback. All exact groups are selected,
+multiple-group mappings are flagged and missing symbols remain unresolved.
+This is not a live HGNC authority/alias resolver: obsolete symbols may need
+updating. Symbol mode accepts pasted tables by taking the first column.
+
+Load demo and presets adds fresh GO:0005730 (nucleolus) and six editable human
+symbol lists: remodellers, readers, writers, PRC1 + PRC2, histone erasers and
+DNA methylation machinery. Presets are starter panels, not exhaustive catalogs;
+they populate the form for review/submission. Existing bundled demos remain.
+
+See [LOSS_MODEL.md](LOSS_MODEL.md) for the experimental branch-aware shared-loss
+ranking, formulas, parameter meanings and scientific limitations.
+
+## Adaptive taxonomic branch colors and labels
+
+The profile tree now names clades using the pinned NCBI taxonomy instead of
+numeric TimeTree internal labels. Only a taxon's exact monophyletic sampled
+descendant set may label a branch; no reparenting or length changes occur.
+Taxon colors derive deterministically from taxids. A non-overlapping frontier
+of up to 12 visible clades adapts to viewport span and row spacing, so broad
+cohorts and deeper orthology selections use appropriately sized groups.
+Colored descendants, small white-backed labels at clade tops and a full-name
+HTML key identify the active groups. Overview tree gutter widened for labels.
+Undated edges retain dashes. Whole SVG export uses the same selection/color
+logic over its full extent; visible PNG includes the drawn labels.
+Implementation: public/taxon-clades.mjs, model/viewer/whole-image and app loading.

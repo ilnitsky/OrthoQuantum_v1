@@ -1,0 +1,20 @@
+{
+  "taxonomySource": {
+    "source": "https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/taxdump.tar.gz",
+    "retrievedAt": "2026-11-10T19:53:46.599705+00:00",
+    "md5": "71bc9004f31f987b53088b2fa5eb8156",
+    "sha256": "798e3bfc4035dc949970ba0833b655c9cc2f10e37c9741ecc4c427afb0678992"
+  },
+  "lists": {
+    "eukaryota": {
+      "rows": 5486,
+      "timetreeSpecies": 5382,
+      "rowsWithoutSpeciesRank": 0
+    },
+    "metazoa": {
+      "rows": 2320,
+      "timetreeSpecies": 2293,
+      "rowsWithoutSpeciesRank": 0
+    }
+  }
+}

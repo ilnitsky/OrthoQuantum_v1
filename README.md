@@ -20,7 +20,8 @@ Use this wrapper rather than an unqualified `docker-compose up` on this host.
 For direct development with Node 18+ and Python 3.9+:
 
 ```bash
-ORTHODB_PROXY=socks5h://127.0.0.1:10808 PORT=8050 node web/server.mjs
+ORTHODB_PATH=/home/ilnitsky/PANTHERDB/orthodb_v13.db ORTHODB_RELEASE=v13 \
+  ORTHODB_PROXY=socks5h://127.0.0.1:10808 PORT=8050 node web/server.mjs
 # Optional Docker source bind, on the main service:
 ./compose.sh -f docker-compose.test.yml up -d --build
 ```
@@ -35,9 +36,10 @@ The main stack's Xray relay uses Docker gateway port **10810**, forwarding to ho
 loopback **10808**. The legacy stack's existing relay remains on 10809. Override
 `LITE_ORTHODB_PROXY` to use another proxy or set it empty to disable proxying.
 
-The configured OrthoDB release remains **v11** while the separately built v13
-candidate is validated. Never change only the database file without aligning
-IDs, demos, endpoints and caches. A validated PANTHER v19 bundle is selected with
+The main deployment now uses the validated **OrthoDB v13** database and v13
+search endpoint. Existing bundled demos remain explicitly labeled v11 snapshots;
+fresh queries use v13 IDs. Matches from another release must be searched again
+before building profiles. Database fingerprints and release isolate job caches. A validated PANTHER v19 bundle is selected with
 its matching tree/map; incomplete bundles remain unavailable.
 
 ## Branches and legacy application
@@ -80,3 +82,15 @@ service remains bound to loopback with a read-only root/reference mount.
 
 Database tooling and status commands are in [`support_scripts/orthodb/README.md`](support_scripts/orthodb/README.md)
 and [`support_scripts/panther/README.md`](support_scripts/panther/README.md).
+
+### Reference rollback
+
+The live v11 file was not replaced. To run the main site with v11 again:
+
+```bash
+ORTHOQUANTUM_ORTHODB_FILE=orthodb.db ORTHOQUANTUM_ORTHODB_RELEASE=v11 ./compose.sh up -d --no-deps lite
+```
+
+Unset both overrides and recreate `lite` to return to the default v13. Legacy
+Dash retains its own v11 configuration. Max findings defaults to 100 and accepts
+1–2,500 groups across all inputs; all loaded groups enter clustering.

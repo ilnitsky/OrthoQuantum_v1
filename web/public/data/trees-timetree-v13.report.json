@@ -1,0 +1,27 @@
+{
+  "source": {
+    "sha256": "75a72d8233562842a8d4a1ef9144a348996c8fed1abdf3292f2d11875b7093db",
+    "newickSha256": "748e6f29fa52b9020425a804767e87af45d7bbfc0b18f5bf4137913210c3dda3",
+    "unresolvedSha256": "6a06cb0b03487becc6e4ac116314652b0edc3a78c97390e66fc858ebbb08dc51",
+    "branchLengthUnit": "Myr",
+    "negativeEdgeCorrections": [
+      {
+        "label": "4617",
+        "originalLength": -7e-05
+      },
+      {
+        "label": "7067",
+        "originalLength": -0.00041
+      }
+    ],
+    "placementPolicy": "Undated polytomies at existing nodes supported by same-species/genus or monophyletic family; otherwise excluded. No inferred divergence ages."
+  },
+  "total": 5486,
+  "counts": {
+    "timetree": 3274,
+    "taxonomy-inferred": 1426,
+    "excluded": 786
+  },
+  "datedLevels": 155,
+  "unmatchedTimeTreeTips": 410
+}

@@ -8,40 +8,44 @@ import {randomUUID, createHash} from 'node:crypto';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.join(ROOT, 'public');
-const MIME = {'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.ttf':'font/ttf','.ico':'image/x-icon','.png':'image/png'};
+const MIME = {'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.ttf':'font/ttf','.ico':'image/x-icon','.png':'image/png','.txt':'text/plain; charset=utf-8','.tsv':'text/tab-separated-values; charset=utf-8'};
 const jobs = new Map();
 const queue = [];
+const metadataQueue = [];
+let activeMetadata=false;
 let active = false;
 const MAX_JOBS = 15;
-const MAX_BODY = 200_000;
-const MAX_OUTPUT = 20_000_000;
+const MAX_BODY = 10_000_000;
+const MAX_OUTPUT = 50_000_000;
 
 function send(res, status, body) {
   res.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
   res.end(JSON.stringify(body));
 }
-function cleanup() {
+function cleanup(metadata=false) {
+  const matches=job=>(job.request.action==='metadata')===metadata;
   for (const [id, job] of jobs) {
     if (['done','error','cancelled'].includes(job.status) && Date.now()-job.updated > 3600_000) jobs.delete(id);
   }
-  while (jobs.size >= MAX_JOBS) {
-    const expired = [...jobs.values()].find(j => ['done','error','cancelled'].includes(j.status));
+  while ([...jobs.values()].filter(matches).length >= MAX_JOBS) {
+    const expired = [...jobs.values()].find(j => matches(j)&&['done','error','cancelled'].includes(j.status));
     if (!expired) break;
     jobs.delete(expired.id);
   }
 }
-async function runNext() {
-  if (active || !queue.length) return;
-  const job = queue.shift();
-  if (job.status === 'cancelled') return runNext();
-  active = true;
+async function runNext(metadata=false) {
+  const pendingJobs=metadata?metadataQueue:queue;
+  if ((metadata?activeMetadata:active) || !pendingJobs.length) return;
+  const job=pendingJobs.shift();
+  if(job.status==='cancelled')return runNext(metadata);
+  if(metadata)activeMetadata=true;else active=true;
   job.status = 'running'; job.updated = Date.now();
   const child = spawn(process.env.PYTHON || 'python3', [job.adapterPath||path.join(ROOT, 'bridge.py')], {
     cwd: ROOT, env: process.env, stdio: ['pipe','pipe','pipe'],
   });
   job.child = child;
   let pending = '', total = 0, errors = '', finished = false;
-  const timer = setTimeout(() => {job.error = 'Query exceeded the 180-second job budget.'; child.kill();}, 180_000);
+  const timer = setTimeout(() => {job.error = 'Query exceeded the 15-minute job budget.'; child.kill();}, 900_000);
   child.stdout.on('data', chunk => {
     total += chunk.length;
     if (total > MAX_OUTPUT) {job.error = 'Result exceeds the dataset size limit.'; child.kill(); return;}
@@ -64,12 +68,12 @@ async function runNext() {
     clearTimeout(timer); delete job.child;
     if (job.status !== 'cancelled') job.status = code === 0 && finished && !job.error ? 'done' : 'error';
     if (job.status === 'error' && !job.error) job.error = errors || 'Reference-data job failed.';
-    job.updated = Date.now(); active = false; runNext();
+    job.updated = Date.now(); if(metadata)activeMetadata=false;else active=false;runNext(metadata);
   });
   child.stdin.on('error', () => {});
   child.stdin.end(JSON.stringify(job.request));
 }
-export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||'',adapterPath=path.join(ROOT,'bridge.py')}={}) {
+export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||'',adapterPath=path.join(ROOT,'bridge.py'),metadataAdapterPath=path.join(ROOT,'metadata_adapter.py')}={}) {
   const origins=new Set(publicOrigins.split(',').map(v=>v.trim()).filter(Boolean).map(value=>{
     const url=new URL(value);if(!['http:','https:'].includes(url.protocol))throw new Error('PUBLIC_ORIGINS must contain HTTP(S) origins');return url.origin;
   }));
@@ -84,7 +88,7 @@ export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||'',adapterP
       const local=['localhost','127.0.0.1','[::1]'].includes(hostname);
       if (!local&&!publicHosts.has(hostname)) return send(res,403,{error:'Unknown site host.'});
       if (req.headers.origin&&!origins.has(req.headers.origin)&&!(local&&req.headers.origin===`http://${req.headers.host}`)) return send(res,403,{error:'Use OrthoQuantum from its own origin.'});
-      if (url.pathname === '/api/health') return send(res,200,{status:'ok',application:'orthoquantum',implementation:'javascript-canvas',activeJobs:Number(active)});
+      if (url.pathname === '/api/health') return send(res,200,{status:'ok',application:'orthoquantum',implementation:'javascript-canvas',activeJobs:Number(active)+Number(activeMetadata),analysisJobs:Number(active),metadataJobs:Number(activeMetadata)});
       if (url.pathname === '/api/jobs' && req.method === 'POST') {
         if (!String(req.headers['content-type']).startsWith('application/json')) return send(res,415,{error:'JSON required'});
         let raw='';req.setEncoding('utf8');
@@ -94,21 +98,23 @@ export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||'',adapterP
         }
         const body = JSON.parse(raw);
         if (!body || typeof body !== 'object' || Array.isArray(body)) return send(res,400,{error:'Expected a query object'});
-        if (!['resolve','profiles','config','panther','panther_orthologs'].includes(body.action)) return send(res,400,{error:'Unknown query action'});
-        cleanup();
-        if (jobs.size >= MAX_JOBS) return send(res,429,{error:'Job queue is full. Wait for a job to finish.'});
+        if (!['resolve','profiles','config','panther','panther_orthologs','metadata'].includes(body.action)) return send(res,400,{error:'Unknown query action'});
+        cleanup(body.action==='metadata');
+        if ([...jobs.values()].filter(j=>(j.request.action==='metadata')===(body.action==='metadata')).length >= MAX_JOBS) return send(res,429,{error:'Job queue is full. Wait for a job to finish.'});
         // In-memory cache is bounded and invalidates when reference files change.
         const versions = await Promise.all([
+          ...['trees-v13.json','trees-timetree-v13.json'].map(name=>path.join(PUBLIC,'data',name)),
           process.env.ORTHODB_PATH || '/home/ilnitsky/PANTHERDB/orthodb.db',
+          ...(process.env.ORTHODB_LEVELS_PATH ? [process.env.ORTHODB_LEVELS_PATH,process.env.ORTHODB_LEVELS_PATH+'.json'] : []),
           process.env.PANTHER_PATH || '/home/ilnitsky/PANTHERDB/panther.sqlite',
           ...(process.env.PANTHER_BUNDLE_DIR ? ['manifest.json','panther.sqlite','relationships.sqlite'].map(name=>path.join(process.env.PANTHER_BUNDLE_DIR,name)) : []),
         ].map(async p => {try {const s=await stat(p);return [s.ino,s.size,s.mtimeMs];} catch {return null;}}));
         const key = createHash('sha256').update(JSON.stringify([body,versions,process.env.ORTHODB_RELEASE || 'v11'])).digest('hex');
-        const existing=[...jobs.values()].find(j=>j.key===key && j.status==='done');
+        const existing=[...jobs.values()].find(j=>j.key===key && j.status==='done' && !(body.action==='metadata'&&Object.keys(j.result?.errors||{}).length));
         if(existing) return send(res,202,{id:existing.id,cached:existing.status==='done'});
         const id=randomUUID();
-        const job={id,key,adapterPath,request:body,status:'queued',updated:Date.now(),progress:{message:'Waiting for the reference database'}};
-        jobs.set(id,job);queue.push(job);runNext();return send(res,202,{id});
+        const job={id,key,adapterPath:body.action==='metadata'?metadataAdapterPath:adapterPath,request:body,status:'queued',updated:Date.now(),progress:{message:'Waiting for the reference database'}};
+        jobs.set(id,job);const isMetadata=body.action==='metadata';(isMetadata?metadataQueue:queue).push(job);runNext(isMetadata);return send(res,202,{id});
       }
       const match=/^\/api\/jobs\/([0-9a-f-]+)$/.exec(url.pathname);
       if (match) {
@@ -119,7 +125,7 @@ export function createApp({publicOrigins=process.env.PUBLIC_ORIGINS||'',adapterP
           return send(res,200,{status:job.status});
         }
         if(req.method!=='GET') return send(res,405,{error:'Method not allowed'});
-        const queuePosition=job.status==='queued'?queue.filter(j=>j.status==='queued').indexOf(job)+1:job.status==='running'?0:undefined;
+        const queuePosition=job.status==='queued'?(job.request.action==='metadata'?metadataQueue:queue).filter(j=>j.status==='queued').indexOf(job)+1:job.status==='running'?0:undefined;
         return send(res,200,{id:job.id,status:job.status,queuePosition,progress:job.progress,error:job.error,data:job.status==='done'&&!url.searchParams.has('summary')?job.result:undefined});
       }
       if(url.pathname.startsWith('/api/')) return send(res,404,{error:'Unknown endpoint'});

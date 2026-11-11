@@ -61,3 +61,20 @@ test('queued jobs have positions, active requests remain independent and summari
   const summary=await get(second.id,true);assert.equal(summary.status,'done');assert.equal(summary.data,undefined);
  }finally{server.closeAllConnections?.();await new Promise(resolve=>server.close(resolve));await rm(root,{recursive:true,force:true});}
 });
+test('metadata uses its own worker lane and cannot block a profile analysis',async()=>{
+ const {mkdtemp,writeFile,rm}=await import('node:fs/promises'),os=await import('node:os'),path=await import('node:path');
+ const root=await mkdtemp(path.join(os.tmpdir(),'oq-metadata-test-')),adapter=path.join(root,'adapter.py');
+ await writeFile(adapter,'import json,sys,time\nr=json.load(sys.stdin)\ntime.sleep(3 if r["action"]=="metadata" else 0.05)\nprint(json.dumps({"type":"result","data":{"action":r["action"]}}),flush=True)\n');
+ const server=createApp({adapterPath:adapter,metadataAdapterPath:adapter});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
+ const start=async action=>fetch(base+'/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,groups:['6005769at2759'],release:'v13'})}).then(r=>r.json());
+ let meta;
+ try{
+  meta=await start('metadata');const analysis=await start('profiles');let result;
+  for(let i=0;i<100;i++){result=await fetch(base+'/api/jobs/'+analysis.id).then(r=>r.json());if(result.status==='done')break;await new Promise(resolve=>setTimeout(resolve,15));}
+  assert.equal(result.status,'done');assert.equal((await fetch(base+'/api/jobs/'+meta.id).then(r=>r.json())).status,'running');
+ }finally{
+  if(meta)await fetch(base+'/api/jobs/'+meta.id,{method:'DELETE'});
+  for(let i=0;i<100;i++){if(!(await fetch(base+'/api/health').then(r=>r.json())).metadataJobs)break;await new Promise(resolve=>setTimeout(resolve,10));}
+  server.closeAllConnections?.();await new Promise(resolve=>server.close(resolve));await rm(root,{recursive:true,force:true});
+ }
+});

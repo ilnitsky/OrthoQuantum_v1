@@ -8,10 +8,11 @@ services:
     ports:
       - '127.0.0.1:${ORTHOQUANTUM_PORT:-8050}:8051'
     environment:
-      ORTHODB_PATH: /reference/orthodb.db
+      ORTHODB_PATH: /reference/${ORTHOQUANTUM_ORTHODB_FILE:-orthodb_v13.db}
+      ORTHODB_LEVELS_PATH: /reference/orthodb_v13_levels.sqlite
       PANTHER_PATH: /reference/panther.sqlite
       PANTHER_BUNDLE_DIR: /reference/panther_v19
-      ORTHODB_RELEASE: v11
+      ORTHODB_RELEASE: '${ORTHOQUANTUM_ORTHODB_RELEASE:-v13}'
       PUBLIC_ORIGINS: '${ORTHOQUANTUM_PUBLIC_ORIGINS:-http://orthoq.bioinf.fbb.msu.ru,https://orthoq.bioinf.fbb.msu.ru}'
       ORTHODB_PROXY: '${LITE_ORTHODB_PROXY-socks5h://host.docker.internal:10810}'
     extra_hosts:
@@ -20,7 +21,7 @@ services:
       - '${ORTHOQUANTUM_REFERENCE_DIR:-/home/ilnitsky/PANTHERDB}:/reference:ro'
     depends_on:
       - xray-relay
-    mem_limit: 384m
+    mem_limit: 1g
     cpus: 1.5
     restart: unless-stopped
     security_opt: ['no-new-privileges:true']

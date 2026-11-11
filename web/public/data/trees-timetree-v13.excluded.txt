@@ -1,0 +1,786 @@
+Pelomyxa schiedti
+Acytostelium subglobosum LB1
+Heterostelium album PN500
+Tieghemostelium lacteum
+Thecamonas trahens ATCC 50062
+Baffinella frigidus
+Diplonema papillatum
+Bodo saltans
+Bodo sp.
+Acrasis kona
+Willaertia magna
+Andalucia godoyi
+Pavlovales sp. CCMP2436
+Emiliania huxleyi CCMP1516
+Anaeramoeba flamelloides
+Anaeramoeba ignava
+Aduncisulcus paluster
+Kipferlia bialata
+Hexamita inflata
+Spironucleus salmonicida
+Barthelona sp. PCE
+Trichomonas vaginalis G3
+Histomonas meleagridis
+Tritrichomonas foetus
+Tritrichomonas musculus
+Blattamonas nauphoetae
+Monocercomonoides exilis
+Streblomastix strix
+Paratrimastix pyriformis
+Candelina mexicana
+Candelina submexicana
+Pycnora praestabilis
+Chrysothrix sp. TS-e1954
+Phaeococcomyces sp. EXF-18165
+Pseudovirgaria hyperparasitica
+Eremomyces bilateralis CBS 781.70
+Lineolata rhizophorae
+Trichodelitschia bisporula
+Bogoriella megaspora
+Trypethelium subeluteriae
+Viridothelium virens
+Zopfia rhizophila CBS 207.26
+Piedraia hortae CBS 480.64
+Cryoendolithus antarcticus
+Neodothiora populina
+Taxawa tesnikishii (nom. ined.)
+Zalaria obscura
+Dissoconium aciculare CBS 342.82
+Extremus antarcticus
+Saxophila tyrrhenica
+Vermiconidia calcicola
+Neophaeotheca triangularis
+Dothideomycetidae sp. 11243
+Aulographum hederae CBS 113979
+Rhizodiscina lignyota
+Amniculicola lignicola CBS 123094
+Delitschia confertaspora ATCC 74209
+Dothidotthia symphoricarpi CBS 119687
+Clohesyomyces aquaticus
+Lindgomyces ingoldianus
+Massarina eburnea CBS 473.64
+Periconia digitata
+Periconia macrospinosa
+Aaosphaeria arxii CBS 175.79
+Coniothyrium glycines
+Cucurbitaria berberidis CBS 394.84
+Neocucurbitaria cava
+Neocucurbitaria sp. VM-36
+Sporormia fimetaria CBS 119925
+Polyplosphaeria fusca
+Dendryphion nanum
+Pleosporales sp. CAS-2024a
+Tothia fuscella
+Dothideomycetes sp. EMM_F3
+Dothideomycetes sp. NU457
+Dothideomycetes sp. NU459
+Neophaeococcomyces mojaviensis
+Chaetothyriales sp. CBS 134920
+Chaetothyriales sp. CBS 134916
+Knufia fluminis
+Lithohypha guttulata
+Chaetothyriales sp. CBS 132003
+Chaetothyriales sp. CBS 135597
+Phaeomoniella chlamydospora
+Elaphomyces granulatus
+Arachnomyces sp. PD_36
+Emydomyces testavorans
+Myotisia sp. PD_48
+Onygenales sp. PD_40
+Geoglossum simile
+Geoglossum umbratile
+Glutinoglossum americanum
+Puttea exsequens
+Lecanoromycetidae sp. Uapishka_2
+Bachmanniomyces sp. S44760
+Lignoscripta atroalba
+Caeruleum heppii
+Piccolia ochrophora
+Sarcosagium campestre
+Thelocarpon impressellum
+Thelocarpon superellum
+Trizodia sp. TS-e1964
+Vezdaea acicularis
+Vezdaea aestivalis
+Lichina confinis
+Watsoniomyces obsoletus
+Sarea resinae
+Amylocarpus encephaloides
+Rhexocercosporidium sp. MPI-PUGE-AT-0058
+Hyphodiscus hymeniophilus
+Venustampulla echinocandica
+Tricladium varicosporioides
+Oidiodendron maius Zn
+Xylogone sp. PMI_703
+Aphanocladium album
+Pleurostoma richardsiae
+Thozetella sp. PMI_491
+Cryphonectria parasitica EP155
+Phyllachora maydis
+Diplogelasinospora grovesii
+Rhypophila decipiens
+Rhypophila sp. PSN 637
+Naviculisporaceae sp. PSN 640
+Cladorrhinum samala
+Cladorrhinum sp. PSN259
+Cladorrhinum sp. PSN332
+Podospora aff. communis PSN243
+Podospora appendiculata
+Podospora australis
+Podospora comata
+Podospora conica
+Podospora didyma
+Podospora fimiseda
+Triangularia setosa
+Triangularia verruculosa
+Echria macrotheca
+Thyridium curvatum
+Neoarthrinium moseri
+Neopestalotiopsis sp. 37M
+Seiridium cardinale
+Seiridium unicorne
+Truncatella angustata
+Xylariomycetidae sp. FL0641
+Xylariomycetidae sp. FL2044
+Diatrype stigma
+Camillea tinctor
+Microdochium bolleyi
+Microdochium majus
+Microdochium nivale
+Microdochium trichocladiopsis
+Xylariales sp. AK1849
+Xylariales sp. PMI_506
+Monosporascus ibericus
+Monosporascus sp. 5C6A
+Monosporascus sp. CRB-8-3
+Monosporascus sp. CRB-9-2
+Monosporascus sp. GIB2
+Monosporascus sp. MC13-8B
+Monosporascus sp. MG133
+Monosporascus sp. mg162
+Cirrosporium novae-zelandiae
+Xylona heveae TC161
+Ascobolus immersus RN42
+Maublancomyces gigas
+Neolecta irregularis DAH-3
+Savitreella phatthalungensis
+Auriculariales sp. MPI-PUGE-AT-0066
+Tulasnella calospora MUT 4182
+Tulasnella sp. 330
+Tulasnella sp. 403
+Tulasnella sp. 408
+Tulasnella sp. 417
+Tulasnella sp. 419
+Tulasnella sp. 424
+Tulasnella sp. 427
+Tulasnella sp. UAMH 9824
+Tulasnella sp. JGI-2019a
+Epithele typhae
+Fibroporia radiculosa
+Taiwanofungus camphoratus
+Panaeolus cyanescens
+Panaeolus papilionaceus
+Crassisporium funariophilum
+Stygiomarasmius scandens
+Tetrapyrgos nigripes
+Pterulicium gracile
+Cristinia sonorae
+Flagelloscypha sp. PMI_526
+Melanogaster broomeanus
+Gyrodon lividus
+Paxillus ammoniavirescens
+Paxillus involutus ATCC 200175
+Paxillus rubicundulus Ve08.2h10
+Phlebopus sp. FC_14
+Jaapia argillacea MUCL 33604
+Sphaerobolus stellatus SS14
+Gautieria morchelliformis
+Clathrus columnatus
+Tremellales sp. Tagirdzhanova-0007
+Tremellales sp. Uapishka_1
+Atractiella rhizophila
+Cyphobasidiales sp. Tagirdzhanova-0007
+Cystobasidium minutum MCA 4210
+Cystobasidiomycetes sp. EMM_F5
+Meredithblackwellia eburnea MCA 4105
+Phenoliferia psychrophenolica
+Phenoliferia sp. Uapishka_3
+Leucosporidium creatinivorum
+Pseudohyphozyma bogoriensis
+Rhodosporidiobolus azoricus
+Rhodosporidiobolus lusitaniae
+Rhodosporidiobolus microsporus
+Rhodosporidiobolus nylandii
+Rhodosporidiobolus odoratus
+Rhodosporidiobolus poonsookiae
+Rhodosporidiobolus ruineniae
+Rhodotorula araucariae
+Rhodotorula babjevae
+Rhodotorula dairenensis
+Rhodotorula diobovata
+Rhodotorula glutinis
+Rhodotorula graminis
+Rhodotorula kratochvilovae
+Rhodotorula mucilaginosa
+Rhodotorula pacifica
+Rhodotorula paludigena
+Rhodotorula sphaerocarpa
+Rhodotorula taiwanensis
+Rhodotorula toruloides
+Rhodotorula toruloides ATCC 204091
+Rhodotorula sp. JG-1b
+Sporobolomyces blumeae
+Sporobolomyces carnicolor
+Sporobolomyces johnsonii
+Sporobolomyces koalae
+Sporobolomyces pararoseus
+Sporobolomyces phaffii
+Sporobolomyces roseus
+Sporobolomyces ruberrimus
+Sporobolomyces salmoneus
+Sporobolomyces salmonicolor
+Microbotryomycetes sp. JL201
+Microbotryomycetes sp. JL221
+Microbotryomycetes sp. NB124-2
+Mixia osmundae IAM 14324
+Ceraceosorus bombacis
+Ceraceosorus guamensis
+Tilletiopsis washingtonensis
+Meira miltonrushii
+Acaromyces ingoldii
+Exobasidium rhododendri
+Tilletiaria anomala UBC 951
+Microstroma glucosiphilum
+Jaminaea angkorensis CBS 10918
+Jaminaea pallidilutea
+Jaminaea rosea
+Parajaminaea phylloscopi
+Sympodiomycopsis kandeliae
+Tilletia caries
+Tilletia horrida
+Tilletia indica
+Tilletia maclaganii
+Tilletia walkeri
+Thecaphora frezii
+Testicularia cyperi
+Kalmanozyma brasiliensis GHG001
+Melanopsichium pennsylvanicum
+Violaceomyces palustris
+Basidioascus undulatus
+Wallemia canadensis
+Wallemia hederae
+Wallemia ichthyophaga EXF-994
+Wallemia mellicola CBS 633.66
+Catenaria anguillulae PL171
+Coelomomyces lativittatus
+Sorochytrium milnesiophthora
+Calcarisporiella thermophila
+Caulochytrium protostelioides
+Chytridium lagenaria
+Dinochytrium kinnereticum
+Irineochytrium annulatum
+Phlyctochytrium arcticum
+Phlyctochytrium bullatum
+Phlyctochytrium planicorne
+Zopfochytrium polystomum
+Entophlyctis helioformis
+Entophlyctis luteolus
+Obelidium mucronatum
+Physocladia obscura
+Podochytrium sp. JEL0797
+Rhizoclosmatium globosum
+Rhizoclosmatium hyalinum
+Rhizoclosmatium sp. JEL0117
+Siphonaria sp. JEL0065
+Chytridiales sp. JEL 0842
+Blyttiomyces helicus
+Blyttiomyces sp. JEL0837
+Quaeritorhiza haematococci
+Cladochytrium replicatum
+Cladochytrium tenue
+Nowakowskiella sp. JEL0078
+Nowakowskiella sp. JEL0407
+Lobulomyces angularis
+Lobulomycetales sp.
+Borealophlyctis nickersoniae
+Rhizophlyctis rosea
+Globomyces pollinis-pini
+Globomyces sp. JEL0801
+Gorgonomyces haynaldii
+Kappamyces sp. JEL0680
+Kappamyces sp. JEL0829
+Batrachochytrium dendrobatidis
+Batrachochytrium salamandrivorans
+Polyrhizophydium stewartii
+Boothiomyces macroporosus
+Boothiomyces sp. JEL0838
+Boothiomyces sp. JEL0866
+Terramyces sp. JEL0728
+Fimicolochytrium jonesii
+Geranomyces michiganensis
+Geranomyces variabilis
+Powellomyces hirtus
+Thoreauomyces humboldtii
+Gaertneriomyces semiglobifer
+Gaertneriomyces sp. JEL0708
+Spizellomyces punctatus DAOM BR117
+Spizellomyces sp. 'palustris'
+Synchytrium endobioticum
+Synchytrium microbalum
+Gonapodya prolifera JEL478
+Gonapodya sp. JEL0774
+Massospora cicadina
+Ambispora gerdemannii
+Ambispora leptoticha
+Dimargaris cristalligena
+Dimargaris verticillata
+Dimargaris xerosporica
+Dispira parvispora
+Dispira simplex
+Tieghemiomyces parasiticus
+Ramicandelaber brevisporus
+Ecytonucleospora hepatopenaei
+Enterocytozoon bieneusi H348
+Enterospora canceri
+Nucleospora cyclopteri
+Hepatospora eriocheir
+Nosema bombycis CQ1
+Nosema granulosis
+Vairimorpha apis BRL 01
+Vairimorpha bombi
+Vairimorpha ceranae
+Vairimorpha necatrix
+Vittaforma corneae ATCC 50505
+Spraguea lophii 42_110
+Encephalitozoon cuniculi GB-M1
+Encephalitozoon hellem
+Encephalitozoon intestinalis
+Encephalitozoon romaleae SJ-2008
+Conglomerata obtusa
+Amphiamblys sp. WSBS2006
+Binucleata daphniae
+Cucumispora dikerogammari
+Edhazardia aedis USNM 41457
+Dictyocoela muelleri
+Dictyocoela roeselum
+Enteropsectra breve
+Gurleya vavrai
+Mitosporidium daphniae
+Nematocida ausubeli
+Nematocida displodere
+Nematocida homosporus
+Nematocida sp. ERTm5
+Nematocida major
+Nematocida minor
+Nematocida parisii
+Nematocida sp. AWRm77
+Nematocida sp. AWRm80
+Nematocida sp. LUAm3
+Ordospora colligata OC4
+Ordospora pajunii
+Pancytospora epiphaga
+Pancytospora philotis
+Pseudoloma neurophilia
+Astathelohania contejeani
+Hamiltosporidium magnivora
+Glugoides intestinalis
+Trachipleistophora hominis
+Vavraia culicis subsp. floridensis
+Anncaliia algerae PRA109
+Anncaliia algerae PRA339
+Tubulinosema ratisbonensis
+Microsporidia sp. MB
+Bifiguratus adelaidae
+Syncephalis fuscata
+Syncephalis plumigaleata
+Syncephalis pseudoplumigaleata
+Thamnocephalis sphaerospora
+Leucoraja erinaceus
+Rhincodon typus
+Stegostoma tigrinum
+Amia calva
+Xiphias gladius
+Pholidichthys leucotaenia
+Denticeps clupeoides
+Chanos chanos
+Protopterus annectens
+Orycteropus afer afer
+Galeopterus variegatus
+Geomys bursarius
+Thomomys bottae
+Alouatta palliata
+Ateles geoffroyi
+Sus scrofa
+Eschrichtius robustus
+Miniopterus natalensis
+Rhinolophus ferrumequinum
+Phascolarctos cinereus
+Dromiciops gliroides
+Balaeniceps rex
+Scopus umbretta
+Fregata magnificens
+Chionis minor
+Dromas ardeola
+Pedionomus torquatus
+Aramus guarauna
+Heliornis fulica
+Phoenicopterus ruber ruber
+Opisthocomus hoazin
+Piaya cayana
+Geococcyx californianus
+Eurypyga helias
+Rhynochetos jubatus
+Steatornis caripensis
+Pandion haliaetus
+Sagittarius serpentarius
+Chloropsis cyanopogon
+Chloropsis hardwickii
+Irena cyanogastra
+Orthonyx spaldingii
+Elachura formosa
+Sclerurus mexicanus
+Tychaedon coryphoeus
+Regulus satrapa
+Horornis vulcanius
+Rhinopomastus cyanomelas
+Upupa epops
+Leptosomus discolor
+Psilopogon haemacephalus
+Dromaius novaehollandiae
+Struthio camelus australis
+Dermochelys coriacea
+Asterias rubens
+Patiria miniata
+Saccoglossus kowalevskii
+Cylicocyclus nassatus
+Cylicostephanus goldi
+Oesophagostomum dentatum
+Strongylus vulgaris
+Dracunculus medinensis
+Gongylonema pulchrum
+Steinernema carpocapsae
+Steinernema hermaphroditum
+Soboliphyme baturini
+Trichinella britovi
+Trichinella murrelli
+Trichinella nativa
+Trichinella nelsoni
+Trichinella papuae
+Trichinella patagoniensis
+Trichinella pseudospiralis
+Trichinella spiralis
+Trichinella zimbabwensis
+Trichinella sp. T6
+Trichinella sp. T8
+Trichinella sp. T9
+Trichuris suis
+Trichuris trichiura
+Oppia nitens
+Oppiella nova
+Dinothrombium tinctorium
+Fragariocoptes setiger
+Halotydeus destructor
+Tropilaelaps mercedesae
+Galendromus occidentalis
+Eurytemora affinis
+Tigriopus californicus
+Folsomia candida
+Allacma fusca
+Adalia bipunctata
+Coccinella septempunctata
+Harmonia axyridis
+Halyzia sedecimguttata
+Aethina tumida
+Podabrus alpinus
+Rhagonycha fulva
+Agrypnus murinus
+Ignelater luminosus
+Agriotes lineatus
+Philonthus cognatus
+Carposina sasakii
+Sesia apiformis
+Sesia bembeciformis
+Synanthedon andrenaeformis
+Synanthedon formicaeformis
+Synanthedon myopaeformis
+Synanthedon tipuliformis
+Synanthedon vespiformis
+Oegoconia quadripuncta
+Blastobasis adustella
+Blastobasis lacticolella
+Carcina quercana
+Hofmannophila pseudospretella
+Saturnia pavonia
+Tyria jacobaeae
+Cybosia mesomella
+Eilema caniola
+Eilema depressum
+Eilema sororculum
+Miltochrista miniata
+Thumatha senex
+Diaphora mendica
+Phragmatobia fuliginosa
+Spilarctia lutea
+Spilosoma lubricipeda
+Laspeyria flexula
+Euclidia mi
+Schrankia costaestrigalis
+Craniophora ligustri
+Allophyes oxyacanthae
+Xylocampa areola
+Lithophane leautieri
+Lithophane ornitopus
+Lithophane semibrunnea
+Lithophane socia
+Shargacucullia verbasci
+Protodeltote pygarga
+Cosmia pyralina
+Cosmia trapezina
+Eupsilia transversa
+Amphipoea lucens
+Amphipoea oculea
+Luperina testacea
+Caradrina clavipalpis
+Caradrina kadenii
+Eugnorisma glareosa
+Anorthoa munda
+Hecatera dysodea
+Lacanobia wlatinum
+Mamestra brassicae
+Melanchra persicariae
+Phlogophora meticulosa
+Cerastis rubricosa
+Diarsia brunnea
+Diarsia dahlii
+Diarsia mendica
+Diarsia rubi
+Noctua fimbriata
+Noctua janthe
+Noctua pronuba
+Ochropleura plecta
+Xestia sexstrigata
+Xestia xanthographa
+Orthosia gothica
+Orthosia gracilis
+Orthosia incerta
+Autographa gamma
+Autographa pulchrina
+Chrysodeixis includens
+Diachrysia chrysitis
+Plusia festucae
+Agrochola circellaris
+Agrochola litura
+Agrochola lota
+Agrochola macilenta
+Antitype chi
+Aporophyla lueneburgensis
+Aporophyla nigra
+Atethmia centrago
+Brachylomia viminalis
+Charanyca ferruginea
+Dicycla oo
+Dryobota labecula
+Dryobotodes eremita
+Eremobia ochroleuca
+Fissipunctia ypsillon
+Griposia aprilina
+Hoplodrina blanda
+Omphaloscelis lunosa
+Polymixis flavicincta
+Polymixis lichenea
+Thalpophila matura
+Xanthia icteritia
+Marasmarcha lunaedactyla
+Stenoptilia bipunctidactyla
+Luffia ferchaultella
+Monopis laevigella
+Tinea pellionella
+Tinea semifulvella
+Tinea trinotella
+Argyresthia goedartella
+Plutella xylostella
+Zelleria hepariella
+Ypsolopha scabrella
+Ypsolopha sequella
+Athripsodes cinereus
+Suillia variegata
+Epicampocera succincta
+Thecocarcelia acutangulata
+Gymnosoma rotundatum
+Cistogaster globosa
+Phasia obesa
+Nowickia ferox
+Tachina fera
+Tachina grossa
+Tachina lurida
+Condylostylus longicornis
+Beris chalybata
+Microchrysa polita
+Pseudolycoriella hygida
+Lutzomyia longipalpis
+Ampulex compressa
+Nysson spinosus
+Ectemnius continuus
+Ectemnius lituratus
+Pemphredon lugubris
+Mimumesa dahlbomi
+Cerceris rybyensis
+Trichomalopsis sarcophagae
+Homalodisca vitripennis
+Laodelphax striatellus
+Nesidiocoris tenuis
+Gonocerus acuteangulatus
+Diaphorina citri
+Cyprideis torosa
+Darwinula stevensoni
+Hypsibius exemplaris
+Ramazzottius varieornatus
+Paramacrobiotus metropolitanus
+Adineta ricciae
+Adineta steineri
+Adineta vaga
+Didymodactylos carnosus
+Rotaria magnacalcarata
+Rotaria socialis
+Rotaria sordida
+Rotaria sp. Silwood1
+Rotaria sp. Silwood2
+Brachionus calyciflorus
+Brachionus plicatilis
+Seison nebaliae
+Pomphorhynchus laevis
+Dimorphilus gyrociliatus
+Owenia fusiformis
+Capitella teleta
+Intoshia linei
+Mya arenaria
+Aplysia californica
+Macrostomum lignano
+Mesocestoides corti
+Clonorchis sinensis
+Opisthorchis felineus
+Opisthorchis viverrini
+Echinostoma caproni
+Dicrocoelium dendriticum
+Heterobilharzia americana
+Trichobilharzia regenti
+Trichobilharzia szidati
+Exaiptasia diaphana
+Xenia sp. Carnegie-2017
+Trichoplax adhaerens
+Trichoplax sp. H2
+Fonticula alba
+Galdieria partita
+Galdieria sulphuraria
+Galdieria yellowstonensis
+Cardiosporidium cionae
+Cryptosporidium andersoni
+Cryptosporidium bovis
+Cryptosporidium canis
+Cryptosporidium felis
+Cryptosporidium hominis
+Cryptosporidium meleagridis
+Cryptosporidium muris RN66
+Cryptosporidium parvum
+Cryptosporidium ryanae
+Cryptosporidium serpentis
+Cryptosporidium ubiquitum
+Cryptosporidium xiaoi
+Cryptosporidium sp. chipmunk genotype I
+Cyclospora cayetanensis
+Eimeria acervulina
+Eimeria brunetti
+Eimeria flavescens
+Eimeria intestinalis
+Eimeria magna
+Eimeria maxima
+Eimeria media
+Eimeria mitis
+Eimeria necatrix
+Eimeria praecox
+Eimeria stiedai
+Eimeria tenella
+Besnoitia besnoiti
+Cystoisospora suis
+Hammondia hammondi
+Neospora caninum Liverpool
+Gregarina niphandrodes
+Porospora cf. gigantea A
+Porospora cf. gigantea B
+Halteria grandinella
+Blepharisma stoltei
+Vitrella brassicaformis CCMP3155
+Prorocentrum cordatum
+Polarella glacialis
+Cladocopium goreaui
+Durusdinium trenchii
+Effrenium voratum
+Amoebophrya sp. A120
+Amoebophrya sp. A25
+Amorphochlora amoebiformis
+Cercozoa sp. M6MM
+Bonamia ostreae
+Marteilia pararefringens
+Plasmodiophora brassicae
+Hondaea fermentalgiana
+Cafeteria roenbergensis
+Blastocystis hominis
+Blastocystis sp. ATCC 50177/Nand II
+Blastocystis sp. Blastoise
+Blastocystis sp. BT1
+Blastocystis sp. NMH
+Mayamaea pseudoterrestris
+Epithemia clementina (nom. ined.)
+Tetraparma gracilis
+Triparma columacea
+Triparma laevis f. longispina
+Triparma retinervis
+Triparma verrucosa
+Parmales sp. scaly parma
+Nannochloropsis gaditana
+Nannochloropsis salina CCMP1776
+Nannochloropsis oceanica
+Aureococcus anophagefferens
+Chrysophaeum taylorii
+Pelagomonas calceolata
+Pelagophyceae sp. CCMP2097
+Chrysoparadoxa australica
+Discosporangium mesarthrocarpum
+Phaeothamnion confervicola
+Tribonema minus
+Heterosigma akashiwo
+Albugo candida
+Aphanomyces astaci
+Aphanomyces cochlioides
+Aphanomyces euteiches
+Aphanomyces invadans
+Aphanomyces stellatus
+Eukaryota sp. GEM-RC1
+Eukaryota sp. TZLM1-RC
+Eukaryota sp. TZLM3-RCL
+Chloropicon primus
+Scenedesmus sp. NREL 46B-D3
+Scenedesmus sp. PABB004
+Tetradesmus obliquus
+Monoraphidium minutum
+Monoraphidium neglectum
+Raphidocelis subcapitata
+Pedinophyceae sp. YPF-701
+Auxenochlorella protothecoides
+Chlorella ohadii
+Chlorella sorokiniana
+Chlorella variabilis
+Chlorella vulgaris
+Micractinium conductrix
+Helicosporidium sp. ATCC 50920
+Nannochloris sp. 'desiccata'
+Trebouxia sp. A1-2
+Coccomyxa subellipsoidea C-169
+Coccomyxa sp. Obi
+Picochlorum sp. BPE23
+Ostreobium quekettii
+Pycnococcus provasolii
+Cryptomeria japonica
+Daucus carota subsp. sativus
+Colocasia esculenta
+Ananas comosus

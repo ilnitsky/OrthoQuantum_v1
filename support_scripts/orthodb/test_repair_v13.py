@@ -61,6 +61,34 @@ class RepairTests(unittest.TestCase):
             with patch.object(sys,'argv',argv):
                 with self.assertRaisesRegex(RuntimeError,'unpublished'):repair.main()
 
+    def test_readonly_prepared_source_allows_atomic_apply_and_is_not_modified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source,output,candidate=self.fixture(root);mapping=root/'prepared.db'
+            with sqlite3.connect(mapping) as db:
+                db.execute(SCHEMA[0]);db.executemany('INSERT INTO genes VALUES(?,?,?)',[((9606<<32)|i,acc,name) for i,(acc,name) in enumerate(repair.SAMPLES.items(),1)])
+            mapping.chmod(0o444);prepared_before=mapping.read_bytes();live_before=source.read_bytes()
+            with sqlite3.connect(candidate) as db:schema=db.execute(repair.SCHEMA_QUERY).fetchall()
+            samples=repair.apply_mapping(candidate,mapping,schema,4,6)
+            self.assertEqual(set(samples),set(repair.SAMPLES));self.assertEqual(mapping.read_bytes(),prepared_before);self.assertEqual(source.read_bytes(),live_before)
+            with sqlite3.connect(candidate) as db:
+                self.assertEqual(db.execute('SELECT count(*) FROM genes').fetchone()[0],4)
+                self.assertEqual(db.execute('SELECT count(*) FROM orthodb_to_og').fetchone()[0],6)
+                self.assertEqual(db.execute(repair.SCHEMA_QUERY).fetchall(),schema)
+
+    def test_resume_readonly_failure_reuses_prepared_symbols_with_unchanged_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source,output,candidate=self.fixture(root);mapping=Path(str(output)+'.symbols.sqlite')
+            with sqlite3.connect(mapping) as db:
+                db.execute(SCHEMA[0]);db.executemany('INSERT INTO genes VALUES(?,?,?)',[((9606<<32)|i,acc,name) for i,(acc,name) in enumerate(repair.SAMPLES.items(),1)])
+            metadata=json.loads(Path(str(output)+'.build.json').read_text())
+            report={'status':'failed','phase':'applying','error':'attempt to write a readonly database','mapping_file':str(mapping),'gene_rows':4,'ncbi_source':{'url':'fixture'},'identity':{'size':candidate.stat().st_size,'mtime_ns':candidate.stat().st_mtime_ns,'xref_md5':metadata['input_md5']['odb13v0_gene_xrefs.tab.gz']}}
+            Path(str(output)+'.repair.json').write_text(json.dumps(report));live_before=source.read_bytes();prepared_before=mapping.read_bytes()
+            argv=['repair','--source',str(source),'--archives',str(root),'--output',str(output),'--streamer',str(STREAMER),'--resume-staged']
+            with patch.object(sys,'argv',argv),patch.object(repair.shutil,'disk_usage',return_value=type('Disk',(),{'free':100*2**30})()):repair.main()
+            self.assertTrue(output.exists());self.assertFalse(candidate.exists());self.assertEqual(source.read_bytes(),live_before);self.assertEqual(mapping.read_bytes(),prepared_before)
+            result=json.loads(Path(str(output)+'.repair.json').read_text());self.assertEqual(result['status'],'complete');self.assertNotIn('error',result)
+            self.assertIn('NCBI gene_info',json.loads(Path(str(output)+'.build.json').read_text())['stages']['genes']['source'])
+
     def test_apply_failure_rolls_back_genes_and_all_indexes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);source,output,candidate=self.fixture(root);mapping=root/'map.db'

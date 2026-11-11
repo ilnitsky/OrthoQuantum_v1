@@ -199,3 +199,141 @@ DOMAIN-CONTAINING group is present; NUCLEOPHOSMIN combines six SF IDs. Changing
 PANTHER mode reloads the same query, and original orthogroup view switching and
 mobile layout remain valid. No browser errors. Artifacts:
 `npm1-named-subfamilies.png` and `panther-subfamilies-results.json`.
+
+### Full-dataset clustering
+
+`node --test tests/*.test.mjs` includes full 1,000-group coverage and compares
+nearest-neighbor-chain average linkage with an exhaustive implementation.
+`tests/full-cluster.browser.mjs` checks all columns enter both plot orders,
+including an identical profile at column 999, and measures cached redraws.
+The deployed Chromium run clustered 1,000 groups × 165 species in ~1.6 seconds
+and averaged ~4.6 ms per clustermap redraw. The first-160-group cap is removed.
+
+### v13 main deployment and 2,500 cap
+
+Main HTTP checks passed for v13 configuration, AGO1/NPM1 symbol resolution,
+profile creation and rejection of v11 matches. Nine original adapter checks plus
+the larger 2,500-group stdin regression passed (10 total); 17 Node tests passed.
+`TEST_GROUPS=2500 ... node tests/full-cluster.browser.mjs` included every group
+in both plot orders, clustering in ~1.8 seconds and redrawing in ~8.9 ms. The
+Max findings browser check accepted 2,500 and rejected 2,501; default/reset=100.
+
+### Expanded v13 species and levels
+
+18 Node tests and 13 adapter/catalog/supplement tests passed; the latter were
+also run inside the actual deployed Python 3.9.5 / SQLite image. The complete
+supplement passed quick_check and contains 4,977,455 memberships for nine levels.
+The v13 catalog test checks all 160 level trees for unique species, complete
+rows/tree alignment and selected genomes. A representative fixture verifies that
+renamed canonical taxonomy IDs resolve correctly and alternate assemblies do not
+inflate counts. Supplement fixtures verify read-only access and base-identity
+guards, as well as isolated publication from a tiny verified gzip input.
+
+`tests/v13-species.browser.mjs` passed against the main deployment: 162 choices,
+5,486 / 2,320 / 2,416 / 410 / 93 species in extended Eukaryota, Metazoa, Fungi,
+Viridiplantae and Lophotrochozoa. A real NPM1 profile loaded all 5,486 rows, 2,023
+with findings, and one gene in the selected human genome. Common options and
+mobile overflow checks passed. Actual read-only queries built positive profiles
+for Fungi, plants, Lophotrochozoa, SAR, Discoba, Metamonada, Haptista and
+Cryptophyceae. Taxonomy trees retain unresolved polytomies and infer no distances.
+
+### GO resolution timeout
+
+The query budget fixture simulates a long interval between SQL statements and
+checks that the next statement still succeeds, while an actually slow statement
+is interrupted. Annotation coverage verifies GO skips gene-name resolution,
+loads reference names once and uses the group index without changing aliases or
+source files. Pagination covers 1,000 + 1,000 + 500 records and repeated-page
+protection. The live full-limit GO:0005730 adapter check returned 2,500 results
+in ~97 seconds; the upstream reported 5,083 total matches. See
+`tests/go-resolution.browser.mjs` for real UI checks at 100 and 2,500 findings.
+
+Final deployed-browser validation passed for `GO:0005730`: **100 findings in
+7.9 seconds**, **2,500 findings in 59.1 seconds**, with all choice rows and
+reference gene annotations present, no timeout and no browser errors. All 15
+adapter tests passed again in the deployed Python/SQLite runtime.
+
+### Full NCBI species ordering
+
+20 Node and 18 Python checks passed. All 5,486 species resolve against the pinned
+NCBI snapshot (14 merged IDs, zero unresolved). The catalog test verifies every
+NCBI clade forms a contiguous block, not merely a handful of example families.
+Checksum, parent-lineage/merge and missing-ID fixtures pass; saved-result tests
+verify counts/statuses remain aligned and v11 snapshots are not changed.
+`tests/ncbi-taxonomy.browser.mjs` passed on the deployed main service: real NPM1
+profile, correct NCBI row order, reversed saved-v13 migration, all original count
+values retained by species ID, mobile layout, no browser errors.
+
+### Batched list / rectangle zoom / species exports
+
+21 Node and 21 Python tests passed, with the Python suite repeated in the
+production runtime. Tests cover two indexed local batch-query kinds, distinct
+per-input matches, four simultaneous online fallbacks and round-robin caps.
+The exact 40-gene user fixture retained every input after deployment; the 0.16s
+browser rerun used the existing completed-job cache, not a cold SQL lookup.
+`batch-area.browser.mjs` passed Shift/button/reverse rectangle zoom, Escape
+cancellation, count preservation, species text download/MIME and mobile layout.
+Visible rows changed from 2,320 to 247 after zoom. Static lists contain 2,320 /
+5,486 exact row names and 2,293 / 5,382 unique NCBI species-rank names, including
+Homo sapiens and Canis lupus, with no headers or tabs in the text lists.
+
+### TimeTree lengths / dated cohorts
+
+23 Node and 25 Python checks passed; the Python suite also passed inside the
+actual deployed runtime. Unit tests cover the export's punctuation, two tiny
+negative edges, unary-edge summation, exact known pairwise distances in real
+level trees, null undated grafts, conservative exclusions and topology fallback.
+SVG tests distinguish length-scaled coordinates from uniform depth, preserve
+unknown edge nulls and verify dashed/† notation plus a Myr scale. Saved migration
+checks retain complete rows and recompute coverage after exclusions.
+
+`tests/timetree.browser.mjs` passed against main: 4,700-row NPM1 profile,
+3,274 exported tips / 1,426 undated placements / 786 exclusions; real time-scaled
+geometry, dashed inferred edges and dated SVG export. An old 5,486-row v13
+fixture migrated without querying and retained each surviving species' original
+counts. Mobile and browser error checks passed. Five levels without dates retain
+explicit NCBI topology; no branch lengths are fabricated for them.
+
+### OrthoDB evolutionary statistics
+
+24 Node and 27 Python checks passed, including release-separated caches, strict
+group identity checks, partial failures, zero/missing values and an independent
+metadata lane that permits profile analysis to finish during metadata loading.
+`tests/orthodb-stats.browser.mjs` passed against deployed main: live v13 group
+6005769at2759 returned rate 2.5192, median protein length 712 aa, SD 45.6 aa and
+median exon count 8. Expanded details retained exon SD 0 and source coverage;
+metadata did not enter query history. PANTHER columns stayed isolated, mobile
+layout passed, and no browser errors occurred.
+
+### Typed queries and presets
+
+30 Python and 24 Node tests passed. Added namespace/table parsing checks and a
+strict-symbol regression verifying that multiple exact groups are retained and
+missing symbols never invoke remote description search. The supplied 799-line
+gene table parses into 794 unique symbols. Live `tests/query-types.browser.mjs`
+passed: BRCA2 and NPM1 resolve to v13 groups, all exact groups are selected, a
+missing symbol remains explicit, Polycomb/nucleolus presets populate correctly,
+and mobile layout has no horizontal overflow or browser errors.
+
+### Experimental shared-loss scoring
+
+Focused checks cover increasing rewards for 1–6 independent exact holes, one
+ancestral absence counted once, smaller clade preference, shorter-edge and
+evolutionary-rate effects, unmatched-hole penalty, unequal overlapping holes,
+unknown/pending exclusions, no losses outside inferred origin, missing-rate
+reporting, species-row permutation and branch-unit invariance.
+`tests/loss-score.browser.mjs` passed against main: three-hole pair ranks first,
+neutral-rate fallback is explicit, branch details show lengths, Pearson remains
+visible, and mobile has no overflow or browser errors. A synthetic 1,000-group
+× 165-species host benchmark took 1,003 ms (17,069 inferred events, 85,710
+positive pairs, top 100 retained). This verifies implementation behavior, not
+biological predictive accuracy.
+
+### Adaptive taxonomic clades
+
+34 JavaScript tests passed, including real Eukaryota/Metazoa/Fungi/Viridiplantae
+catalogs, disjoint label selection, exact descendant-set naming, unchanged branch
+lengths, mixed-node rejection and named/colorized SVG exports.
+`tests/taxon-clades.browser.mjs` passed on deployed main across those four levels,
+with finer labels after zoom/pan, matching full-name key and mobile overflow/error
+checks. Visual inspection led to a wider overview branch gutter for readable names.

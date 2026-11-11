@@ -23,14 +23,15 @@ def job(request):
 
 if __name__=='__main__':
     checks=[]
+    configuration=job({'action':'config'});release=configuration['release'];species_count=len(next(t for t in configuration['trees'] if t['id']=='1')['species'])
     for query in ['IPR003165','ko04210']:
         start=time.monotonic()
         result=job({'action':'resolve','inputs':query,'treeId':'1','taxid':'9606'})
         assert result['groups'],result
-        assert result['release']=='v11'
+        assert result['release']==release
         assert all(g['id'].endswith('at2759') for g in result['groups'])
-        matrix=job({'action':'profiles','groups':result['groups'][:2],'treeId':'1','inputs':query,'title':'Online API smoke: '+query})
-        assert len(matrix['species'])==165 and len(matrix['groups'])==2
+        matrix=job({'action':'profiles','release':release,'groups':result['groups'][:2],'treeId':'1','inputs':query,'title':'Online API smoke: '+query})
+        assert len(matrix['species'])==species_count and len(matrix['groups'])==2
         checks.append({'input':query,'matches':len(result['groups']),'builtGroups':2,'species':len(matrix['species']),'seconds':round(time.monotonic()-start,3),'warnings':result['warnings']})
         print(json.dumps(checks[-1]),flush=True)
     target=Path(__file__).parents[1]/'artifacts/online-api-results.json'

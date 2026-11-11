@@ -234,6 +234,95 @@ for progress, rather than running COUNT/join queries on active build databases.
 The failed container's original logs remain under
 `orthodb-v13-symbol-repair-lock-failure`; the resumed job retains the normal name.
 
-Nine importer/repair fixtures now cover the full pipeline, concurrent staging
+Eleven importer/repair fixtures now cover the full pipeline, concurrent staging
 readers, interruption/resume without missing or duplicating symbols, and reuse of
 pinned input without network access.
+
+The worker uses SQLite 3.27.2: `BEGIN IMMEDIATE` attempts to write-lock an
+attached read-only prepared database and fails before changing the candidate.
+Apply uses a deferred transaction, acquiring the candidate write lock on the
+first index change while retaining atomic rollback and the read-only source.
+`--resume-staged` also accepts this exact pre-write failure only when the
+candidate/input identity still matches. It reuses the validated `.symbols.sqlite`
+table without downloading or matching again. Run repair tests in the worker
+image as well as on the host; newer host SQLite does not reproduce this failure.
+The failed container logs are preserved as
+`orthodb-v13-symbol-repair-readonly-failure`.
+
+## Missing v13 orthology levels
+
+The original membership import retained the 160 legacy level IDs. The v13
+catalog has nine additional eukaryotic levels with OGs: SAR, Discoba, Metamonada,
+Haptista, Cryptophyceae, Amphibia and three Plasmodium subgroups. The offline
+`build_v13_levels.py` filters only these levels from the verified membership
+archive into an independent, indexed, integrity-checked supplement. It verifies
+the archive MD5, main DB identity and every requested level before atomic
+publication. The main DB is opened read-only throughout.
+
+```sh
+python3 -u support_scripts/orthodb/build_v13_levels.py \
+  --base /home/ilnitsky/PANTHERDB/orthodb_v13.db \
+  --archives /home/ilnitsky/OrthoDB_loads_v13 \
+  --catalog web/public/data/trees-v13.json \
+  --streamer support_scripts/orthodb/bin/stream_v13 \
+  --output /home/ilnitsky/PANTHERDB/orthodb_v13_levels.sqlite
+# Running detached build on this host:
+docker logs -f --tail 30 orthodb-v13-extra-levels
+```
+
+`web/build_v13_trees.py` separately generates matching taxonomy trees/cohorts
+from verified metadata; runtime `v13_catalog.py` projects compact reference trees
+onto v13 representatives. No synthetic Protista/Spiralia OG level is invented.
+The runtime attaches only a completed supplement whose manifest agrees with the
+base DB; release/path/stat fingerprints invalidate caches after publication.
+
+### Bulk v13 evolutionary rates (SPARQL)
+
+`fetch_v13_metadata.py` extracts release-verified v13 rate and gene-architecture
+metadata from https://sparql.orthodb.org/sparql. The ordinary v13 flat-file dump
+and `/og_description` do not include evolutionary rates. The SPARQL frontend
+advertises release 13.0; the builder checks that banner and the known v13 group
+6005769at2759 rate 2.5192 at startup/resume and every 50 pages. The schema's older
+ontology documentation alone is not used to establish the data release.
+
+The detached container is `orthodb-v13-metadata-bulk`; output is ignored local
+reference data in `local_data/orthodb-v13-metadata/` (relative to repository root).
+It starts with Eukaryota, Metazoa, Fungi and Viridiplantae, then other v13 levels.
+Only groups having an upstream rate are included; absent rates are not zero.
+Source list contains 990 levels / 17,782,378 groups, which is an upper bound on
+rate rows, not a verified count of available rates. Never label that denominator
+as exact rate-completion progress.
+
+```sh
+# From repository root:
+docker logs -f --tail 20 orthodb-v13-metadata-bulk
+watch -n 5 cat local_data/orthodb-v13-metadata/progress.json
+# Resume the same stopped/failed container (completed pages are retained):
+docker start orthodb-v13-metadata-bulk
+# Explicit stop; the active uncommitted page can be retried on resume:
+docker stop orthodb-v13-metadata-bulk
+```
+
+A single worker requests pages of 5,000 groups in stable URI order using keyset
+pagination, waits between pages, retries errors with backoff, and rejects
+endpoint truncation headers, malformed numbers, incorrect levels and repeated
+or unordered cursors. Rows and cursor checkpoints commit in one SQLite
+transaction; a single-writer lock prevents duplicate jobs. Progress JSON is
+replaced atomically. The final stage runs SQLite quick_check and creates a level
+index. The live reference database and application deployment are untouched.
+
+`metadata.sqlite` contains:
+`metadata(group_id, level, rate, median_length, length_sd, median_exons, exon_sd)`,
+`levels(level, name, cursor, rows, complete)`, and `provenance(key, value)`.
+Read it using SQLite URI `mode=ro`; the downloader uses WAL during construction.
+A consumer must inspect progress/provenance and handle groups not downloaded yet.
+Do not rename this partial file into a production reference or claim all rates
+are present until the completion marker and checks pass.
+
+```sh
+sqlite3 -readonly local_data/orthodb-v13-metadata/metadata.sqlite \
+  "SELECT group_id,rate,median_length FROM metadata WHERE group_id='6005769at2759';"
+```
+
+Focused validation:
+`python3 -m unittest discover -s support_scripts/orthodb -p 'test_fetch_v13_metadata.py' -v`.

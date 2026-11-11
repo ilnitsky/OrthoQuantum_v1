@@ -7,4 +7,4 @@ COPY . .
 ENV HOST=0.0.0.0 PORT=8051 PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 USER 1000:1000
 EXPOSE 8051
-CMD ["node", "--max-old-space-size=192", "server.mjs"]
+CMD ["node", "--max-old-space-size=512", "server.mjs"]

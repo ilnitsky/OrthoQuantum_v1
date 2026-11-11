@@ -1,5 +1,7 @@
+from query_input import parse_inputs
 """Isolated, read-only SQLite adapter. NDJSON progress in; no Dash/Redis imports."""
 import csv
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 import hashlib
 import json
@@ -13,12 +15,16 @@ import time
 import urllib.parse
 import xml.etree.ElementTree as ET
 
+from v13_catalog import catalog as v13_catalog
+
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / 'public/data'
 TREES = json.loads((DATA / 'trees.json').read_text())
 DB_PATH = Path(os.environ.get('ORTHODB_PATH', '/home/ilnitsky/PANTHERDB/orthodb.db'))
 PANTHER_PATH = Path(os.environ.get('PANTHER_PATH', '/home/ilnitsky/PANTHERDB/panther.sqlite'))
 RELEASE = os.environ.get('ORTHODB_RELEASE', 'v11')
+LEVELS_PATH = Path(os.environ.get('ORTHODB_LEVELS_PATH', str(DB_PATH.with_name('orthodb_v13_levels.sqlite'))))
+V13_TREES = v13_catalog(TREES) if RELEASE == 'v13' else None
 COMMON = (9606, 10090, 7955, 7227, 6239, 10116, 9031, 8364, 4932, 3702)
 TRANSLATION = {441894:8801,381198:8845,216574:8962,74533:9694,62698:9708,310752:9767,127582:9778,73337:9807,1230840:9818,43346:9901,299123:40157,556262:100884,319938:288004,1841481:302047,1505932:408180,595593:656366,667632:863227,1336249:1367849,1220582:1368415,1834200:1796646,1166016:1905730}
 
@@ -29,26 +35,47 @@ def emit(kind, **values):
 
 def leaves(node):
     if not node.get('children'):
-        return [{'id': str(node['id']), 'name': node['name']}] if node.get('id') else []
+        return [{'id': str(node['id']), 'name': node['name'], **{key:node[key] for key in ('organismId','assembly','genomeCount','ncbiTaxid','ncbiScientificName','taxonomyStatus','inferredPlacement','placement','placementRank','placementName') if key in node}}] if node.get('id') else []
     return [leaf for child in node['children'] for leaf in leaves(child)]
 
 
 def get_tree(tree_id):
-    tree = next((t for t in TREES if t['id'] == str(tree_id)), None)
+    tree = next((t for t in (V13_TREES or TREES) if t['id'] == str(tree_id)), None)
     if tree is None:
         raise ValueError('Unknown tree selection')
     return tree
 
 
+class QueryBudgetConnection(sqlite3.Connection):
+    """Limit each SQL statement, excluding upstream requests and Python work."""
+    def execute(self, *args, **kwargs):
+        self.query_deadline=time.monotonic()+120
+        return super().execute(*args, **kwargs)
+
+
 def connect(path):
     if not path.is_file():
         raise ValueError(f'Reference database is unavailable: {path.name}. Bundled demos and file import still work.')
-    conn = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)
+    conn = sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True, factory=QueryBudgetConnection)
     conn.execute('PRAGMA query_only=ON')
     conn.execute('PRAGMA cache_size=-16384')
-    deadline = time.monotonic() + 120
-    conn.set_progress_handler(lambda: int(time.monotonic() > deadline), 10000)
+    if path.resolve() == DB_PATH.resolve() and RELEASE == 'v13' and LEVELS_PATH.is_file():
+        manifest_path = Path(str(LEVELS_PATH)+'.json')
+        if manifest_path.is_file():
+            manifest=json.loads(manifest_path.read_text());base=DB_PATH.stat()
+            if manifest.get('status')=='complete' and manifest.get('release')=='v13' and manifest.get('quickCheck')=='ok' and manifest.get('base')=={'bytes':base.st_size,'mtimeNs':base.st_mtime_ns}:
+                conn.execute('ATTACH DATABASE ? AS extra',(LEVELS_PATH.resolve().as_uri()+'?mode=ro',))
+    conn.set_progress_handler(lambda: int(time.monotonic() > conn.query_deadline), 10000)
     return conn
+
+
+def membership_table(conn, clade):
+    attached=any(row[1]=='extra' for row in conn.execute('PRAGMA database_list'))
+    if attached and conn.execute('SELECT 1 FROM extra.levels WHERE level_id=?',(clade,)).fetchone():
+        return 'extra.orthodb_to_og'
+    if RELEASE=='v13' and not conn.execute('SELECT 1 FROM main.levels WHERE level_id=?',(clade,)).fetchone():
+        raise ValueError('This v13 orthology level is not available yet. Refresh after its supplement is published.')
+    return 'main.orthodb_to_og'
 
 
 def panther_reference():
@@ -82,42 +109,150 @@ def panther_reference():
 
 
 def config():
+    if RELEASE == 'v13':
+        report_path = Path(str(DB_PATH)+'.build.json')
+        report = json.loads(report_path.read_text())
+        if report.get('status') != 'complete' or report.get('release') != 'odb13v0' or report.get('quick_check') != 'ok' or not report.get('schema_matches_reference'):
+            raise ValueError('OrthoDB v13 has not passed publication validation')
+    with connect(DB_PATH) as conn:
+        supported = {row[0] for row in conn.execute('SELECT level_id FROM levels')}
+        if any(row[1]=='extra' for row in conn.execute('PRAGMA database_list')):
+            supported.update(row[0] for row in conn.execute('SELECT level_id FROM extra.levels'))
     result = []
-    for tree in TREES:
-        if tree['id'] == 'panther':
+    for tree in (V13_TREES or TREES):
+        if tree['id'] == 'panther' or tree['clade'] not in supported:
             continue
         species = [s for s in leaves(tree['tree']) if s['id'].isdigit()]
         species.sort(key=lambda s: (COMMON.index(int(s['id'])) if s['id'].isdigit() and int(s['id']) in COMMON else len(COMMON), s['name'].lower()))
-        result.append({'id': tree['id'], 'name': tree['name'], 'clade': tree['clade'], 'species': species})
+        result.append({'id': tree['id'], 'name': tree['name'], 'clade': tree['clade'], 'species': species, 'promoted':tree.get('promoted',True), 'treeKind':tree.get('treeKind','Curated topology'), 'genomeCount':tree.get('genomeCount'), 'representativePolicy':tree.get('representativePolicy')})
     reference = panther_reference()
-    return {'trees': result, 'databaseAvailable': DB_PATH.is_file(), 'pantherAvailable': reference['database'].is_file(), 'pantherRelease': reference['release'], 'pantherOrthologsAvailable': bool(reference['relationships'] and reference['relationships'].is_file()), 'release': RELEASE}
+    return {'trees': result, 'databaseAvailable': DB_PATH.is_file(), 'pantherAvailable': reference['database'].is_file(), 'pantherRelease': reference['release'], 'pantherOrthologsAvailable': bool(reference['relationships'] and reference['relationships'].is_file()), 'release': RELEASE, 'timetreeAvailable':any(t.get('branchLengths') for t in (V13_TREES or []))}
 
 
-def remote_search(query, clade, taxid):
-    # Hostnames/paths are fixed. Inputs enter only URL-encoded query parameters.
+def remote_search(query, clade, taxid, limit=100):
+    # Fixed endpoint; retrieve additional pages when the requested limit exceeds the upstream page size.
     if not re.fullmatch(r'v\d+', RELEASE):
         raise ValueError('Invalid configured OrthoDB release')
-    url = f'https://data.orthodb.org/{RELEASE}/search?' + urllib.parse.urlencode({'query': query, 'level': clade, 'species': taxid, 'take': 100})
-    command = ['curl', '--fail', '--silent', '--show-error', '--max-time', '25', '--max-filesize', '4000000']
-    proxy = os.environ.get('ORTHODB_PROXY', '')
-    if proxy:
-        command += ['--proxy', proxy]
-    raw = subprocess.run(command + [url], capture_output=True, timeout=30, check=True).stdout
-    data = json.loads(raw)
-    if data.get('status') != 'ok':
-        raise ValueError('OrthoDB search did not return a successful response')
-    return data.get('bigdata') or [], int(data.get('count') or 0)
+    records, seen, total = [], set(), 0
+    while len(records) < limit:
+        parameters = {'query': query, 'level': clade, 'species': taxid,
+                      'take': min(1000, limit-len(records)), 'skip': len(records)}
+        url = f'https://data.orthodb.org/{RELEASE}/search?' + urllib.parse.urlencode(parameters)
+        command = ['curl', '--fail', '--silent', '--show-error', '--max-time', '25', '--max-filesize', '4000000']
+        proxy = os.environ.get('ORTHODB_PROXY', '')
+        if proxy:
+            command += ['--proxy', proxy]
+        raw = subprocess.run(command + [url], capture_output=True, timeout=30, check=True).stdout
+        data = json.loads(raw)
+        if data.get('status') != 'ok':
+            raise ValueError('OrthoDB search did not return a successful response')
+        total = int(data.get('count') or 0)
+        page = data.get('bigdata') or []
+        fresh = [r for r in page if r.get('id') not in seen]
+        if not fresh:
+            break
+        for record in fresh:
+            if record.get('id') not in seen:
+                seen.add(record.get('id'));records.append(record)
+                if len(records) == limit:
+                    break
+        if len(records) >= total:
+            break
+    return records, total
 
 
-def reference_names(conn, group_id, taxid):
-    cluster, clade = map(int, group_id.split('at'))
-    ids = sorted({g for (g,) in conn.execute('SELECT orthodb_id FROM orthodb_to_og WHERE clade=? AND cluster_id=?', (clade, cluster)) if g >> 32 == taxid})
-    names = set()
-    for start in range(0, len(ids), 500):
-        batch = ids[start:start + 500]
-        names.update(name for (name,) in conn.execute('SELECT gene_name FROM genes WHERE orthodb_id IN (' + ','.join('?' for _ in batch) + ')', batch) if name)
-    # Split legacy synonyms so individual PANTHER gene links remain usable.
-    return sorted({part.strip() for name in names for part in name.split(';') if part.strip()})
+def lookup_index(conn, table, column):
+    """Pin lookups to existing indexes; never add live indexes."""
+    schema, name=table.split('.')
+    for index in conn.execute(f'PRAGMA {schema}.index_list("{name}")').fetchall():
+        escaped=index[1].replace('"','""')
+        columns=conn.execute(f'PRAGMA {schema}.index_info("{escaped}")').fetchall()
+        if columns and columns[0][2]==column:return f' INDEXED BY "{escaped}"'
+    return ''  # Tiny unindexed fixtures / legacy schema compatibility.
+
+
+def reference_name_lookup(conn, taxid, organism_id=None):
+    """Load reference names once; read/cache contiguous membership groups."""
+    if organism_id:
+        tax, suffix=map(int,organism_id.split('_'));lower=tax<<32|suffix<<24;upper=lower+(1<<24)
+    else:lower=taxid<<32;upper=(taxid+1)<<32
+    genes={}
+    hint=lookup_index(conn,'main.genes','orthodb_id')
+    for gene,name in conn.execute(f'SELECT orthodb_id,gene_name FROM main.genes{hint} WHERE orthodb_id>=? AND orthodb_id<?',(lower,upper)):
+        if name:genes.setdefault(gene,set()).update(part.strip() for part in name.split(';') if part.strip())
+    groups={};tables={}
+    def lookup(group_id):
+        cluster,clade=map(int,group_id.split('at'))
+        if group_id not in groups:
+            names=set()
+            if genes:
+                if clade not in tables:
+                    table=membership_table(conn,clade)
+                    # Group rows are contiguous in the original import. A gene-ID
+                    # range needs scattered table reads across every ancestor level.
+                    hint=lookup_index(conn,table,'cluster_id')
+                    if not hint:
+                        schema,table_name=table.split('.')
+                        for index in conn.execute(f'PRAGMA {schema}.index_list("{table_name}")').fetchall():
+                            escaped=index[1].replace('"','""');columns=conn.execute(f'PRAGMA {schema}.index_info("{escaped}")').fetchall()
+                            if [c[2] for c in columns[:2]]==['clade','cluster_id']:hint=f' INDEXED BY "{escaped}"';break
+                    tables[clade]=(table,hint)
+                table,hint=tables[clade]
+                for (gene,) in conn.execute(f'SELECT orthodb_id FROM {table}{hint} WHERE clade=? AND cluster_id=?',(clade,cluster)):
+                    if gene in genes:names.update(genes[gene])
+            groups[group_id]=sorted(names)
+        return groups[group_id]
+
+    return lookup
+
+
+def reference_names(conn, group_id, taxid, organism_id=None):
+    return reference_name_lookup(conn,taxid,organism_id)(group_id)
+
+
+def identifier_column(query):
+    if re.fullmatch(r'(?:\d+at\d+|ko\d{5}|K\d{5}|IPR\d+|GO:\d+)',query,re.I):return None
+    return 'uniprot_id' if re.fullmatch(r'(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})',query) else 'gene_name'
+
+
+def batch_local_matches(conn, inputs, table, clade, lower, upper, limit, symbols_only=False):
+    if len(inputs)>400:
+        combined={}
+        for start in range(0,len(inputs),400):combined.update(batch_local_matches(conn,inputs[start:start+400],table,clade,lower,upper,limit,symbols_only))
+        return combined
+    matches={query:[] for query in inputs}
+    for column in ('gene_name','uniprot_id'):
+        values=[query for query in inputs if ('gene_name' if symbols_only else identifier_column(query))==column]
+        if not values:continue
+        genes_hint=lookup_index(conn,'main.genes',column);member_hint=lookup_index(conn,table,'orthodb_id')
+        marks=','.join('?' for _ in values)
+        # Keep the indexed identifier lookup as the outer loop. Never begin with
+        # a scan of every membership at the selected clade.
+        sql=f'SELECT DISTINCT g.{column},m.cluster_id FROM main.genes AS g{genes_hint} CROSS JOIN {table} AS m{member_hint} WHERE g.{column} IN ({marks}) AND g.orthodb_id>=? AND g.orthodb_id<? AND m.orthodb_id=g.orthodb_id AND m.clade=?'
+        for query,cluster in conn.execute(sql,[*values,lower,upper,clade]):
+            if len(matches[query])<=limit:matches[query].append({'id':f'{cluster}at{clade}'})
+    return matches
+
+
+def choose_candidates(resolved, inputs, limit):
+    valid={query:[r for r in resolved[query] if re.fullmatch(r'\d+at\d+',r.get('id','')) and r.get('public_id',r.get('id'))==r.get('id')] for query in inputs}
+    # Reserve findings across inputs before adding further hits for a broad
+    # query. An old alias returning hundreds must not hide later exact symbols.
+    allowed=set()
+    for rank in range(max((len(rows) for rows in valid.values()),default=0)):
+        for query in inputs:
+            if rank<len(valid[query]):allowed.add(valid[query][rank]['id'])
+            if len(allowed)>=limit:break
+        if len(allowed)>=limit:break
+    records={}
+    for query in inputs:
+        for row in valid[query]:
+            group=row['id']
+            if group not in allowed:continue
+            record=records.setdefault(group,{**row,'queries':[]})
+            if query not in record['queries']:record['queries'].append(query)
+    truncated=len({row['id'] for rows in valid.values() for row in rows})>limit
+    return records,truncated
 
 
 def resolve(request):
@@ -125,75 +260,96 @@ def resolve(request):
     taxid = int(request.get('taxid', 9606))
     if str(taxid) not in {s['id'] for s in leaves(tree['tree'])}:
         raise ValueError('Reference organism must belong to the selected tree')
-    inputs = list(dict.fromkeys(v.strip() for v in str(request.get('inputs', '')).splitlines() if v.strip() and not v.lstrip().startswith('#')))
-    if not inputs or len(inputs) > 50 or any(len(q) > 150 for q in inputs):
-        raise ValueError('Enter 1–50 identifiers, one per line (maximum 150 characters each).')
+    query_type = request.get('queryType', 'auto')
+    inputs = parse_inputs(request.get('inputs', ''), query_type)
+    selected=next(s for s in leaves(tree['tree']) if s['id']==str(taxid))
+    organism=selected.get('organismId')
+    lower=((int(organism.split('_')[0])<<32)|(int(organism.split('_')[1])<<24)) if organism else taxid<<32
+    upper=lower+(1<<24 if organism else 1<<32)
+    raw_limit = str(request.get('maxFindings', 100))
+    if not raw_limit.isdigit() or not 1 <= int(raw_limit) <= 2500:
+        raise ValueError('Max findings must be a whole number between 1 and 2,500.')
+    limit = int(raw_limit)
     candidates, unknown, warnings = {}, [], []
+    name_lookup=None
     with connect(DB_PATH) as conn:
-        for i, query in enumerate(inputs):
-            emit('progress', message=f'Resolving {query}', current=i, total=len(inputs))
-            records = []
-            if re.fullmatch(r'\d+at\d+', query):
-                cluster, clade = map(int, query.split('at'))
-                if clade != tree['clade']:
-                    warnings.append(f'{query}: group level differs from selected tree; its membership will be filtered to that tree.')
-                if conn.execute('SELECT 1 FROM orthodb_to_og WHERE clade=? AND cluster_id=? LIMIT 1', (clade, cluster)).fetchone():
-                    records = [{'id': query}]
-            elif not re.fullmatch(r'(?:ko\d{5}|K\d{5}|IPR\d+)', query, re.I):
-                column = 'uniprot_id' if re.fullmatch(r'(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})', query) else 'gene_name'
-                local = conn.execute(f'SELECT DISTINCT m.cluster_id FROM genes g JOIN orthodb_to_og m USING(orthodb_id) WHERE g.{column}=? AND g.orthodb_id>=? AND g.orthodb_id<? AND m.clade=? LIMIT 101', (query, taxid << 32, (taxid+1) << 32, tree['clade'])).fetchall()
-                records = [{'id': f'{cluster}at{tree["clade"]}'} for (cluster,) in local]
-            if not records:
-                try:
-                    records, total = remote_search(query, tree['clade'], taxid)
-                    if total > len(records):
-                        warnings.append(f'{query}: showing {len(records)} of {total} matches; narrow the query if needed.')
-                except (subprocess.SubprocessError, ValueError, OSError) as error:
-                    warnings.append(f'{query}: online search unavailable ({type(error).__name__}).')
-            if not records:
-                unknown.append(query)
-            for record in records:
-                group_id = record.get('id', '')
-                if not re.fullmatch(r'\d+at\d+', group_id) or record.get('public_id', group_id) != group_id:
-                    continue
-                if len(candidates) >= 100 and group_id not in candidates:
-                    warnings.append('Candidate limit is 100 groups. Narrow the input for further matches.')
-                    break
-                if group_id in candidates:
-                    candidates[group_id]['queries'].append(query)
-                    continue
-                names = reference_names(conn, group_id, taxid)
-                candidates[group_id] = {'id': group_id, 'name': ', '.join(names[:5]) or record.get('name') or group_id,
-                    'genes': names, 'description': record.get('name', ''), 'queries': [query],
-                    'totalGenes': record.get('gene_count'), 'speciesPresent': record.get('present_in')}
-    return {'groups': list(candidates.values()), 'unknown': unknown, 'warnings': list(dict.fromkeys(warnings)), 'treeId': tree['id'], 'release': RELEASE}
+        selected_table=membership_table(conn,tree['clade'])
+        emit('progress',message=f'Resolving {len(inputs)} identifiers together',current=0,total=len(inputs))
+        resolved=batch_local_matches(conn,inputs,selected_table,tree['clade'],lower,upper,limit,query_type=='symbols')
+        for query in inputs:
+            if re.fullmatch(r'\d+at\d+',query):
+                cluster,clade=map(int,query.split('at'))
+                if clade!=tree['clade']:warnings.append(f'{query}: group level differs from selected tree; its membership will be filtered to that tree.')
+                if conn.execute(f'SELECT 1 FROM {membership_table(conn,clade)} WHERE clade=? AND cluster_id=? LIMIT 1',(clade,cluster)).fetchone():resolved[query]=[{'id':query}]
+        pending=[query for query in inputs if not resolved[query]] if query_type != 'symbols' else []
+        if query_type == 'symbols':
+            for query in inputs:
+                if len(resolved[query]) > 1:warnings.append(f'{query}: exact symbol maps to multiple groups; all exact groups are retained.')
+        if pending:
+            emit('progress',message=f'{len(inputs)-len(pending)} resolved locally; looking up {len(pending)} online (up to 4 together)',current=len(inputs)-len(pending),total=len(inputs))
+            outcomes={}
+            with ThreadPoolExecutor(max_workers=min(4,len(pending))) as pool:
+                futures={pool.submit(remote_search,query,tree['clade'],taxid,limit):query for query in pending}
+                for done,future in enumerate(as_completed(futures),1):
+                    query=futures[future]
+                    try:outcomes[query]=future.result()
+                    except (subprocess.SubprocessError,ValueError,OSError) as error:outcomes[query]=error
+                    emit('progress',message=f'Identifiers resolved: {len(inputs)-len(pending)+done}/{len(inputs)}',current=len(inputs)-len(pending)+done,total=len(inputs))
+            for query in pending:
+                result=outcomes[query]
+                if isinstance(result,Exception):warnings.append(f'{query}: online search unavailable ({type(result).__name__}).')
+                else:
+                    resolved[query],total=result
+                    if total>len(resolved[query]):warnings.append(f'{query}: showing {len(resolved[query])} of {total} matches; increase Max findings or narrow the query.')
+        unknown=[query for query in inputs if not resolved[query]]
+        records,truncated=choose_candidates(resolved,inputs,limit)
+        if truncated:warnings.append(f'Max findings reached ({limit}); findings are shared across input identifiers. Increase the limit or narrow broad queries for more matches.')
+        if records:
+            emit('progress',message='Loading reference-organism annotations')
+            name_lookup=reference_name_lookup(conn,taxid,organism)
+        for index,(group_id,record) in enumerate(records.items()):
+            if index%25==0:emit('progress',message=f'Preparing annotations ({index}/{len(records)})',current=index,total=len(records))
+            names=name_lookup(group_id)
+            candidates[group_id]={'id':group_id,'name':', '.join(names[:5]) or record.get('name') or group_id,
+                'genes':names,'description':record.get('name',''),'queries':record['queries'],
+                'totalGenes':record.get('gene_count'),'speciesPresent':record.get('present_in')}
+
+    return {'groups': list(candidates.values()), 'unknown': unknown, 'warnings': list(dict.fromkeys(warnings)), 'treeId': tree['id'], 'release': RELEASE, 'maxFindings': limit, 'queryType': query_type}
 
 
 def build_profiles(request):
+    if request.get('release', RELEASE) != RELEASE:
+        raise ValueError('These matches belong to another OrthoDB release. Search again before building profiles.')
     tree = get_tree(request.get('treeId', '1'))
     species = leaves(tree['tree'])
     groups = request.get('groups', [])
-    if not groups or len(groups) > 200 or any(not re.fullmatch(r'\d+at\d+', str(g.get('id'))) for g in groups):
-        raise ValueError('Choose between 1 and 200 valid orthogroups.')
+    if not groups or len(groups) > 2500 or any(not re.fullmatch(r'\d+at\d+', str(g.get('id'))) for g in groups):
+        raise ValueError('Choose between 1 and 2,500 valid orthogroups.')
     if len({g['id'] for g in groups}) != len(groups):
         raise ValueError('Duplicate group identifiers')
+    if len(species) * len(groups) > 20_000_000:
+        raise ValueError('Choose fewer groups or a smaller tree: the dataset limit is 20 million cells.')
     positions = {int(s['id']): i for i, s in enumerate(species) if s['id'].isdigit()}
+    genome_positions={(int(s['organismId'].split('_')[0])<<8)|int(s['organismId'].split('_')[1]):i for i,s in enumerate(species) if s.get('organismId')}
     counts = [[0] * len(groups) for _ in species]
     start = time.monotonic()
     with connect(DB_PATH) as conn:
         for column, group in enumerate(groups):
             emit('progress', message=f'Loading {group["id"]}', current=column, total=len(groups))
             cluster, clade = map(int, group['id'].split('at'))
-            for (gene,) in set(conn.execute('SELECT orthodb_id FROM orthodb_to_og WHERE clade=? AND cluster_id=?', (clade, cluster))):
-                taxid = TRANSLATION.get(gene >> 32, gene >> 32)
-                if taxid in positions:
-                    counts[positions[taxid]][column] += 1
+            table=membership_table(conn,clade)
+            for (gene,) in set(conn.execute(f'SELECT orthodb_id FROM {table} WHERE clade=? AND cluster_id=?', (clade, cluster))):
+                if genome_positions:
+                    row=genome_positions.get(gene>>24)
+                else:
+                    row=positions.get(TRANSLATION.get(gene >> 32, gene >> 32))
+                if row is not None:counts[row][column] += 1
     stat = DB_PATH.stat()
     return {'schemaVersion': 1, 'title': request.get('title', 'Phylogenetic profile'), 'tree': tree['tree'],
         'species': species, 'groups': groups, 'counts': counts, 'source': {'provider': 'OrthoDB', 'release': RELEASE,
-        'tree': tree['name'], 'treeId': tree['id'], 'query': request.get('inputs', ''), 'databaseFingerprint': hashlib.sha256(f'{stat.st_size}:{stat.st_mtime_ns}'.encode()).hexdigest()[:16],
+        'tree': tree['name'], 'treeId': tree['id'], 'treeKind':tree.get('treeKind','Curated topology'), 'representativePolicy':tree.get('representativePolicy'), 'availableGenomes':tree.get('genomeCount'), 'ncbiTaxonomySource':tree.get('ncbiSource'), 'timetreeSource':tree.get('timetreeSource'), 'branchLengths':tree.get('branchLengths',False), 'branchLengthUnit':tree.get('branchLengthUnit'), 'rootAgeMyr':tree.get('rootAgeMyr'), 'coverage':tree.get('coverage'), 'query': request.get('inputs', ''), 'databaseFingerprint': hashlib.sha256(f'{stat.st_size}:{stat.st_mtime_ns}'.encode()).hexdigest()[:16],
         'seconds': round(time.monotonic()-start, 3), 'generatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        'notes': ['Counts are distinct legacy-compatible genes, filtered to the selected tree. Species aliases follow the production mapping. Gene-name hover lists are omitted to avoid expensive annotation joins.']}}
+        'notes': ['Species follow the NCBI parent hierarchy and merged-taxid mapping when an NCBI snapshot is recorded; sibling clades are ordered by scientific name. Unresolved taxa are marked explicitly. Branches do not imply evolutionary distances.', 'v13 species rows use one representative clustered genome per current NCBI species, preventing alternate assemblies from inflating copy counts.', 'Counts are distinct genes from the selected representative organism IDs; alternate assemblies are excluded.' if genome_positions else 'Counts are distinct legacy-compatible genes filtered to the selected tree; historical taxonomy aliases are retained.']}}
 
 
 def panther(request):
@@ -242,7 +398,7 @@ def panther(request):
         if sub_id and str(sub_id).strip():entry['ids'].add(str(sub_id).strip())
     names = sorted((name for name in bins if name is not None), key=str.casefold)
     if None in bins:names.append(None)
-    if len(names) > 1000:raise ValueError('This family exceeds the viewer limit of 1,000 named subfamilies.')
+    if len(names) > 2500:raise ValueError('This family exceeds the viewer limit of 2,500 named subfamilies.')
     species = leaves(tree['tree']); positions = {s['id']: i for i, s in enumerate(species)}
     counts = [[0]*len(names) for _ in species];groups=[]
     family_name = next((str(row[2]).strip() for row in records if row[2]), chosen)
@@ -315,11 +471,11 @@ def panther_orthologs(request):
 
 if __name__ == '__main__':
     try:
-        request = json.loads(sys.stdin.read(1000000))
+        request = json.loads(sys.stdin.read(10_000_001))
         handler = {'config': config, 'resolve': resolve, 'profiles': build_profiles, 'panther': panther, 'panther_orthologs': panther_orthologs}.get(request.pop('action', ''))
         if handler is None:
             raise ValueError('Unknown action')
         emit('result', data=handler() if handler is config else handler(request))
     except Exception as error:
-        emit('error', message=str(error) if not isinstance(error, sqlite3.OperationalError) else 'Database read failed or exceeded the 120-second query budget: ' + str(error))
+        emit('error', message=str(error) if not isinstance(error, sqlite3.OperationalError) else 'Database read failed or exceeded the 120-second per-query budget: ' + str(error))
         sys.exit(1)

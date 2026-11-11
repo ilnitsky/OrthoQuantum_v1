@@ -10,3 +10,8 @@ test('whole SVG retains filtered species, current column order, counts and escap
   assert.match(svg,/Found in OrthoDB/);assert.match(svg,/<path[^>]+stroke=/);
   const binary=await (await wholeProfileSVG(data,prepareTree(data),[0,1],{mode:'presence'})).text();assert.doesNotMatch(binary,/>7<\/text>/);
 });
+test('branch lengths determine coordinates and undated placements remain dashed without invented lengths',async()=>{
+ const data={schemaVersion:1,title:'Timed',species:[{id:'a',name:'A'},{id:'b',name:'B'},{id:'u',name:'Unknown'}],groups:[{id:'g',name:'G'}],counts:[[1],[1],[0]],tree:{length:0,children:[{id:'a',name:'A',length:2},{id:'b',name:'B',length:8},{id:'u',name:'Unknown',length:null,inferredPlacement:true}]},source:{provider:'OrthoDB',branchLengths:true,rootAgeMyr:8}};
+ const layout=prepareTree(data);assert.equal(layout.hasLengths,true);assert.equal(layout.leaves[0].distance,2);assert.equal(layout.leaves[1].distance,8);assert.equal(layout.leaves[2].length,null);
+ const svg=await(await wholeProfileSVG(data,layout,[0])).text();assert.match(svg,/H56.25/);assert.match(svg,/stroke-dasharray="4 3"/);assert.match(svg,/TimeTree branch lengths/);assert.match(svg,/† Unknown/);
+});

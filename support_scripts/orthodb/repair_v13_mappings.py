@@ -55,7 +55,11 @@ def apply_mapping(candidate,mapping,schema,expected_rows,expected_memberships,pr
         db.execute('PRAGMA temp_store=FILE')
         db.execute('ATTACH DATABASE ? AS repaired',(mapping.resolve().as_uri()+'?mode=ro',))
         if db.execute(SCHEMA_QUERY).fetchall()!=schema:raise RuntimeError('Candidate schema changed before apply')
-        db.execute('BEGIN IMMEDIATE')
+        # SQLite 3.27 tries to write-lock every attachment for IMMEDIATE,
+        # including the intentionally read-only prepared source. Deferred BEGIN
+        # acquires the candidate's write lock on its first DROP below; all writes
+        # and rollback guarantees remain inside this one transaction.
+        db.execute('BEGIN')
         progress('Replacing genes inside one atomic transaction')
         indexes=[(name,sql) for kind,name,sql in schema if kind=='index' and name.startswith('genes_')]
         if len(indexes)!=3:raise RuntimeError('Expected three gene indexes')
@@ -119,8 +123,10 @@ def main():
         if previous and previous.get('mapping_file'):
             mapping=Path(previous['mapping_file']).resolve()
             if mapping.parent!=output.parent or mapping.name!=output.name+'.symbols.sqlite':raise RuntimeError('Invalid prepared symbols path')
-        if not previous or previous.get('phase')!='mapping_ready' or previous.get('identity')!=identity or not mapping.is_file():raise RuntimeError('Resume requires a fully prepared mapping and unchanged candidate/input')
+        readonly_before_write=bool(previous and previous.get('phase')=='applying' and previous.get('status')=='failed' and previous.get('error')=='attempt to write a readonly database')
+        if not previous or (previous.get('phase')!='mapping_ready' and not readonly_before_write) or previous.get('identity')!=identity or not mapping.is_file():raise RuntimeError('Resume requires a fully prepared mapping and unchanged candidate/input')
         report=previous
+        report.update(status='repairing',phase='mapping_ready');report.pop('error',None)
     else:
         if mapping.exists() or report_path.exists():raise RuntimeError('Mapping/report already exists; refusing to overwrite a previous repair')
         report={'status':'repairing','phase':'starting','started_unix':int(time.time()),'identity':identity,'source':str(source),'output':str(output),'stages':{}}
@@ -206,7 +212,7 @@ def main():
         os.link(candidate,output);candidate.unlink()
         report.update(status='complete',phase='published',seconds=round(time.monotonic()-started),bytes=output.stat().st_size);progress('Published validated NEW v13 candidate; live database unchanged')
         build['stages']['genes_direct_initial']=build['stages']['genes']
-        build['stages']['genes']={'rows':report['gene_rows'],'status':'complete','source':'genes summary plus dedicated gene_xrefs; authoritative gene names, fallback summary names'}
+        build['stages']['genes']={'rows':report['gene_rows'],'status':'complete','source':'v13 UniProt aliases plus NCBI gene_info exact GeneID/taxid symbols' if report.get('ncbi_source') else 'genes summary plus dedicated gene_xrefs; authoritative gene names, fallback summary names'}
         build.update(status='complete',mapping_repair=str(report_path),sample_queries=samples,quick_check='ok',schema_matches_reference=True,bytes=output.stat().st_size)
         build.pop('error',None)
         temp=Path(str(build_path)+'.tmp');temp.write_text(json.dumps(build,indent=2)+'\n');temp.replace(build_path)

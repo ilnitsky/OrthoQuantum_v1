@@ -1,10 +1,10 @@
-import {clamp,shortLabel} from './model.mjs';
+import {clamp,shortLabel,correlationAt} from './model.mjs';
 export function boundedView({zoom=1,x=0,y=0}={}){
-  zoom=clamp(Number.isFinite(zoom)?zoom:1,1,32);
+  zoom=clamp(Number.isFinite(zoom)?zoom:1,1,1024);
   return {zoom,x:clamp(Number.isFinite(x)?x:0,1-zoom,0),y:clamp(Number.isFinite(y)?y:0,1-zoom,0)};
 }
 export function zoomAt(view,factor,ax=.5,ay=.5){
-  const zoom=clamp(view.zoom*factor,1,32),scale=zoom/view.zoom;
+  const zoom=clamp(view.zoom*factor,1,1024),scale=zoom/view.zoom;
   return boundedView({zoom,x:ax-(ax-view.x)*scale,y:ay-(ay-view.y)*scale});
 }
 export function cellAt(view,x,y,n,order){
@@ -17,7 +17,6 @@ function cellRGB(v){
   const t=(v+1)/2,stops=[[33,102,172],[247,247,247],[178,24,43]],a=t<.5?0:1,f=t<.5?t*2:(t-.5)*2;
   return stops[a].map((x,i)=>Math.round(x+(stops[a+1][i]-x)*f));
 }
-function color(v){return `rgb(${cellRGB(v).join(',')})`;}
 function coefficientInk(v){
   const linear=cellRGB(v).map(channel=>{const s=channel/255;return s<=.04045?s/12.92:((s+.055)/1.055)**2.4;});
   const luminance=.2126*linear[0]+.7152*linear[1]+.0722*linear[2];
@@ -35,14 +34,23 @@ export class CorrelationViewer{
     canvas.addEventListener('keydown',e=>{if(['+','=','-','0','Home','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(e.key==='0'||e.key==='Home')this.fit();else if(e.key==='-'||e.key==='+'||e.key==='=')this.zoom(e.key==='-'?1/1.4:1.4);else{this.view=boundedView({...this.view,x:this.view.x+(e.key==='ArrowLeft' ? .1 : e.key==='ArrowRight' ? -.1 : 0),y:this.view.y+(e.key==='ArrowUp' ? .1 : e.key==='ArrowDown' ? -.1 : 0)});this.requestDraw();}}});
   }
   load(result,data){this.result=result;this.data=data;this.fit();this.setOrder(this.orderMode);}
-  setOrder(mode){this.orderMode=mode;if(!this.result)return;this.order=mode==='cluster'?this.result.order:[...this.result.matrix.keys()];this.fit();}
+  setOrder(mode){this.orderMode=mode;if(!this.result)return;this.order=mode==='cluster'?this.result.order:Array.from({length:this.result.groupCount},(_,i)=>i);this.prepareRaster();this.fit();}
+  prepareRaster(){
+    const n=this.order.length,size=Math.min(n,2048);this.raster=document.createElement('canvas');this.raster.width=this.raster.height=size;
+    const context=this.raster.getContext('2d'),pixels=context.createImageData(size,size);
+    for(let row=0;row<size;row++)for(let col=0;col<size;col++){
+      const rgb=cellRGB(correlationAt(this.result,this.order[Math.floor(col*n/size)],this.order[Math.floor(row*n/size)])),offset=(row*size+col)*4;
+      pixels.data[offset]=rgb[0];pixels.data[offset+1]=rgb[1];pixels.data[offset+2]=rgb[2];pixels.data[offset+3]=255;
+    }
+    context.putImageData(pixels,0,0);
+  }
   restore(view){this.view=boundedView(view);this.requestDraw();}
   clear(){this.result=null;this.canvas.getContext('2d').clearRect(0,0,this.canvas.width,this.canvas.height);}
   fit(){this.view=boundedView();this.hide();this.requestDraw();}
   zoom(factor,x=.5,y=.5){this.view=zoomAt(this.view,factor,x,y);this.hide();this.requestDraw();}
   point(e){const r=this.canvas.getBoundingClientRect();return{x:(e.clientX-r.left-this.pad)/this.box,y:(e.clientY-r.top-this.pad)/this.box};}
   hide(){this.tooltip.hidden=true;}
-  hover(e){if(!this.result||!this.box)return;const p=this.point(e),hit=cellAt(this.view,p.x,p.y,this.order.length,this.order);if(!hit)return this.hide();const {a,b}=hit,v=this.result.matrix[a][b];this.tooltip.textContent=`${this.data.groups[a].name}\n${this.data.groups[b].name}\nr = ${v===null?'undefined (constant profile)':v.toFixed(5)}`;this.tooltip.hidden=false;this.tooltip.style.left=Math.max(8,Math.min(e.clientX+12,innerWidth-this.tooltip.offsetWidth-12))+'px';this.tooltip.style.top=Math.max(8,Math.min(e.clientY+12,innerHeight-this.tooltip.offsetHeight-12))+'px';}
+  hover(e){if(!this.result||!this.box)return;const p=this.point(e),hit=cellAt(this.view,p.x,p.y,this.order.length,this.order);if(!hit)return this.hide();const {a,b}=hit,v=correlationAt(this.result,a,b);this.tooltip.textContent=`${this.data.groups[a].name}\n${this.data.groups[b].name}\nr = ${v===null?'undefined (constant profile)':v.toFixed(5)}`;this.tooltip.hidden=false;this.tooltip.style.left=Math.max(8,Math.min(e.clientX+12,innerWidth-this.tooltip.offsetWidth-12))+'px';this.tooltip.style.top=Math.max(8,Math.min(e.clientY+12,innerHeight-this.tooltip.offsetHeight-12))+'px';}
   requestDraw(){if(this.frame)return;this.frame=requestAnimationFrame(()=>{this.frame=null;this.draw();});}
   draw(){
     if(!this.result)return;const size=Math.floor(this.canvas.parentElement.clientWidth);if(size<120)return;
@@ -51,12 +59,16 @@ export class CorrelationViewer{
     const step=box*zoom/n,xx=col=>pad+box*x+col*step,yy=row=>pad+box*y+row*step;
     const firstCol=clamp(Math.floor(-x*n/zoom),0,n),lastCol=clamp(Math.ceil((1-x)*n/zoom),0,n),firstRow=clamp(Math.floor(-y*n/zoom),0,n),lastRow=clamp(Math.ceil((1-y)*n/zoom),0,n);
     c.save();c.beginPath();c.rect(pad,pad,box,box);c.clip();
-    for(let row=firstRow;row<lastRow;row++)for(let col=firstCol;col<lastCol;col++){c.fillStyle=color(this.result.matrix[this.order[col]][this.order[row]]);c.fillRect(xx(col),yy(row),step+.2,step+.2);}
+    c.imageSmoothingEnabled=false;
+    if(n<=2048||step<1)c.drawImage(this.raster,xx(0),yy(0),n*step,n*step);
+    else for(let row=firstRow;row<lastRow;row++)for(let col=firstCol;col<lastCol;col++){
+      const rgb=cellRGB(correlationAt(this.result,this.order[col],this.order[row]));c.fillStyle=`rgb(${rgb.join(',')})`;c.fillRect(xx(col),yy(row),step+.1,step+.1);
+    }
     // Keep dense overviews uncluttered; annotate only when a cell can hold the number.
     if(step>=32){
       c.font=`${clamp(Math.floor(step/4),9,14)}px "JetBrainsMono Nerd Font",monospace`;c.textAlign='center';c.textBaseline='middle';
       for(let row=firstRow;row<lastRow;row++)for(let col=firstCol;col<lastCol;col++){
-        const value=this.result.matrix[this.order[col]][this.order[row]],label=value===null?'—':(Math.round(value*100)/100).toFixed(2);
+        const value=correlationAt(this.result,this.order[col],this.order[row]),label=value===null?'—':(Math.round(value*100)/100).toFixed(2);
         if(c.measureText(label).width>step-4)continue;
         c.fillStyle=coefficientInk(value);c.fillText(label,xx(col+.5),yy(row+.5));
       }

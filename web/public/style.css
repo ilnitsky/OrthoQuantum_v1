@@ -23,3 +23,8 @@
 @media(max-width:760px){.hero{flex-direction:column;align-items:stretch}.hero-actions select{width:100%}.query-card{min-width:0}#resolution-summary{overflow-wrap:anywhere}}
 
 .taxon-key{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:9px}.taxon-key span{font-size:10px;color:var(--taxon-color);border-left:3px solid var(--taxon-color);padding:2px 7px;background:#faf8fb;border-radius:2px;font-weight:700}
+
+/* Keep the navigation and query menu available while browsing long profiles. */
+.navigation{position:sticky;top:0;z-index:50;box-shadow:0 2px 8px #44304108}
+html{scroll-padding-top:110px}
+.about-document h3,.about-document h5{scroll-margin-top:110px}
